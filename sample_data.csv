@@ -1,0 +1,5 @@
+Date,Employee_ID,Employee_Name,Team,Target,Production,AHT_Actual,AHT_Target,Quality_%,SLA_%,Attendance,Error_Count,Error_Category
+2026-07-27,EMP001,Aarav Sharma,Team A,900,910,48,50,97,99,Present,2,None
+2026-07-27,EMP005,Amit Kumar,Team B,900,780,62,50,89,93,Present,8,Geometry
+2026-07-27,EMP009,Rohit Das,Team C,900,840,54,50,94,96,Present,4,Classification
+2026-07-27,EMP013,Sahil Gupta,Team D,900,925,47,50,98,99,Present,1,None
