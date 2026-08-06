@@ -40,7 +40,20 @@ with st.sidebar:
         "AHT target",
         1, 1000, 50
     )
+company_name = st.text_input(
+    "Company Name",
+    placeholder="e.g. ABC Technologies"
+)
 
+manager_email = st.text_input(
+    "Manager Email",
+    placeholder="manager@company.com"
+)
+
+report_name = st.text_input(
+    "Report Name",
+    value="Daily Operations Report"
+)
 # -----------------------------
 # FILE UPLOAD
 # -----------------------------
