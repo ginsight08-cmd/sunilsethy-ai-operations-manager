@@ -1,4 +1,4 @@
-
+```python
 import streamlit as st
 import pandas as pd
 import requests
@@ -420,148 +420,7 @@ try:
         "🎯 AI Operations Risk Dashboard"
     )
 
-# ============================================================
-# AI EXECUTIVE SUMMARY
-# ============================================================
 
-st.divider()
-
-st.subheader("🧠 AI Executive Summary")
-
-overall = result["overall"]
-
-productivity = overall["productivity"]
-quality = overall["quality"]
-sla = overall["sla"]
-aht = overall["aht"]
-
-summary_points = []
-
-# Productivity
-if productivity < productivity_target:
-    summary_points.append(
-        f"🔴 Productivity is below target "
-        f"({productivity:.1f}% vs {productivity_target}%)."
-    )
-else:
-    summary_points.append(
-        f"🟢 Productivity is above target "
-        f"({productivity:.1f}% vs {productivity_target}%)."
-    )
-
-# Quality
-if quality < quality_target:
-    summary_points.append(
-        f"🔴 Quality is below target "
-        f"({quality:.1f}% vs {quality_target}%)."
-    )
-else:
-    summary_points.append(
-        f"🟢 Quality is meeting target "
-        f"({quality:.1f}% vs {quality_target}%)."
-    )
-
-# SLA
-if sla < sla_target:
-    summary_points.append(
-        f"🔴 SLA is below target "
-        f"({sla:.1f}% vs {sla_target}%)."
-    )
-else:
-    summary_points.append(
-        f"🟢 SLA is meeting target "
-        f"({sla:.1f}% vs {sla_target}%)."
-    )
-
-# AHT
-if aht > aht_target:
-    summary_points.append(
-        f"🟠 AHT is above target "
-        f"({aht:.1f} vs {aht_target})."
-    )
-else:
-    summary_points.append(
-        f"🟢 AHT is within target "
-        f"({aht:.1f} vs {aht_target})."
-    )
-
-
-# Overall risk calculation
-risk_count = 0
-
-if productivity < productivity_target:
-    risk_count += 1
-
-if quality < quality_target:
-    risk_count += 1
-
-if sla < sla_target:
-    risk_count += 1
-
-if aht > aht_target:
-    risk_count += 1
-
-
-if risk_count == 0:
-
-    risk_level = "🟢 LOW RISK"
-
-elif risk_count == 1:
-
-    risk_level = "🟡 MEDIUM RISK"
-
-elif risk_count == 2:
-
-    risk_level = "🟠 HIGH RISK"
-
-else:
-
-    risk_level = "🔴 CRITICAL RISK"
-
-
-# Display risk
-st.metric(
-    "Operational Risk Level",
-    risk_level
-)
-
-
-# Display findings
-for point in summary_points:
-
-    st.write(point)
-
-
-# Executive recommendation
-if risk_count == 0:
-
-    recommendation = (
-        "Operations are currently performing within "
-        "defined KPI thresholds. Continue monitoring "
-        "performance and maintain current processes."
-    )
-
-elif risk_count <= 2:
-
-    recommendation = (
-        "Management should review the affected KPIs, "
-        "identify contributing operational factors, "
-        "and initiate targeted corrective actions."
-    )
-
-else:
-
-    recommendation = (
-        "Immediate management attention is recommended. "
-        "Multiple KPI thresholds are currently breached. "
-        "Prioritize root-cause analysis and corrective "
-        "actions."
-    )
-
-
-st.info(
-    f"💡 **Management Recommendation:** {recommendation}"
-)
     # --------------------------------------------------------
     # KPI VALUES
     # --------------------------------------------------------
@@ -1243,4 +1102,4 @@ except Exception as e:
     st.error(
         f"❌ Could not process the file: {e}"
     )
-
+```
