@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import requests
@@ -24,7 +25,8 @@ st.title("🤖 AI Operations Manager")
 
 st.caption(
     "Upload operational data → analyze performance → "
-    "identify risks → create actions → send management report."
+    "identify risks → create actions → ask AI → "
+    "send management report."
 )
 
 
@@ -74,12 +76,14 @@ st.subheader("🏢 Customer Information")
 col1, col2 = st.columns(2)
 
 with col1:
+
     company_name = st.text_input(
         "Company Name",
         placeholder="e.g. ABC Technologies"
     )
 
 with col2:
+
     manager_email = st.text_input(
         "Manager Email",
         placeholder="manager@company.com"
@@ -99,6 +103,7 @@ uploaded = st.file_uploader(
     "📁 Upload Excel or CSV operational data",
     type=["xlsx", "xls", "csv"]
 )
+
 
 if not uploaded:
 
@@ -126,6 +131,9 @@ if "n8n_sent" not in st.session_state:
 
 if "n8n_result" not in st.session_state:
     st.session_state.n8n_result = None
+
+if "copilot_answer" not in st.session_state:
+    st.session_state.copilot_answer = None
 
 
 # ============================================================
@@ -216,7 +224,6 @@ if not st.session_state.n8n_sent:
                         "report_name": report_name
                     }
 
-                # Sometimes n8n returns a list
                 if isinstance(n8n_result, list) and len(n8n_result) > 0:
                     n8n_result = n8n_result[0]
 
@@ -363,8 +370,6 @@ try:
     )
 
 
-    # KPI gaps
-
     productivity_gap = (
         productivity - productivity_target
     )
@@ -382,7 +387,9 @@ try:
     )
 
 
-    # KPI breach count
+    # ========================================================
+    # KPI BREACH COUNT
+    # ========================================================
 
     breaches = 0
 
@@ -399,7 +406,9 @@ try:
         breaches += 1
 
 
-    # Risk level
+    # ========================================================
+    # RISK LEVEL
+    # ========================================================
 
     if breaches >= 3:
 
@@ -414,7 +423,9 @@ try:
         dashboard_risk = "🟢 LOW"
 
 
-    # Actions
+    # ========================================================
+    # ACTION COUNTS
+    # ========================================================
 
     actions_df = result.get(
         "actions",
@@ -422,12 +433,13 @@ try:
     )
 
     if isinstance(actions_df, pd.DataFrame):
+
         action_count = len(actions_df)
+
     else:
+
         action_count = 0
 
-
-    # High priority actions
 
     high_priority_count = 0
 
@@ -556,11 +568,8 @@ try:
         "🧠 AI Executive Summary"
     )
 
-
     summary_points = []
 
-
-    # Productivity
 
     if productivity < productivity_target:
 
@@ -577,8 +586,6 @@ try:
         )
 
 
-    # Quality
-
     if quality < quality_target:
 
         summary_points.append(
@@ -593,8 +600,6 @@ try:
             f"({quality:.1f}% vs {quality_target}%)."
         )
 
-
-    # SLA
 
     if sla < sla_target:
 
@@ -611,8 +616,6 @@ try:
         )
 
 
-    # AHT
-
     if aht > aht_target:
 
         summary_points.append(
@@ -628,10 +631,9 @@ try:
         )
 
 
-    # Overall risk
+    # Risk level
 
     risk_count = breaches
-
 
     if risk_count == 0:
 
@@ -656,14 +658,14 @@ try:
     )
 
 
-    # Display findings
-
     for point in summary_points:
 
         st.write(point)
 
 
-    # Recommendation
+    # ========================================================
+    # MANAGEMENT RECOMMENDATION
+    # ========================================================
 
     if risk_count == 0:
 
@@ -706,7 +708,8 @@ try:
     )
 
     st.caption(
-        "Ask questions about the uploaded operational data."
+        "Ask questions about your operational data "
+        "and receive an AI-generated management response."
     )
 
 
@@ -714,24 +717,52 @@ try:
         "Ask your operational question",
         placeholder=(
             "Example: Why is Quality below target?"
-        )
+        ),
+        key="copilot_question"
     )
 
 
-    if question:
+    ask_copilot = st.button(
+        "🚀 Ask Management Copilot",
+        type="primary"
+    )
 
-        findings_text = result["findings"].to_string(
-            index=False
+
+    # ========================================================
+    # CALL N8N COPILOT
+    # ========================================================
+
+    if ask_copilot and question.strip():
+
+        copilot_url = st.secrets.get(
+            "N8N_COPILOT_WEBHOOK_URL",
+            ""
         )
 
-        actions_text = result["actions"].to_string(
-            index=False
-        )
+
+        if not copilot_url:
+
+            st.error(
+                "❌ N8N_COPILOT_WEBHOOK_URL is not configured "
+                "in Streamlit secrets."
+            )
+
+        else:
+
+            findings_text = result["findings"].to_string(
+                index=False
+            )
+
+            actions_text = result["actions"].to_string(
+                index=False
+            )
 
 
-        copilot_context = f"""
-You are an AI Operations Management Copilot.
+            # ------------------------------------------------
+            # BUILD COPILOT CONTEXT
+            # ------------------------------------------------
 
+            copilot_context = f"""
 Company:
 {company_name}
 
@@ -752,47 +783,179 @@ SLA:
 Average AHT:
 {aht:.2f} | Target: {aht_target}
 
+Overall Risk:
+{risk_level}
+
 Operational Findings:
 {findings_text}
 
 Recommended Actions:
 {actions_text}
 
-Manager Question:
-{question}
-
-Provide a concise management-level answer.
-
-Your answer must contain:
-
-1. What is happening
-2. Possible contributing factors
-3. Recommended action
-4. Priority
-5. Suggested owner
-6. Suggested timeline
-
-Do not invent facts that are not supported
-by the operational data.
-
-Clearly label assumptions as assumptions.
+KPI Summary:
+{chr(10).join(summary_points)}
 """
 
+
+            # ------------------------------------------------
+            # JSON PAYLOAD
+            # ------------------------------------------------
+
+            copilot_payload = {
+
+                "question": question.strip(),
+
+                "company_name": company_name.strip(),
+
+                "report_name": report_name.strip(),
+
+                "context": copilot_context
+
+            }
+
+
+            # ------------------------------------------------
+            # SEND TO N8N
+            # ------------------------------------------------
+
+            try:
+
+                with st.spinner(
+                    "🤖 Management Copilot is analyzing your question..."
+                ):
+
+                    copilot_response = requests.post(
+
+                        copilot_url,
+
+                        json=copilot_payload,
+
+                        timeout=120
+
+                    )
+
+
+                # ------------------------------------------------
+                # SUCCESS
+                # ------------------------------------------------
+
+                if copilot_response.status_code < 300:
+
+                    try:
+
+                        copilot_result = (
+                            copilot_response.json()
+                        )
+
+                    except Exception:
+
+                        copilot_result = {
+                            "answer":
+                                copilot_response.text
+                        }
+
+
+                    # n8n can return list
+
+                    if (
+                        isinstance(copilot_result, list)
+                        and len(copilot_result) > 0
+                    ):
+
+                        copilot_result = copilot_result[0]
+
+
+                    # ------------------------------------------------
+                    # EXTRACT ANSWER
+                    # ------------------------------------------------
+
+                    if isinstance(copilot_result, dict):
+
+                        copilot_answer = (
+
+                            copilot_result.get("answer")
+
+                            or copilot_result.get("response")
+
+                            or copilot_result.get("output")
+
+                            or copilot_result.get("text")
+
+                            or copilot_result.get("message")
+
+                        )
+
+                    else:
+
+                        copilot_answer = str(
+                            copilot_result
+                        )
+
+
+                    if not copilot_answer:
+
+                        copilot_answer = (
+                            "The AI workflow completed, "
+                            "but no answer field was returned."
+                        )
+
+
+                    st.session_state.copilot_answer = (
+                        copilot_answer
+                    )
+
+
+                else:
+
+                    st.error(
+                        f"❌ Copilot workflow failed. "
+                        f"HTTP Status: "
+                        f"{copilot_response.status_code}"
+                    )
+
+                    st.code(
+                        copilot_response.text
+                    )
+
+
+            except requests.exceptions.Timeout:
+
+                st.error(
+                    "⏱️ Management Copilot timed out. "
+                    "Please try again."
+                )
+
+
+            except Exception as e:
+
+                st.error(
+                    f"❌ Could not connect to Management Copilot: {e}"
+                )
+
+
+    elif ask_copilot and not question.strip():
+
+        st.warning(
+            "⚠️ Please enter a question first."
+        )
+
+
+    # ========================================================
+    # DISPLAY COPILOT ANSWER
+    # ========================================================
+
+    if st.session_state.copilot_answer:
 
         st.markdown(
             "### 🧠 Copilot Analysis"
         )
 
-
-        st.code(
-            copilot_context,
-            language="text"
+        st.success(
+            "✅ AI response received from n8n."
         )
 
-
-        st.info(
-            "Next step: connect this prompt to your AI model "
-            "through the existing n8n workflow."
+        st.markdown(
+            st.session_state.copilot_answer
         )
 
 
@@ -980,19 +1143,25 @@ Clearly label assumptions as assumptions.
 
         st.download_button(
             "⬇️ Download Team Analysis CSV",
+
             result["team"]
             .to_csv(index=False)
             .encode("utf-8"),
+
             "team_analysis.csv",
+
             "text/csv"
         )
 
         st.download_button(
             "⬇️ Download Action Plan CSV",
+
             result["actions"]
             .to_csv(index=False)
             .encode("utf-8"),
+
             "action_plan.csv",
+
             "text/csv"
         )
 
@@ -1006,3 +1175,4 @@ except Exception as e:
     st.error(
         f"❌ Could not process the file: {e}"
     )
+
