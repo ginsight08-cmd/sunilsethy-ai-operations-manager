@@ -1,4 +1,4 @@
-```python
+
 import streamlit as st
 import pandas as pd
 import requests
@@ -680,4 +680,4 @@ except Exception as e:
     st.error(
         f"❌ Could not process the file: {e}"
     )
-```
+
