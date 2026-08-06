@@ -1,8 +1,14 @@
-
+```python
 import streamlit as st
 import pandas as pd
 import requests
+
 from engine import analyze_data, make_ai_prompt
+
+
+# ============================================================
+# PAGE CONFIG
+# ============================================================
 
 st.set_page_config(
     page_title="AI Operations Manager",
@@ -10,70 +16,98 @@ st.set_page_config(
     layout="wide"
 )
 
+
+# ============================================================
+# HEADER
+# ============================================================
+
 st.title("🤖 AI Operations Manager")
+
 st.caption(
     "Upload operational data → analyze performance → "
-    "identify risks → create actions."
+    "identify risks → create actions → generate management report."
 )
 
-# -----------------------------
-# SETTINGS
-# -----------------------------
+
+# ============================================================
+# SIDEBAR CONTROLS
+# ============================================================
+
 with st.sidebar:
-    st.header("Controls")
+
+    st.header("⚙️ KPI Controls")
 
     productivity_target = st.number_input(
         "Productivity target %",
-        1, 200, 90
+        min_value=1,
+        max_value=200,
+        value=90
     )
 
     quality_target = st.number_input(
         "Quality target %",
-        1, 100, 95
+        min_value=1,
+        max_value=100,
+        value=95
     )
 
     sla_target = st.number_input(
         "SLA target %",
-        1, 100, 97
+        min_value=1,
+        max_value=100,
+        value=97
     )
 
     aht_target = st.number_input(
         "AHT target",
-        1, 1000, 50
+        min_value=1,
+        max_value=1000,
+        value=50
     )
 
-# -----------------------------
-# CUSTOMER DETAILS
-# -----------------------------
+
+# ============================================================
+# CUSTOMER INFORMATION
+# ============================================================
+
 st.subheader("🏢 Customer Information")
 
-company_name = st.text_input(
-    "Company Name",
-    placeholder="e.g. ABC Technologies"
-)
+col1, col2 = st.columns(2)
 
-manager_email = st.text_input(
-    "Manager Email",
-    placeholder="manager@company.com"
-)
+with col1:
+
+    company_name = st.text_input(
+        "Company Name",
+        placeholder="e.g. ABC Technologies"
+    )
+
+with col2:
+
+    manager_email = st.text_input(
+        "Manager Email",
+        placeholder="manager@company.com"
+    )
 
 report_name = st.text_input(
     "Report Name",
     value="Daily Operations Report"
 )
 
-# -----------------------------
+
+# ============================================================
 # FILE UPLOAD
-# -----------------------------
+# ============================================================
+
 uploaded = st.file_uploader(
-    "Upload Excel or CSV operational data",
+    "📂 Upload Excel or CSV operational data",
     type=["xlsx", "xls", "csv"]
 )
 
+
 if not uploaded:
+
     st.warning(
-        "Upload the Step 1 Operational_Data sheet as Excel, "
-        "or a CSV with the required columns."
+        "Upload your operational data to start the analysis."
     )
 
     st.markdown("### Required columns")
@@ -86,272 +120,564 @@ if not uploaded:
 
     st.stop()
 
-# -----------------------------
-# SEND FILE + CUSTOMER DATA TO N8N
-# -----------------------------
+
+# ============================================================
+# N8N AUTOMATION
+# ============================================================
+
 if "n8n_sent" not in st.session_state:
+
     st.session_state.n8n_sent = False
+
+
+if "n8n_result" not in st.session_state:
+
+    st.session_state.n8n_result = None
+
 
 if not st.session_state.n8n_sent:
 
-    n8n_url = st.secrets.get("N8N_WEBHOOK_URL", "")
+    n8n_url = st.secrets.get(
+        "N8N_WEBHOOK_URL",
+        ""
+    )
+
 
     if n8n_url:
 
         try:
 
-            # Validate customer details
+            # ------------------------------------------------
+            # VALIDATE CUSTOMER INFORMATION
+            # ------------------------------------------------
+
             if not company_name.strip():
 
                 st.warning(
-                    "Please enter the Company Name before uploading."
+                    "⚠️ Please enter the Company Name."
                 )
+
                 st.stop()
+
 
             if not manager_email.strip():
 
                 st.warning(
-                    "Please enter the Manager Email before uploading."
+                    "⚠️ Please enter the Manager Email."
                 )
+
                 st.stop()
+
+
+            # ------------------------------------------------
+            # PREPARE FILE
+            # ------------------------------------------------
 
             uploaded.seek(0)
 
-            # File being sent to n8n
             files = {
+
                 "file": (
                     uploaded.name,
                     uploaded.getvalue(),
-                    uploaded.type or "application/octet-stream"
+                    uploaded.type
+                    or "application/octet-stream"
                 )
+
             }
 
-            # Customer information being sent to n8n
+
+            # ------------------------------------------------
+            # PREPARE CUSTOMER DATA
+            # ------------------------------------------------
+
             data = {
-                "company_name": company_name.strip(),
-                "manager_email": manager_email.strip(),
-                "report_name": report_name.strip()
+
+                "company_name":
+                    company_name.strip(),
+
+                "manager_email":
+                    manager_email.strip(),
+
+                "report_name":
+                    report_name.strip(),
+
+                "productivity_target":
+                    productivity_target,
+
+                "quality_target":
+                    quality_target,
+
+                "sla_target":
+                    sla_target,
+
+                "aht_target":
+                    aht_target
+
             }
 
-            # Send file + customer information
-            response = requests.post(
-                n8n_url,
-                files=files,
-                data=data,
-                timeout=60
-            )
+
+            # ------------------------------------------------
+            # SEND TO N8N
+            # ------------------------------------------------
+
+            with st.spinner(
+                "🤖 Sending data to AI Operations Manager..."
+            ):
+
+                response = requests.post(
+
+                    n8n_url,
+
+                    files=files,
+
+                    data=data,
+
+                    timeout=60
+
+                )
+
+
+            # ------------------------------------------------
+            # HANDLE RESPONSE
+            # ------------------------------------------------
 
             if response.status_code < 300:
 
                 st.success(
-                    "✅ File and customer details successfully "
-                    "sent to automation workflow."
+                    "✅ File and customer details "
+                    "successfully sent to n8n."
                 )
+
+
+                # Try JSON response
+
+                try:
+
+                    n8n_result = response.json()
+
+                    st.session_state.n8n_result = (
+                        n8n_result
+                    )
+
+
+                    st.subheader(
+                        "🤖 n8n Automation Response"
+                    )
+
+                    st.json(n8n_result)
+
+
+                except Exception:
+
+                    st.session_state.n8n_result = (
+                        response.text
+                    )
+
+                    st.subheader(
+                        "🤖 n8n Automation Response"
+                    )
+
+                    st.write(response.text)
+
 
                 st.session_state.n8n_sent = True
 
+
             else:
 
-                st.warning(
-                    f"n8n received a response with status "
-                    f"{response.status_code}."
+                st.error(
+
+                    f"❌ n8n returned HTTP "
+                    f"{response.status_code}"
                 )
+
+                st.code(response.text)
+
+
+        except requests.exceptions.Timeout:
+
+            st.error(
+                "⏱️ n8n request timed out. "
+                "Please check the workflow execution."
+            )
+
+
+        except requests.exceptions.RequestException as e:
+
+            st.error(
+                f"❌ Could not connect to n8n: {e}"
+            )
+
 
         except Exception as e:
 
-            st.warning(
-                f"Could not connect to n8n: {e}"
+            st.error(
+                f"❌ Automation error: {e}"
             )
+
 
     else:
 
         st.info(
-            "n8n automation is not configured yet. "
-            "The file will still be analyzed locally."
+            "ℹ️ n8n automation is not configured. "
+            "Local analysis will still run."
         )
 
-# -----------------------------
-# READ FILE
-# -----------------------------
+
+# ============================================================
+# READ UPLOADED FILE
+# ============================================================
+
 try:
+
+    uploaded.seek(0)
+
 
     if uploaded.name.lower().endswith(".csv"):
 
         df = pd.read_csv(uploaded)
+
 
     else:
 
         xls = pd.ExcelFile(uploaded)
 
         sheet = (
+
             "Operational_Data"
-            if "Operational_Data" in xls.sheet_names
+
+            if "Operational_Data"
+            in xls.sheet_names
+
             else xls.sheet_names[0]
+
         )
 
         df = pd.read_excel(
+
             uploaded,
+
             sheet_name=sheet
+
         )
 
-    # -----------------------------
-    # ANALYSIS
-    # -----------------------------
+
+    # ========================================================
+    # LOCAL ANALYSIS
+    # ========================================================
+
     result = analyze_data(
+
         df,
-        productivity_target=productivity_target,
-        quality_target=quality_target,
-        sla_target=sla_target,
-        aht_target=aht_target
+
+        productivity_target=
+            productivity_target,
+
+        quality_target=
+            quality_target,
+
+        sla_target=
+            sla_target,
+
+        aht_target=
+            aht_target
+
     )
 
-    # -----------------------------
+
+    # ========================================================
     # KPI CARDS
-    # -----------------------------
-    k1, k2, k3, k4 = st.columns(4)
-
-    k1.metric(
-        "Productivity",
-        f"{result['overall']['productivity']:.1f}%"
-    )
-
-    k2.metric(
-        "Quality",
-        f"{result['overall']['quality']:.1f}%"
-    )
-
-    k3.metric(
-        "SLA",
-        f"{result['overall']['sla']:.1f}%"
-    )
-
-    k4.metric(
-        "AHT",
-        f"{result['overall']['aht']:.1f}"
-    )
+    # ========================================================
 
     st.divider()
 
+    st.subheader("📊 Operational KPI")
+
+    k1, k2, k3, k4 = st.columns(4)
+
+
+    k1.metric(
+
+        "Productivity",
+
+        f"{result['overall']['productivity']:.1f}%",
+
+        delta=
+            f"{result['overall']['productivity'] - productivity_target:.1f}%"
+
+    )
+
+
+    k2.metric(
+
+        "Quality",
+
+        f"{result['overall']['quality']:.1f}%",
+
+        delta=
+            f"{result['overall']['quality'] - quality_target:.1f}%"
+
+    )
+
+
+    k3.metric(
+
+        "SLA",
+
+        f"{result['overall']['sla']:.1f}%",
+
+        delta=
+            f"{result['overall']['sla'] - sla_target:.1f}%"
+
+    )
+
+
+    k4.metric(
+
+        "AHT",
+
+        f"{result['overall']['aht']:.1f}",
+
+        delta=
+            f"{result['overall']['aht'] - aht_target:.1f}"
+
+    )
+
+
+    # ========================================================
+    # TABS
+    # ========================================================
+
     tabs = st.tabs([
+
         "📊 Dashboard",
+
         "🚨 AI Insights",
+
         "👥 Employee Risk",
+
         "✅ Action Center",
+
         "🧠 AI Prompt",
+
         "📥 Export"
+
     ])
 
-    # -----------------------------
+
+    # ========================================================
     # DASHBOARD
-    # -----------------------------
+    # ========================================================
+
     with tabs[0]:
 
-        st.subheader("Team Performance")
+        st.subheader(
+            "Team Performance"
+        )
+
 
         st.dataframe(
+
             result["team"],
+
             use_container_width=True
+
         )
+
+
+        st.subheader(
+            "Productivity by Team"
+        )
+
 
         st.bar_chart(
-            result["team"].set_index("Team")[
+
+            result["team"].set_index(
+                "Team"
+            )[
                 "Productivity_%"
             ]
+
         )
 
-    # -----------------------------
+
+    # ========================================================
     # AI INSIGHTS
-    # -----------------------------
+    # ========================================================
+
     with tabs[1]:
 
-        st.subheader("Automated Findings")
+        st.subheader(
+            "🚨 Automated Findings"
+        )
+
 
         if result["findings"].empty:
 
             st.success(
-                "No threshold breaches detected."
+                "✅ No threshold breaches detected."
             )
 
         else:
 
             st.dataframe(
+
                 result["findings"],
+
                 use_container_width=True
+
             )
 
+
         st.info(
-            "Root causes are evidence-based hypotheses. "
-            "The available data may not prove causality."
+
+            "Root causes are evidence-based "
+            "hypotheses. The available data "
+            "may not prove causality."
+
         )
 
-    # -----------------------------
+
+    # ========================================================
     # EMPLOYEE RISK
-    # -----------------------------
+    # ========================================================
+
     with tabs[2]:
 
-        st.subheader("Employee Risk")
-
-        st.dataframe(
-            result["employees"].sort_values(
-                ["Risk_Score", "Avg_Productivity"],
-                ascending=[False, True]
-            ),
-            use_container_width=True
+        st.subheader(
+            "👥 Employee Risk"
         )
 
-    # -----------------------------
+
+        employee_data = (
+
+            result["employees"]
+
+            .sort_values(
+
+                [
+
+                    "Risk_Score",
+
+                    "Avg_Productivity"
+
+                ],
+
+                ascending=[
+
+                    False,
+
+                    True
+
+                ]
+
+            )
+
+        )
+
+
+        st.dataframe(
+
+            employee_data,
+
+            use_container_width=True
+
+        )
+
+
+    # ========================================================
     # ACTION CENTER
-    # -----------------------------
+    # ========================================================
+
     with tabs[3]:
 
-        st.subheader("Recommended Actions")
+        st.subheader(
+            "✅ Recommended Actions"
+        )
+
 
         st.dataframe(
+
             result["actions"],
+
             use_container_width=True
+
         )
 
-    # -----------------------------
+
+    # ========================================================
     # AI PROMPT
-    # -----------------------------
+    # ========================================================
+
     with tabs[4]:
 
-        st.subheader("AI Analyst Prompt")
+        st.subheader(
+            "🧠 AI Analyst Prompt"
+        )
+
 
         st.code(
+
             make_ai_prompt(result),
+
             language="text"
+
         )
+
 
         st.caption(
-            "This prompt will later be sent automatically "
-            "to our selected AI provider."
+
+            "This prompt can be sent automatically "
+            "to the AI Operations Manager workflow."
+
         )
 
-    # -----------------------------
+
+    # ========================================================
     # EXPORT
-    # -----------------------------
+    # ========================================================
+
     with tabs[5]:
 
-        st.subheader("Download Analysis")
+        st.subheader(
+            "📥 Download Analysis"
+        )
+
 
         st.download_button(
-            "Download Team Analysis CSV",
-            result["team"].to_csv(index=False).encode("utf-8"),
+
+            "⬇️ Download Team Analysis CSV",
+
+            result["team"]
+            .to_csv(index=False)
+            .encode("utf-8"),
+
             "team_analysis.csv",
+
             "text/csv"
+
         )
 
+
         st.download_button(
-            "Download Action Plan CSV",
-            result["actions"].to_csv(index=False).encode("utf-8"),
+
+            "⬇️ Download Action Plan CSV",
+
+            result["actions"]
+            .to_csv(index=False)
+            .encode("utf-8"),
+
             "action_plan.csv",
+
             "text/csv"
+
         )
+
 
 except Exception as e:
 
     st.error(
-        f"Could not process the file: {e}"
+        f"❌ Could not process the file: {e}"
     )
-
+```
