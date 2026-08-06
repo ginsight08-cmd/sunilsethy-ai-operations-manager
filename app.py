@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 import pandas as pd
 import requests
@@ -40,6 +41,12 @@ with st.sidebar:
         "AHT target",
         1, 1000, 50
     )
+
+# -----------------------------
+# CUSTOMER DETAILS
+# -----------------------------
+st.subheader("🏢 Customer Information")
+
 company_name = st.text_input(
     "Company Name",
     placeholder="e.g. ABC Technologies"
@@ -54,6 +61,7 @@ report_name = st.text_input(
     "Report Name",
     value="Daily Operations Report"
 )
+
 # -----------------------------
 # FILE UPLOAD
 # -----------------------------
@@ -79,7 +87,7 @@ if not uploaded:
     st.stop()
 
 # -----------------------------
-# SEND FILE TO N8N
+# SEND FILE + CUSTOMER DATA TO N8N
 # -----------------------------
 if "n8n_sent" not in st.session_state:
     st.session_state.n8n_sent = False
@@ -92,8 +100,24 @@ if not st.session_state.n8n_sent:
 
         try:
 
+            # Validate customer details
+            if not company_name.strip():
+
+                st.warning(
+                    "Please enter the Company Name before uploading."
+                )
+                st.stop()
+
+            if not manager_email.strip():
+
+                st.warning(
+                    "Please enter the Manager Email before uploading."
+                )
+                st.stop()
+
             uploaded.seek(0)
 
+            # File being sent to n8n
             files = {
                 "file": (
                     uploaded.name,
@@ -102,16 +126,26 @@ if not st.session_state.n8n_sent:
                 )
             }
 
+            # Customer information being sent to n8n
+            data = {
+                "company_name": company_name.strip(),
+                "manager_email": manager_email.strip(),
+                "report_name": report_name.strip()
+            }
+
+            # Send file + customer information
             response = requests.post(
                 n8n_url,
                 files=files,
-                timeout=30
+                data=data,
+                timeout=60
             )
 
             if response.status_code < 300:
 
                 st.success(
-                    "✅ File successfully sent to automation workflow."
+                    "✅ File and customer details successfully "
+                    "sent to automation workflow."
                 )
 
                 st.session_state.n8n_sent = True
@@ -320,3 +354,4 @@ except Exception as e:
     st.error(
         f"Could not process the file: {e}"
     )
+```
