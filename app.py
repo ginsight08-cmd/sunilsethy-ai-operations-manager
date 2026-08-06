@@ -18,6 +18,26 @@ st.set_page_config(
 
 
 # ============================================================
+# SESSION STATE
+# ============================================================
+
+if "n8n_sent" not in st.session_state:
+    st.session_state.n8n_sent = False
+
+if "n8n_result" not in st.session_state:
+    st.session_state.n8n_result = None
+
+if "copilot_answer" not in st.session_state:
+    st.session_state.copilot_answer = None
+
+if "last_question" not in st.session_state:
+    st.session_state.last_question = ""
+
+if "file_name" not in st.session_state:
+    st.session_state.file_name = ""
+
+
+# ============================================================
 # HEADER
 # ============================================================
 
@@ -31,7 +51,7 @@ st.caption(
 
 
 # ============================================================
-# SIDEBAR KPI SETTINGS
+# SIDEBAR
 # ============================================================
 
 with st.sidebar:
@@ -65,6 +85,20 @@ with st.sidebar:
         max_value=1000,
         value=50
     )
+
+    st.divider()
+
+    if st.button(
+        "🔄 Reset Analysis",
+        use_container_width=True
+    ):
+
+        st.session_state.n8n_sent = False
+        st.session_state.n8n_result = None
+        st.session_state.copilot_answer = None
+        st.session_state.last_question = ""
+
+        st.rerun()
 
 
 # ============================================================
@@ -123,29 +157,38 @@ if not uploaded:
 
 
 # ============================================================
-# SESSION STATE
+# RESET WHEN NEW FILE IS UPLOADED
 # ============================================================
 
-if "n8n_sent" not in st.session_state:
+if st.session_state.file_name != uploaded.name:
+
+    st.session_state.file_name = uploaded.name
     st.session_state.n8n_sent = False
-
-if "n8n_result" not in st.session_state:
     st.session_state.n8n_result = None
-
-if "copilot_answer" not in st.session_state:
     st.session_state.copilot_answer = None
+    st.session_state.last_question = ""
 
 
 # ============================================================
-# SEND FILE + CUSTOMER DATA TO N8N
+# N8N SETTINGS
+# ============================================================
+
+n8n_url = st.secrets.get(
+    "N8N_WEBHOOK_URL",
+    ""
+)
+
+copilot_url = st.secrets.get(
+    "N8N_COPILOT_WEBHOOK_URL",
+    ""
+)
+
+
+# ============================================================
+# SEND FILE TO N8N
 # ============================================================
 
 if not st.session_state.n8n_sent:
-
-    n8n_url = st.secrets.get(
-        "N8N_WEBHOOK_URL",
-        ""
-    )
 
     if n8n_url:
 
@@ -194,7 +237,7 @@ if not st.session_state.n8n_sent:
             }
 
             with st.spinner(
-                "🤖 Sending data to AI Operations Manager..."
+                "🤖 Sending operational data to n8n..."
             ):
 
                 response = requests.post(
@@ -207,7 +250,7 @@ if not st.session_state.n8n_sent:
             if response.status_code < 300:
 
                 st.success(
-                    "✅ AI Operations Manager workflow completed."
+                    "✅ n8n operational workflow completed."
                 )
 
                 try:
@@ -218,16 +261,24 @@ if not st.session_state.n8n_sent:
 
                     n8n_result = {
                         "status": "success",
-                        "message": "Workflow completed successfully.",
+                        "message": response.text,
                         "company_name": company_name,
                         "manager_email": manager_email,
                         "report_name": report_name
                     }
 
-                if isinstance(n8n_result, list) and len(n8n_result) > 0:
+                if isinstance(
+                    n8n_result,
+                    list
+                ) and len(n8n_result) > 0:
+
                     n8n_result = n8n_result[0]
 
-                if not isinstance(n8n_result, dict):
+                if not isinstance(
+                    n8n_result,
+                    dict
+                ):
+
                     n8n_result = {}
 
                 st.session_state.n8n_result = n8n_result
@@ -240,7 +291,9 @@ if not st.session_state.n8n_sent:
                     f"HTTP Status: {response.status_code}"
                 )
 
-                st.code(response.text)
+                st.code(
+                    response.text
+                )
 
         except requests.exceptions.Timeout:
 
@@ -249,7 +302,7 @@ if not st.session_state.n8n_sent:
                 "The workflow may still be running."
             )
 
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
 
             st.error(
                 f"❌ Could not connect to n8n: {e}"
@@ -258,13 +311,13 @@ if not st.session_state.n8n_sent:
     else:
 
         st.info(
-            "ℹ️ n8n automation is not configured. "
-            "The file will still be analyzed locally."
+            "ℹ️ N8N_WEBHOOK_URL is not configured. "
+            "Continuing with local analysis."
         )
 
 
 # ============================================================
-# N8N AUTOMATION RESULT
+# N8N AUTOMATION STATUS
 # ============================================================
 
 if st.session_state.n8n_result:
@@ -273,7 +326,9 @@ if st.session_state.n8n_result:
 
     st.divider()
 
-    st.subheader("🤖 Automation Status")
+    st.subheader(
+        "🤖 Automation Status"
+    )
 
     status_col1, status_col2, status_col3 = st.columns(3)
 
@@ -291,7 +346,7 @@ if st.session_state.n8n_result:
         )
 
         st.info(
-            f"📧 Report sent to:\n\n{email_display}"
+            f"📧 Manager\n\n{email_display}"
         )
 
     with status_col3:
@@ -302,7 +357,7 @@ if st.session_state.n8n_result:
         )
 
         st.info(
-            f"🏢 Company:\n\n{company_display}"
+            f"🏢 Company\n\n{company_display}"
         )
 
 
@@ -316,17 +371,23 @@ try:
 
     if uploaded.name.lower().endswith(".csv"):
 
-        df = pd.read_csv(uploaded)
+        df = pd.read_csv(
+            uploaded
+        )
 
     else:
 
-        xls = pd.ExcelFile(uploaded)
-
-        sheet = (
-            "Operational_Data"
-            if "Operational_Data" in xls.sheet_names
-            else xls.sheet_names[0]
+        xls = pd.ExcelFile(
+            uploaded
         )
+
+        if "Operational_Data" in xls.sheet_names:
+
+            sheet = "Operational_Data"
+
+        else:
+
+            sheet = xls.sheet_names[0]
 
         df = pd.read_excel(
             uploaded,
@@ -335,7 +396,7 @@ try:
 
 
     # ========================================================
-    # ANALYSIS
+    # ANALYZE DATA
     # ========================================================
 
     result = analyze_data(
@@ -348,27 +409,31 @@ try:
 
 
     # ========================================================
-    # GET KPI VALUES
+    # KPI VALUES
     # ========================================================
 
     overall = result["overall"]
 
-    productivity = overall["productivity"]
-    quality = overall["quality"]
-    sla = overall["sla"]
-    aht = overall["aht"]
-
-
-    # ========================================================
-    # AI RISK DASHBOARD
-    # ========================================================
-
-    st.divider()
-
-    st.subheader(
-        "🎯 AI Operations Risk Dashboard"
+    productivity = float(
+        overall["productivity"]
     )
 
+    quality = float(
+        overall["quality"]
+    )
+
+    sla = float(
+        overall["sla"]
+    )
+
+    aht = float(
+        overall["aht"]
+    )
+
+
+    # ========================================================
+    # KPI GAPS
+    # ========================================================
 
     productivity_gap = (
         productivity - productivity_target
@@ -407,7 +472,7 @@ try:
 
 
     # ========================================================
-    # RISK LEVEL
+    # DASHBOARD RISK
     # ========================================================
 
     if breaches >= 3:
@@ -432,9 +497,14 @@ try:
         pd.DataFrame()
     )
 
-    if isinstance(actions_df, pd.DataFrame):
+    if isinstance(
+        actions_df,
+        pd.DataFrame
+    ):
 
-        action_count = len(actions_df)
+        action_count = len(
+            actions_df
+        )
 
     else:
 
@@ -466,7 +536,9 @@ try:
 
             high_priority_count = len(
                 actions_df[
-                    actions_df[priority_column]
+                    actions_df[
+                        priority_column
+                    ]
                     .astype(str)
                     .str.lower()
                     .isin(
@@ -480,8 +552,14 @@ try:
 
 
     # ========================================================
-    # RISK CARDS
+    # RISK DASHBOARD
     # ========================================================
+
+    st.divider()
+
+    st.subheader(
+        "🎯 AI Operations Risk Dashboard"
+    )
 
     r1, r2, r3, r4 = st.columns(4)
 
@@ -559,7 +637,7 @@ try:
 
 
     # ========================================================
-    # AI EXECUTIVE SUMMARY
+    # EXECUTIVE SUMMARY
     # ========================================================
 
     st.divider()
@@ -575,14 +653,16 @@ try:
 
         summary_points.append(
             f"🔴 Productivity is below target "
-            f"({productivity:.1f}% vs {productivity_target}%)."
+            f"({productivity:.1f}% vs "
+            f"{productivity_target}%)."
         )
 
     else:
 
         summary_points.append(
             f"🟢 Productivity is above target "
-            f"({productivity:.1f}% vs {productivity_target}%)."
+            f"({productivity:.1f}% vs "
+            f"{productivity_target}%)."
         )
 
 
@@ -590,14 +670,16 @@ try:
 
         summary_points.append(
             f"🔴 Quality is below target "
-            f"({quality:.1f}% vs {quality_target}%)."
+            f"({quality:.1f}% vs "
+            f"{quality_target}%)."
         )
 
     else:
 
         summary_points.append(
             f"🟢 Quality is meeting target "
-            f"({quality:.1f}% vs {quality_target}%)."
+            f"({quality:.1f}% vs "
+            f"{quality_target}%)."
         )
 
 
@@ -605,14 +687,16 @@ try:
 
         summary_points.append(
             f"🔴 SLA is below target "
-            f"({sla:.1f}% vs {sla_target}%)."
+            f"({sla:.1f}% vs "
+            f"{sla_target}%)."
         )
 
     else:
 
         summary_points.append(
             f"🟢 SLA is meeting target "
-            f"({sla:.1f}% vs {sla_target}%)."
+            f"({sla:.1f}% vs "
+            f"{sla_target}%)."
         )
 
 
@@ -631,7 +715,9 @@ try:
         )
 
 
-    # Risk level
+    # ========================================================
+    # OPERATIONAL RISK LEVEL
+    # ========================================================
 
     risk_count = breaches
 
@@ -693,7 +779,8 @@ try:
 
 
     st.info(
-        f"💡 **Management Recommendation:** {recommendation}"
+        f"💡 **Management Recommendation:** "
+        f"{recommendation}"
     )
 
 
@@ -724,7 +811,8 @@ try:
 
     ask_copilot = st.button(
         "🚀 Ask Management Copilot",
-        type="primary"
+        type="primary",
+        use_container_width=True
     )
 
 
@@ -732,15 +820,15 @@ try:
     # CALL N8N COPILOT
     # ========================================================
 
-    if ask_copilot and question.strip():
+    if ask_copilot:
 
-        copilot_url = st.secrets.get(
-            "N8N_COPILOT_WEBHOOK_URL",
-            ""
-        )
+        if not question.strip():
 
+            st.warning(
+                "⚠️ Please enter a question first."
+            )
 
-        if not copilot_url:
+        elif not copilot_url:
 
             st.error(
                 "❌ N8N_COPILOT_WEBHOOK_URL is not configured "
@@ -749,17 +837,21 @@ try:
 
         else:
 
-            findings_text = result["findings"].to_string(
+            findings_text = result[
+                "findings"
+            ].to_string(
                 index=False
             )
 
-            actions_text = result["actions"].to_string(
+            actions_text = result[
+                "actions"
+            ].to_string(
                 index=False
             )
 
 
             # ------------------------------------------------
-            # BUILD COPILOT CONTEXT
+            # COPILOT CONTEXT
             # ------------------------------------------------
 
             copilot_context = f"""
@@ -798,45 +890,39 @@ KPI Summary:
 
 
             # ------------------------------------------------
-            # JSON PAYLOAD
+            # PAYLOAD
             # ------------------------------------------------
 
             copilot_payload = {
-
                 "question": question.strip(),
-
                 "company_name": company_name.strip(),
-
                 "report_name": report_name.strip(),
-
                 "context": copilot_context
-
             }
 
 
             # ------------------------------------------------
-            # SEND TO N8N
+            # CALL N8N
             # ------------------------------------------------
 
             try:
 
                 with st.spinner(
-                    "🤖 Management Copilot is analyzing your question..."
+                    "🤖 Management Copilot is analyzing..."
                 ):
 
                     copilot_response = requests.post(
-
                         copilot_url,
-
                         json=copilot_payload,
-
+                        headers={
+                            "Content-Type": "application/json"
+                        },
                         timeout=120
-
                     )
 
 
                 # ------------------------------------------------
-                # SUCCESS
+                # HTTP SUCCESS
                 # ------------------------------------------------
 
                 if copilot_response.status_code < 300:
@@ -847,65 +933,84 @@ KPI Summary:
                             copilot_response.json()
                         )
 
-                    except Exception:
+                    except ValueError:
 
                         copilot_result = {
                             "answer":
-                                copilot_response.text
+                            copilot_response.text
                         }
 
 
-                    # n8n can return list
+                    # n8n sometimes returns an array
 
                     if (
-                        isinstance(copilot_result, list)
+                        isinstance(
+                            copilot_result,
+                            list
+                        )
                         and len(copilot_result) > 0
                     ):
 
-                        copilot_result = copilot_result[0]
+                        copilot_result = (
+                            copilot_result[0]
+                        )
 
 
                     # ------------------------------------------------
                     # EXTRACT ANSWER
                     # ------------------------------------------------
 
-                    if isinstance(copilot_result, dict):
+                    copilot_answer = None
+
+                    if isinstance(
+                        copilot_result,
+                        dict
+                    ):
 
                         copilot_answer = (
-
                             copilot_result.get("answer")
-
                             or copilot_result.get("response")
-
                             or copilot_result.get("output")
-
                             or copilot_result.get("text")
-
                             or copilot_result.get("message")
-
                         )
 
-                    else:
+                    elif copilot_result:
 
                         copilot_answer = str(
                             copilot_result
                         )
 
 
-                    if not copilot_answer:
+                    # ------------------------------------------------
+                    # SAVE ANSWER
+                    # ------------------------------------------------
 
-                        copilot_answer = (
-                            "The AI workflow completed, "
-                            "but no answer field was returned."
+                    if copilot_answer:
+
+                        st.session_state.copilot_answer = (
+                            copilot_answer
+                        )
+
+                        st.session_state.last_question = (
+                            question.strip()
+                        )
+
+                    else:
+
+                        st.session_state.copilot_answer = (
+                            "The n8n workflow completed successfully, "
+                            "but no AI answer was returned."
                         )
 
 
-                    st.session_state.copilot_answer = (
-                        copilot_answer
-                    )
-
+                # ------------------------------------------------
+                # HTTP ERROR
+                # ------------------------------------------------
 
                 else:
+
+                    st.session_state.copilot_answer = None
 
                     st.error(
                         f"❌ Copilot workflow failed. "
@@ -914,11 +1019,14 @@ KPI Summary:
                     )
 
                     st.code(
-                        copilot_response.text
+                        copilot_response.text,
+                        language="text"
                     )
 
 
             except requests.exceptions.Timeout:
+
+                st.session_state.copilot_answer = None
 
                 st.error(
                     "⏱️ Management Copilot timed out. "
@@ -926,18 +1034,31 @@ KPI Summary:
                 )
 
 
-            except Exception as e:
+            except requests.exceptions.ConnectionError:
+
+                st.session_state.copilot_answer = None
 
                 st.error(
-                    f"❌ Could not connect to Management Copilot: {e}"
+                    "🔌 Could not connect to the n8n Copilot webhook."
                 )
 
 
-    elif ask_copilot and not question.strip():
+            except requests.exceptions.RequestException as e:
 
-        st.warning(
-            "⚠️ Please enter a question first."
-        )
+                st.session_state.copilot_answer = None
+
+                st.error(
+                    f"❌ Copilot request failed: {e}"
+                )
+
+
+            except Exception as e:
+
+                st.session_state.copilot_answer = None
+
+                st.error(
+                    f"❌ Unexpected Copilot error: {e}"
+                )
 
 
     # ========================================================
@@ -946,9 +1067,18 @@ KPI Summary:
 
     if st.session_state.copilot_answer:
 
+        st.divider()
+
         st.markdown(
             "### 🧠 Copilot Analysis"
         )
+
+        if st.session_state.last_question:
+
+            st.caption(
+                f"Question: "
+                f"{st.session_state.last_question}"
+            )
 
         st.success(
             "✅ AI response received from n8n."
@@ -1126,8 +1256,8 @@ KPI Summary:
         )
 
         st.caption(
-            "This prompt is sent automatically "
-            "to the AI Operations Manager workflow."
+            "This prompt is used by the AI Operations Manager "
+            "workflow."
         )
 
 
