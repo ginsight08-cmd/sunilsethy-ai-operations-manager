@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import requests
@@ -7,7 +6,7 @@ from engine import analyze_data, make_ai_prompt
 
 
 # ============================================================
-# PAGE CONFIG
+# PAGE CONFIGURATION
 # ============================================================
 
 st.set_page_config(
@@ -30,18 +29,7 @@ st.caption(
 
 
 # ============================================================
-# SESSION STATE
-# ============================================================
-
-if "n8n_sent" not in st.session_state:
-    st.session_state.n8n_sent = False
-
-if "n8n_result" not in st.session_state:
-    st.session_state.n8n_result = None
-
-
-# ============================================================
-# SIDEBAR - KPI TARGETS
+# SETTINGS
 # ============================================================
 
 with st.sidebar:
@@ -49,32 +37,37 @@ with st.sidebar:
     st.header("⚙️ KPI Controls")
 
     productivity_target = st.number_input(
-        "Productivity target %",
+        "Productivity Target %",
         min_value=1,
         max_value=200,
         value=90
     )
 
     quality_target = st.number_input(
-        "Quality target %",
+        "Quality Target %",
         min_value=1,
         max_value=100,
         value=95
     )
 
     sla_target = st.number_input(
-        "SLA target %",
+        "SLA Target %",
         min_value=1,
         max_value=100,
         value=97
     )
 
     aht_target = st.number_input(
-        "AHT target",
+        "AHT Target",
         min_value=1,
         max_value=1000,
         value=50
     )
+
+    st.divider()
+
+    st.caption("AI Operations Manager")
+    st.caption("Automated KPI & Risk Intelligence")
 
 
 # ============================================================
@@ -83,42 +76,43 @@ with st.sidebar:
 
 st.subheader("🏢 Customer Information")
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
-
     company_name = st.text_input(
         "Company Name",
         placeholder="e.g. ABC Technologies"
     )
 
 with col2:
-
     manager_email = st.text_input(
         "Manager Email",
         placeholder="manager@company.com"
     )
 
-report_name = st.text_input(
-    "Report Name",
-    value="Daily Operations Report"
-)
+with col3:
+    report_name = st.text_input(
+        "Report Name",
+        value="Daily Operations Report"
+    )
 
 
 # ============================================================
 # FILE UPLOAD
 # ============================================================
 
+st.subheader("📁 Upload Operational Data")
+
 uploaded = st.file_uploader(
-    "📁 Upload Excel or CSV operational data",
+    "Upload Excel or CSV operational data",
     type=["xlsx", "xls", "csv"]
 )
 
 
 if not uploaded:
 
-    st.info(
-        "Upload your operational data to start the AI analysis."
+    st.warning(
+        "Upload the operational data file to begin analysis."
     )
 
     st.markdown("### Required columns")
@@ -133,8 +127,12 @@ if not uploaded:
 
 
 # ============================================================
-# SEND FILE + CUSTOMER DATA TO N8N
+# SEND FILE + CUSTOMER DETAILS TO N8N
 # ============================================================
+
+if "n8n_sent" not in st.session_state:
+    st.session_state.n8n_sent = False
+
 
 if not st.session_state.n8n_sent:
 
@@ -145,302 +143,92 @@ if not st.session_state.n8n_sent:
 
     if n8n_url:
 
-        # ----------------------------------------
-        # Validate customer information
-        # ----------------------------------------
+        try:
 
-        if not company_name.strip():
+            # Validate company name
 
-            st.warning(
-                "⚠️ Please enter the Company Name."
-            )
+            if not company_name.strip():
 
-        elif not manager_email.strip():
-
-            st.warning(
-                "⚠️ Please enter the Manager Email."
-            )
-
-        else:
-
-            try:
-
-                uploaded.seek(0)
-
-                # ----------------------------------------
-                # FILE
-                # ----------------------------------------
-
-                files = {
-                    "file": (
-                        uploaded.name,
-                        uploaded.getvalue(),
-                        uploaded.type or "application/octet-stream"
-                    )
-                }
-
-                # ----------------------------------------
-                # CUSTOMER DATA
-                # ----------------------------------------
-
-                data = {
-                    "company_name": company_name.strip(),
-                    "manager_email": manager_email.strip(),
-                    "report_name": report_name.strip()
-                }
-
-                # ----------------------------------------
-                # SEND TO N8N
-                # ----------------------------------------
-
-                with st.spinner(
-                    "🤖 AI Operations Manager is analyzing your data..."
-                ):
-
-                    response = requests.post(
-                        n8n_url,
-                        files=files,
-                        data=data,
-                        timeout=120
-                    )
-
-                # ----------------------------------------
-                # SUCCESS
-                # ----------------------------------------
-
-                if response.status_code < 300:
-
-                    st.session_state.n8n_sent = True
-
-                    try:
-
-                        n8n_result = response.json()
-
-                        st.session_state.n8n_result = n8n_result
-
-                    except Exception:
-
-                        st.session_state.n8n_result = {
-                            "status": "success",
-                            "message": (
-                                "AI Operations Manager "
-                                "completed successfully."
-                            )
-                        }
-
-                    st.success(
-                        "✅ AI Operations Manager completed successfully!"
-                    )
-
-                # ----------------------------------------
-                # ERROR
-                # ----------------------------------------
-
-                else:
-
-                    st.error(
-                        f"❌ n8n workflow failed. "
-                        f"HTTP Status: {response.status_code}"
-                    )
-
-                    st.code(
-                        response.text
-                    )
-
-            except requests.exceptions.Timeout:
-
-                st.error(
-                    "⏱️ n8n took too long to respond. "
-                    "Please check the workflow execution."
+                st.warning(
+                    "Please enter the Company Name."
                 )
 
-            except Exception as e:
+                st.stop()
 
-                st.error(
-                    f"❌ Could not connect to n8n: {e}"
+
+            # Validate manager email
+
+            if not manager_email.strip():
+
+                st.warning(
+                    "Please enter the Manager Email."
                 )
+
+                st.stop()
+
+
+            # Reset file pointer
+
+            uploaded.seek(0)
+
+
+            # File
+
+            files = {
+                "file": (
+                    uploaded.name,
+                    uploaded.getvalue(),
+                    uploaded.type or "application/octet-stream"
+                )
+            }
+
+
+            # Customer information
+
+            data = {
+                "company_name": company_name.strip(),
+                "manager_email": manager_email.strip(),
+                "report_name": report_name.strip()
+            }
+
+
+            # Send to n8n
+
+            response = requests.post(
+                n8n_url,
+                files=files,
+                data=data,
+                timeout=60
+            )
+
+
+            if response.status_code < 300:
+
+                st.success(
+                    "✅ File and customer details sent to n8n."
+                )
+
+                st.session_state.n8n_sent = True
+
+            else:
+
+                st.warning(
+                    f"n8n returned status "
+                    f"{response.status_code}."
+                )
+
+
+        except Exception as e:
+
+            st.warning(
+                f"Could not connect to n8n: {e}"
+            )
 
     else:
 
-        st.warning(
-            "⚠️ n8n automation is not configured. "
+        st.info(
+            "n8n automation is not configured. "
             "The file will still be analyzed locally."
-        )
-
-
-# ============================================================
-# N8N RESULT DASHBOARD
-# ============================================================
-
-if st.session_state.n8n_result:
-
-    n8n_result = st.session_state.n8n_result
-
-    st.divider()
-
-    st.subheader(
-        "🤖 AI Operations Manager — Automation Result"
-    )
-
-    # ----------------------------------------
-    # STATUS
-    # ----------------------------------------
-
-    if n8n_result.get("status") == "success":
-
-        st.success(
-            "✅ Operational analysis completed "
-            "and management report sent."
-        )
-
-    else:
-
-        st.warning(
-            n8n_result.get(
-                "message",
-                "Workflow completed."
-            )
-        )
-
-    # ----------------------------------------
-    # CUSTOMER DETAILS
-    # ----------------------------------------
-
-    displayed_company = n8n_result.get(
-        "company_name",
-        company_name
-    )
-
-    displayed_email = n8n_result.get(
-        "manager_email",
-        manager_email
-    )
-
-    displayed_report = n8n_result.get(
-        "report_name",
-        report_name
-    )
-
-    info1, info2, info3 = st.columns(3)
-
-    with info1:
-
-        st.markdown(
-            f"**🏢 Company**  \n{displayed_company}"
-        )
-
-    with info2:
-
-        st.markdown(
-            f"**📧 Report Sent To**  \n{displayed_email}"
-        )
-
-    with info3:
-
-        st.markdown(
-            f"**📄 Report**  \n{displayed_report}"
-        )
-
-    st.divider()
-
-    # ----------------------------------------
-    # KPI RESULT
-    # ----------------------------------------
-
-    st.subheader("📊 Latest AI Analysis")
-
-    k1, k2, k3, k4 = st.columns(4)
-
-    productivity = n8n_result.get(
-        "productivity",
-        "N/A"
-    )
-
-    quality = n8n_result.get(
-        "quality",
-        "N/A"
-    )
-
-    sla = n8n_result.get(
-        "sla",
-        "N/A"
-    )
-
-    aht = n8n_result.get(
-        "average_aht",
-        "N/A"
-    )
-
-    with k1:
-
-        st.metric(
-            "Productivity",
-            f"{productivity}%"
-        )
-
-    with k2:
-
-        st.metric(
-            "Quality",
-            f"{quality}%"
-        )
-
-    with k3:
-
-        st.metric(
-            "SLA",
-            f"{sla}%"
-        )
-
-    with k4:
-
-        st.metric(
-            "Average AHT",
-            aht
-        )
-
-    # ----------------------------------------
-    # SECONDARY METRICS
-    # ----------------------------------------
-
-    st.divider()
-
-    m1, m2, m3 = st.columns(3)
-
-    with m1:
-
-        st.metric(
-            "🚨 Total Errors",
-            n8n_result.get(
-                "total_errors",
-                "N/A"
-            )
-        )
-
-    with m2:
-
-        st.metric(
-            "📋 Action Items",
-            n8n_result.get(
-                "action_items",
-                "N/A"
-            )
-        )
-
-    with m3:
-
-        email_status = (
-            "✅ Sent"
-            if n8n_result.get(
-                "email_sent",
-                False
-            )
-            else "Not confirmed"
-        )
-
-        st.metric(
-            "📧 Email Status",
-            email_status
         )
 
 
@@ -450,21 +238,15 @@ if st.session_state.n8n_result:
 
 try:
 
+    uploaded.seek(0)
+
     if uploaded.name.lower().endswith(".csv"):
 
-        uploaded.seek(0)
-
-        df = pd.read_csv(
-            uploaded
-        )
+        df = pd.read_csv(uploaded)
 
     else:
 
-        uploaded.seek(0)
-
-        xls = pd.ExcelFile(
-            uploaded
-        )
+        xls = pd.ExcelFile(uploaded)
 
         sheet = (
             "Operational_Data"
@@ -479,7 +261,7 @@ try:
 
 
     # ========================================================
-    # LOCAL ANALYSIS
+    # ANALYSIS
     # ========================================================
 
     result = analyze_data(
@@ -492,36 +274,194 @@ try:
 
 
     # ========================================================
-    # LOCAL KPI CARDS
+    # KPI VALUES
+    # ========================================================
+
+    productivity = result["overall"]["productivity"]
+
+    quality = result["overall"]["quality"]
+
+    sla = result["overall"]["sla"]
+
+    aht = result["overall"]["aht"]
+
+
+    # ========================================================
+    # KPI STATUS FUNCTION
+    # ========================================================
+
+    def kpi_status(
+        actual,
+        target,
+        higher_is_better=True
+    ):
+
+        if higher_is_better:
+
+            if actual >= target:
+                return "🟢 On Target"
+
+            elif actual >= target * 0.98:
+                return "🟡 Watch"
+
+            else:
+                return "🔴 Critical"
+
+        else:
+
+            if actual <= target:
+                return "🟢 On Target"
+
+            elif actual <= target * 1.05:
+                return "🟡 Watch"
+
+            else:
+                return "🔴 Critical"
+
+
+    # ========================================================
+    # KPI STATUS
+    # ========================================================
+
+    productivity_status = kpi_status(
+        productivity,
+        productivity_target,
+        True
+    )
+
+    quality_status = kpi_status(
+        quality,
+        quality_target,
+        True
+    )
+
+    sla_status = kpi_status(
+        sla,
+        sla_target,
+        True
+    )
+
+    aht_status = kpi_status(
+        aht,
+        aht_target,
+        False
+    )
+
+
+    # ========================================================
+    # KPI DASHBOARD
     # ========================================================
 
     st.divider()
 
-    st.subheader(
-        "📈 Detailed Operational Analysis"
-    )
+    st.subheader("📊 KPI Health Dashboard")
 
     k1, k2, k3, k4 = st.columns(4)
 
-    k1.metric(
-        "Productivity",
-        f"{result['overall']['productivity']:.1f}%"
+
+    with k1:
+
+        st.metric(
+            "Productivity",
+            f"{productivity:.2f}%",
+            f"{productivity - productivity_target:+.2f}%"
+        )
+
+        st.caption(
+            productivity_status
+        )
+
+
+    with k2:
+
+        st.metric(
+            "Quality",
+            f"{quality:.2f}%",
+            f"{quality - quality_target:+.2f}%"
+        )
+
+        st.caption(
+            quality_status
+        )
+
+
+    with k3:
+
+        st.metric(
+            "SLA",
+            f"{sla:.2f}%",
+            f"{sla - sla_target:+.2f}%"
+        )
+
+        st.caption(
+            sla_status
+        )
+
+
+    with k4:
+
+        st.metric(
+            "Average AHT",
+            f"{aht:.2f}",
+            f"{aht - aht_target:+.2f}"
+        )
+
+        st.caption(
+            aht_status
+        )
+
+
+    # ========================================================
+    # OVERALL RISK
+    # ========================================================
+
+    critical_count = 0
+    watch_count = 0
+
+
+    statuses = [
+        productivity_status,
+        quality_status,
+        sla_status,
+        aht_status
+    ]
+
+
+    for status in statuses:
+
+        if "Critical" in status:
+            critical_count += 1
+
+        elif "Watch" in status:
+            watch_count += 1
+
+
+    if critical_count >= 2:
+
+        overall_risk = "🔴 HIGH"
+
+    elif critical_count == 1 or watch_count >= 2:
+
+        overall_risk = "🟡 MEDIUM"
+
+    else:
+
+        overall_risk = "🟢 LOW"
+
+
+    st.divider()
+
+    risk_col1, risk_col2, risk_col3 = st.columns(
+        [1, 2, 1]
     )
 
-    k2.metric(
-        "Quality",
-        f"{result['overall']['quality']:.1f}%"
-    )
 
-    k3.metric(
-        "SLA",
-        f"{result['overall']['sla']:.1f}%"
-    )
+    with risk_col2:
 
-    k4.metric(
-        "AHT",
-        f"{result['overall']['aht']:.1f}"
-    )
+        st.metric(
+            "🤖 Overall Operational Risk",
+            overall_risk
+        )
 
 
     # ========================================================
@@ -544,25 +484,56 @@ try:
 
     with tabs[0]:
 
-        st.subheader(
-            "Team Performance"
-        )
+        st.subheader("Team Performance")
 
         st.dataframe(
             result["team"],
             use_container_width=True
         )
 
-        st.subheader(
-            "Productivity by Team"
-        )
+
+        st.subheader("📈 Productivity by Team")
 
         st.bar_chart(
-            result["team"].set_index(
-                "Team"
-            )[
+            result["team"].set_index("Team")[
                 "Productivity_%"
             ]
+        )
+
+
+        # ----------------------------------------------------
+        # KPI TARGET COMPARISON
+        # ----------------------------------------------------
+
+        st.subheader("🎯 KPI vs Target")
+
+
+        comparison = pd.DataFrame({
+
+            "Actual": [
+                productivity,
+                quality,
+                sla,
+                aht
+            ],
+
+            "Target": [
+                productivity_target,
+                quality_target,
+                sla_target,
+                aht_target
+            ]
+
+        }, index=[
+            "Productivity %",
+            "Quality %",
+            "SLA %",
+            "Average AHT"
+        ])
+
+
+        st.bar_chart(
+            comparison
         )
 
 
@@ -572,9 +543,8 @@ try:
 
     with tabs[1]:
 
-        st.subheader(
-            "🚨 Automated Findings"
-        )
+        st.subheader("🚨 Automated Findings")
+
 
         if result["findings"].empty:
 
@@ -589,6 +559,7 @@ try:
                 use_container_width=True
             )
 
+
         st.info(
             "Root causes are evidence-based hypotheses. "
             "The available data may not prove causality."
@@ -601,21 +572,23 @@ try:
 
     with tabs[2]:
 
-        st.subheader(
-            "👥 Employee Risk"
+        st.subheader("👥 Employee Risk")
+
+
+        employee_data = result["employees"].sort_values(
+            [
+                "Risk_Score",
+                "Avg_Productivity"
+            ],
+            ascending=[
+                False,
+                True
+            ]
         )
 
+
         st.dataframe(
-            result["employees"].sort_values(
-                [
-                    "Risk_Score",
-                    "Avg_Productivity"
-                ],
-                ascending=[
-                    False,
-                    True
-                ]
-            ),
+            employee_data,
             use_container_width=True
         )
 
@@ -626,9 +599,8 @@ try:
 
     with tabs[3]:
 
-        st.subheader(
-            "✅ Recommended Actions"
-        )
+        st.subheader("✅ Recommended Actions")
+
 
         st.dataframe(
             result["actions"],
@@ -642,14 +614,14 @@ try:
 
     with tabs[4]:
 
-        st.subheader(
-            "🧠 AI Analyst Prompt"
-        )
+        st.subheader("🧠 AI Analyst Prompt")
+
 
         st.code(
             make_ai_prompt(result),
             language="text"
         )
+
 
         st.caption(
             "This prompt can be sent automatically "
@@ -663,27 +635,51 @@ try:
 
     with tabs[5]:
 
-        st.subheader(
-            "📥 Download Analysis"
-        )
+        st.subheader("📥 Download Analysis")
+
 
         st.download_button(
-            "⬇️ Download Team Analysis CSV",
+            "Download Team Analysis CSV",
             result["team"]
-                .to_csv(index=False)
-                .encode("utf-8"),
+            .to_csv(index=False)
+            .encode("utf-8"),
             "team_analysis.csv",
             "text/csv"
         )
 
+
         st.download_button(
-            "⬇️ Download Action Plan CSV",
+            "Download Action Plan CSV",
             result["actions"]
-                .to_csv(index=False)
-                .encode("utf-8"),
+            .to_csv(index=False)
+            .encode("utf-8"),
             "action_plan.csv",
             "text/csv"
         )
+
+
+        # ----------------------------------------------------
+        # DOWNLOAD RAW DATA
+        # ----------------------------------------------------
+
+        st.download_button(
+            "Download Uploaded Data",
+            df.to_csv(index=False).encode("utf-8"),
+            "operational_data.csv",
+            "text/csv"
+        )
+
+
+    # ========================================================
+    # SUCCESS MESSAGE
+    # ========================================================
+
+    st.divider()
+
+    st.success(
+        f"✅ Analysis completed for "
+        f"**{company_name or 'your organization'}**."
+    )
 
 
 except Exception as e:
@@ -692,3 +688,15 @@ except Exception as e:
         f"❌ Could not process the file: {e}"
     )
 
+
+# ============================================================
+# RESET BUTTON
+# ============================================================
+
+st.divider()
+
+if st.button("🔄 Start New Analysis"):
+
+    st.session_state.n8n_sent = False
+
+    st.rerun()
