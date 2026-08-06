@@ -126,9 +126,12 @@ if not uploaded:
 # ============================================================
 
 if "n8n_sent" not in st.session_state:
+
     st.session_state.n8n_sent = False
 
+
 if "n8n_result" not in st.session_state:
+
     st.session_state.n8n_result = None
 
 
@@ -144,10 +147,6 @@ if not st.session_state.n8n_sent:
     )
 
     if n8n_url:
-
-        # -----------------------------
-        # VALIDATE CUSTOMER DETAILS
-        # -----------------------------
 
         if not company_name.strip():
 
@@ -178,26 +177,20 @@ if not st.session_state.n8n_sent:
 
         try:
 
-            # -----------------------------
-            # PREPARE FILE
-            # -----------------------------
-
             uploaded.seek(0)
 
             file_content = uploaded.getvalue()
 
             files = {
+
                 "file": (
                     uploaded.name,
                     file_content,
                     uploaded.type or "application/octet-stream"
                 )
+
             }
 
-
-            # -----------------------------
-            # CUSTOMER DATA
-            # -----------------------------
 
             data = {
 
@@ -209,12 +202,9 @@ if not st.session_state.n8n_sent:
 
                 "report_name":
                     report_name.strip()
+
             }
 
-
-            # -----------------------------
-            # SEND TO N8N
-            # -----------------------------
 
             with st.spinner(
                 "🤖 Sending data to AI Operations Manager..."
@@ -229,12 +219,9 @@ if not st.session_state.n8n_sent:
                     data=data,
 
                     timeout=120
+
                 )
 
-
-            # -----------------------------
-            # SUCCESS
-            # -----------------------------
 
             if response.status_code < 300:
 
@@ -242,10 +229,6 @@ if not st.session_state.n8n_sent:
                     "✅ AI Operations Manager workflow completed."
                 )
 
-
-                # -----------------------------
-                # READ N8N RESPONSE
-                # -----------------------------
 
                 try:
 
@@ -268,6 +251,7 @@ if not st.session_state.n8n_sent:
 
                         "report_name":
                             report_name
+
                     }
 
 
@@ -276,15 +260,13 @@ if not st.session_state.n8n_sent:
                 st.session_state.n8n_sent = True
 
 
-            # -----------------------------
-            # ERROR
-            # -----------------------------
-
             else:
 
                 st.error(
+
                     f"❌ n8n workflow failed. "
                     f"HTTP Status: {response.status_code}"
+
                 )
 
                 st.code(
@@ -295,8 +277,7 @@ if not st.session_state.n8n_sent:
         except requests.exceptions.Timeout:
 
             st.error(
-                "⏱️ n8n workflow timed out. "
-                "The analysis may still be running."
+                "⏱️ n8n workflow timed out."
             )
 
 
@@ -328,7 +309,6 @@ if st.session_state.n8n_result:
     st.subheader(
         "🤖 Automation Status"
     )
-
 
     status_col1, status_col2, status_col3 = st.columns(3)
 
@@ -388,23 +368,22 @@ try:
             uploaded
         )
 
-
         sheet = (
 
             "Operational_Data"
 
-            if "Operational_Data"
-            in xls.sheet_names
+            if "Operational_Data" in xls.sheet_names
 
             else xls.sheet_names[0]
-        )
 
+        )
 
         df = pd.read_excel(
 
             uploaded,
 
             sheet_name=sheet
+
         )
 
 
@@ -427,14 +406,397 @@ try:
 
         aht_target=
             aht_target
+
     )
 
 
     # ========================================================
-    # KPI CARDS
+    # AI RISK DASHBOARD
     # ========================================================
 
     st.divider()
+
+    st.subheader(
+        "🎯 AI Operations Risk Dashboard"
+    )
+
+
+    # --------------------------------------------------------
+    # KPI VALUES
+    # --------------------------------------------------------
+
+    productivity = result["overall"]["productivity"]
+
+    quality = result["overall"]["quality"]
+
+    sla = result["overall"]["sla"]
+
+    aht = result["overall"]["aht"]
+
+
+    # --------------------------------------------------------
+    # KPI GAPS
+    # --------------------------------------------------------
+
+    productivity_gap = (
+        productivity - productivity_target
+    )
+
+    quality_gap = (
+        quality - quality_target
+    )
+
+    sla_gap = (
+        sla - sla_target
+    )
+
+    aht_gap = (
+        aht - aht_target
+    )
+
+
+    # --------------------------------------------------------
+    # KPI BREACH COUNT
+    # --------------------------------------------------------
+
+    breaches = 0
+
+
+    if productivity < productivity_target:
+
+        breaches += 1
+
+
+    if quality < quality_target:
+
+        breaches += 1
+
+
+    if sla < sla_target:
+
+        breaches += 1
+
+
+    if aht > aht_target:
+
+        breaches += 1
+
+
+    # --------------------------------------------------------
+    # RISK LEVEL
+    # --------------------------------------------------------
+
+    if breaches >= 3:
+
+        risk_level = "🔴 HIGH"
+
+    elif breaches >= 1:
+
+        risk_level = "🟠 MEDIUM"
+
+    else:
+
+        risk_level = "🟢 LOW"
+
+
+    # --------------------------------------------------------
+    # ACTION COUNT
+    # --------------------------------------------------------
+
+    actions_df = result.get(
+        "actions",
+        pd.DataFrame()
+    )
+
+
+    if isinstance(actions_df, pd.DataFrame):
+
+        action_count = len(actions_df)
+
+    else:
+
+        action_count = 0
+
+
+    # --------------------------------------------------------
+    # HIGH PRIORITY ACTION COUNT
+    # --------------------------------------------------------
+
+    high_priority_count = 0
+
+
+    if (
+
+        isinstance(actions_df, pd.DataFrame)
+
+        and not actions_df.empty
+
+    ):
+
+        priority_column = None
+
+
+        for possible_column in [
+
+            "Priority",
+            "priority",
+            "Priority_Level",
+            "priority_level"
+
+        ]:
+
+            if possible_column in actions_df.columns:
+
+                priority_column = possible_column
+
+                break
+
+
+        if priority_column:
+
+            high_priority_count = len(
+
+                actions_df[
+
+                    actions_df[
+                        priority_column
+                    ]
+                    .astype(str)
+                    .str.lower()
+                    .isin(
+                        [
+                            "high",
+                            "critical"
+                        ]
+                    )
+
+                ]
+
+            )
+
+
+    # --------------------------------------------------------
+    # RISK SUMMARY CARDS
+    # --------------------------------------------------------
+
+    r1, r2, r3, r4 = st.columns(4)
+
+
+    with r1:
+
+        st.metric(
+
+            "Overall Risk",
+
+            risk_level
+
+        )
+
+
+    with r2:
+
+        st.metric(
+
+            "KPI Breaches",
+
+            breaches,
+
+            delta=(
+                f"{4 - breaches} KPIs on target"
+            )
+
+        )
+
+
+    with r3:
+
+        st.metric(
+
+            "Action Items",
+
+            action_count
+
+        )
+
+
+    with r4:
+
+        st.metric(
+
+            "High Priority Actions",
+
+            high_priority_count
+
+        )
+
+
+    # --------------------------------------------------------
+    # KPI PERFORMANCE
+    # --------------------------------------------------------
+
+    st.subheader(
+        "📊 KPI Performance vs Target"
+    )
+
+
+    k1, k2, k3, k4 = st.columns(4)
+
+
+    with k1:
+
+        st.metric(
+
+            "Productivity",
+
+            f"{productivity:.2f}%",
+
+            delta=(
+                f"{productivity_gap:+.2f}% vs target"
+            )
+
+        )
+
+
+    with k2:
+
+        st.metric(
+
+            "Quality",
+
+            f"{quality:.2f}%",
+
+            delta=(
+                f"{quality_gap:+.2f}% vs target"
+            )
+
+        )
+
+
+    with k3:
+
+        st.metric(
+
+            "SLA",
+
+            f"{sla:.2f}%",
+
+            delta=(
+                f"{sla_gap:+.2f}% vs target"
+            )
+
+        )
+
+
+    with k4:
+
+        st.metric(
+
+            "Average AHT",
+
+            f"{aht:.2f}",
+
+            delta=(
+                f"{aht_gap:+.2f} vs target"
+            )
+
+        )
+
+
+    # --------------------------------------------------------
+    # MANAGEMENT SUMMARY
+    # --------------------------------------------------------
+
+    st.subheader(
+        "🧠 Management Summary"
+    )
+
+
+    if breaches == 0:
+
+        st.success(
+
+            "✅ All monitored KPIs are currently "
+            "meeting their defined targets."
+
+        )
+
+    elif breaches == 1:
+
+        st.warning(
+
+            "⚠️ 1 KPI requires management attention. "
+            f"Current overall risk level: {risk_level}."
+
+        )
+
+    else:
+
+        st.warning(
+
+            f"⚠️ {breaches} KPIs require management "
+            f"attention. Current overall risk level: "
+            f"{risk_level}."
+
+        )
+
+
+    # --------------------------------------------------------
+    # CUSTOMER / REPORT DETAILS
+    # --------------------------------------------------------
+
+    if (
+        company_name
+        or manager_email
+        or report_name
+    ):
+
+        with st.expander(
+            "🏢 Report Information",
+            expanded=False
+        ):
+
+            info1, info2, info3 = st.columns(3)
+
+
+            with info1:
+
+                st.write(
+                    "**Company**"
+                )
+
+                st.write(
+                    company_name
+                )
+
+
+            with info2:
+
+                st.write(
+                    "**Manager Email**"
+                )
+
+                st.write(
+                    manager_email
+                )
+
+
+            with info3:
+
+                st.write(
+                    "**Report**"
+                )
+
+                st.write(
+                    report_name
+                )
+
+
+    st.divider()
+
+
+    # ========================================================
+    # ORIGINAL KPI CARDS
+    # ========================================================
 
     st.subheader(
         "📊 Operational KPI Dashboard"
@@ -450,9 +812,12 @@ try:
 
             "Productivity",
 
-            f"{result['overall']['productivity']:.1f}%",
+            f"{productivity:.1f}%",
 
-            delta=f"Target {productivity_target}%"
+            delta=(
+                f"Target {productivity_target}%"
+            )
+
         )
 
 
@@ -462,9 +827,12 @@ try:
 
             "Quality",
 
-            f"{result['overall']['quality']:.1f}%",
+            f"{quality:.1f}%",
 
-            delta=f"Target {quality_target}%"
+            delta=(
+                f"Target {quality_target}%"
+            )
+
         )
 
 
@@ -474,9 +842,12 @@ try:
 
             "SLA",
 
-            f"{result['overall']['sla']:.1f}%",
+            f"{sla:.1f}%",
 
-            delta=f"Target {sla_target}%"
+            delta=(
+                f"Target {sla_target}%"
+            )
+
         )
 
 
@@ -486,9 +857,12 @@ try:
 
             "Average AHT",
 
-            f"{result['overall']['aht']:.1f}",
+            f"{aht:.1f}",
 
-            delta=f"Target {aht_target}"
+            delta=(
+                f"Target {aht_target}"
+            )
+
         )
 
 
@@ -532,6 +906,7 @@ try:
             result["team"],
 
             use_container_width=True
+
         )
 
 
@@ -547,6 +922,7 @@ try:
                 result["team"].set_index(
                     "Team"
                 )["Productivity_%"]
+
             )
 
 
@@ -575,6 +951,7 @@ try:
                 result["findings"],
 
                 use_container_width=True
+
             )
 
 
@@ -582,6 +959,7 @@ try:
 
             "Root causes are evidence-based hypotheses. "
             "The available data may not prove causality."
+
         )
 
 
@@ -609,6 +987,7 @@ try:
                 False,
                 True
             ]
+
         )
 
 
@@ -617,6 +996,7 @@ try:
             employee_data,
 
             use_container_width=True
+
         )
 
 
@@ -636,6 +1016,7 @@ try:
             result["actions"],
 
             use_container_width=True
+
         )
 
 
@@ -655,6 +1036,7 @@ try:
             make_ai_prompt(result),
 
             language="text"
+
         )
 
 
@@ -662,6 +1044,7 @@ try:
 
             "This prompt is sent automatically "
             "to the AI Operations Manager workflow."
+
         )
 
 
@@ -689,6 +1072,7 @@ try:
             "team_analysis.csv",
 
             "text/csv"
+
         )
 
 
@@ -705,6 +1089,7 @@ try:
             "action_plan.csv",
 
             "text/csv"
+
         )
 
 
