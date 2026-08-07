@@ -1868,6 +1868,137 @@ if n8n_url and not st.session_state.n8n_sent:
 
 
 # ============================================================
+# QUICK MANAGEMENT COPILOT
+# ============================================================
+
+st.markdown("## 🤖 Management Copilot")
+st.caption(
+    "Ask questions about the uploaded operational data. "
+    "The Copilot uses the current dashboard context."
+)
+
+quick_question = st.text_area(
+    "Ask your operational question",
+    placeholder=(
+        "Example: Which team needs the most attention and "
+        "what action should management take?"
+    ),
+    height=90,
+    key="quick_copilot_question",
+)
+
+quick_ask = st.button(
+    "🚀 Ask Management Copilot",
+    type="primary",
+    use_container_width=True,
+    key="quick_ask_management_copilot",
+)
+
+if quick_ask:
+    if not quick_question.strip():
+        st.warning("Please enter a question first.")
+    elif not plan_config["copilot"]:
+        st.error("Copilot is not available on your current plan.")
+    elif not copilot_url:
+        st.error(
+            "N8N_COPILOT_WEBHOOK_URL is not configured in "
+            "Streamlit Secrets."
+        )
+    else:
+        context = build_copilot_context(
+            company_name,
+            report_name,
+            result,
+            productivity_target,
+            quality_target,
+            sla_target,
+            aht_target,
+            risk_level,
+            summary_points,
+        )
+
+        payload = {
+            "question": quick_question.strip(),
+            "company_name": company_name.strip(),
+            "report_name": report_name.strip(),
+            "context": context,
+            "user_id": st.session_state.user_id,
+            "user_email": st.session_state.user_email,
+        }
+
+        try:
+            with st.spinner("🤖 Management Copilot is analyzing..."):
+                response = requests.post(
+                    copilot_url,
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                    timeout=120,
+                )
+
+            if response.status_code < 300:
+                raw = normalize_n8n_response(response)
+                st.session_state.copilot_answer = parse_ai_answer(raw)
+                st.session_state.last_question = quick_question.strip()
+                st.success("✅ Copilot analysis completed.")
+            else:
+                st.error(
+                    f"❌ Copilot workflow failed: HTTP {response.status_code}"
+                )
+                st.code(response.text, language="text")
+
+        except requests.exceptions.Timeout:
+            st.error("⏱️ Management Copilot timed out. Please try again.")
+        except requests.exceptions.ConnectionError:
+            st.error("🔌 Could not connect to the n8n Copilot webhook.")
+        except requests.exceptions.RequestException as e:
+            st.error(f"❌ Copilot request failed: {e}")
+        except Exception as e:
+            st.error(f"❌ Unexpected Copilot error: {e}")
+
+if st.session_state.copilot_answer:
+    st.markdown("### 🧠 Copilot Analysis")
+    st.caption("Question: " + st.session_state.last_question)
+
+    answer = st.session_state.copilot_answer
+
+    if isinstance(answer, dict):
+        what = answer.get("what_is_happening")
+        factors = answer.get("contributing_factors", [])
+        actions = answer.get("recommended_actions", [])
+        priority = answer.get("priority", "")
+        owner = answer.get("owner", "")
+        timeline = answer.get("timeline", "")
+        sufficiency = answer.get("data_sufficiency")
+
+        if what:
+            st.info(what)
+
+        if factors:
+            st.markdown("#### 🔍 Contributing Factors")
+            for factor in factors:
+                st.write(f"• {factor}")
+
+        if actions:
+            st.markdown("#### ✅ Recommended Actions")
+            for i, action in enumerate(actions, 1):
+                st.markdown(f"**{i}.** {action}")
+
+        d1, d2, d3 = st.columns(3)
+        d1.metric("Priority", priority or "N/A")
+        d2.metric("Owner", owner or "N/A")
+        d3.metric("Timeline", timeline or "N/A")
+
+        if sufficiency:
+            st.warning(sufficiency)
+
+    elif isinstance(answer, str):
+        st.markdown(answer)
+    else:
+        st.code(str(answer), language="text")
+
+st.divider()
+
+# ============================================================
 # MAIN TABS
 # ============================================================
 
