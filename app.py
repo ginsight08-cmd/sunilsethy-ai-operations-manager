@@ -20,7 +20,7 @@ from engine import analyze_data, make_ai_prompt
 # ============================================================
 
 APP_NAME = "Generative Insight"
-APP_VERSION = "1.1.1"
+APP_VERSION = "1.1.2"
 
 st.set_page_config(
     page_title="Generative Insight | AI Operations Copilot",
@@ -261,14 +261,8 @@ def show_brand_header(compact=False):
         )
     else:
         st.markdown(
-            """
-            <div class="gi-brand">
-                Generative <span>Insight</span>
-            </div>
-            <div class="gi-tagline">
-                Insights today. Intelligence tomorrow.
-            </div>
-            """,
+            '<div class="gi-brand">Generative <span>Insight</span></div>'
+            '<div class="gi-tagline">Insights today. Intelligence tomorrow.</div>',
             unsafe_allow_html=True,
         )
 
@@ -972,26 +966,11 @@ if not st.session_state.authenticated:
     show_brand_header()
 
     st.markdown(
-        dedent(
-            """
-            <div class="hero">
-                <div class="main-title">
-                    AI-powered operational intelligence
-                </div>
-
-                <div class="brand-subtitle">
-                    Turn operational data into management decisions.
-                </div>
-
-                <p>
-                    Create your account, upload Excel/CSV operational data,
-                    identify KPI risks, investigate team and employee
-                    performance, ask the AI Operations Copilot questions,
-                    and generate management-ready reports.
-                </p>
-            </div>
-            """
-        ).strip(),
+        '<div class="hero"><div class="main-title">AI-powered operational intelligence</div>'
+        '<div class="brand-subtitle">Turn operational data into management decisions.</div>'
+        '<p>Create your account, upload Excel/CSV operational data, identify KPI risks, '
+        'investigate team and employee performance, ask the AI Operations Copilot questions, '
+        'and generate management-ready reports.</p></div>',
         unsafe_allow_html=True,
     )
 
@@ -1744,14 +1723,8 @@ if (
 # ============================================================
 
 st.markdown(
-    f"""
-    <div class="hero">
-        <h3>Executive Health: {risk_level}</h3>
-        <p class="small-muted">
-        {company_name or "Your organization"} · {report_name}
-        </p>
-    </div>
-    """,
+    f'<div class="hero"><h3>Executive Health: {risk_level}</h3>'
+    f'<p class="small-muted">{company_name or "Your organization"} · {report_name}</p></div>',
     unsafe_allow_html=True,
 )
 
