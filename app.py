@@ -8,6 +8,7 @@ from email.message import EmailMessage
 import pandas as pd
 import requests
 import streamlit as st
+from supabase import create_client, Client
 
 from engine import analyze_data, make_ai_prompt
 
@@ -35,6 +36,9 @@ st.set_page_config(
 DEFAULT_STATE = {
     "authenticated": False,
     "user_email": "",
+    "user_id": "",
+    "user_name": "",
+    "company_name": "",
     "user_plan": "Free",
     "n8n_sent": False,
     "n8n_result": None,
@@ -107,45 +111,115 @@ def secret(name, default=""):
     return st.secrets.get(name, default)
 
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+def get_supabase_client() -> Client:
+    """Create the Supabase client from Streamlit Secrets."""
+    url = secret("SUPABASE_URL")
+    anon_key = secret("SUPABASE_ANON_KEY")
+
+    if not url or not anon_key:
+        raise RuntimeError(
+            "Supabase authentication is not configured. "
+            "Add SUPABASE_URL and SUPABASE_ANON_KEY to Streamlit Secrets."
+        )
+
+    return create_client(url, anon_key)
 
 
-def parse_users():
-    """
-    Reads optional users from Streamlit secrets.
+def friendly_auth_error(error) -> str:
+    """Convert Supabase auth errors into user-friendly messages."""
+    message = str(getattr(error, "message", error))
 
-    Recommended:
-    [users]
-    admin@example.com = "sha256_hash_here"
+    lowered = message.lower()
 
-    [user_plans]
-    admin@example.com = "Professional"
-    """
+    if "invalid login credentials" in lowered:
+        return "Invalid email or password."
+    if "email not confirmed" in lowered:
+        return "Please verify your email address before signing in."
+    if "user already registered" in lowered:
+        return "An account with this email already exists. Please sign in."
+    if "password should be at least" in lowered:
+        return "Password must meet Supabase's minimum password requirements."
+    if "rate limit" in lowered:
+        return "Too many attempts. Please wait a moment and try again."
+
+    return message
+
+
+def sign_up_user(
+    full_name: str,
+    company_name: str,
+    email: str,
+    password: str,
+):
+    """Create a persistent customer account in Supabase Auth."""
+    supabase = get_supabase_client()
+
+    response = supabase.auth.sign_up(
+        {
+            "email": email.strip().lower(),
+            "password": password,
+            "options": {
+                "data": {
+                    "full_name": full_name.strip(),
+                    "company_name": company_name.strip(),
+                    "plan": "Free",
+                }
+            },
+        }
+    )
+
+    return response
+
+
+def sign_in_user(email: str, password: str):
+    """Authenticate a customer using Supabase Auth."""
+    supabase = get_supabase_client()
+
+    return supabase.auth.sign_in_with_password(
+        {
+            "email": email.strip().lower(),
+            "password": password,
+        }
+    )
+
+
+def sign_out_user():
+    """Sign the current user out of Supabase."""
     try:
-        users = dict(st.secrets.get("users", {}))
+        supabase = get_supabase_client()
+        supabase.auth.sign_out()
     except Exception:
-        users = {}
-
-    try:
-        plans = dict(st.secrets.get("user_plans", {}))
-    except Exception:
-        plans = {}
-
-    return users, plans
+        # Local session is still cleared even if the remote sign-out fails.
+        pass
 
 
-def authenticate(email: str, password: str):
-    users, plans = parse_users()
+def set_authenticated_user(response):
+    """Copy authenticated Supabase user information into Streamlit session state."""
+    user = getattr(response, "user", None)
 
-    email = email.strip().lower()
-    supplied_hash = hash_password(password)
+    if user is None:
+        raise RuntimeError("Authentication succeeded but no user was returned.")
 
-    if email in users and str(users[email]) == supplied_hash:
-        plan = str(plans.get(email, "Free"))
-        return True, plan
+    metadata = getattr(user, "user_metadata", {}) or {}
 
-    return False, "Free"
+    st.session_state.authenticated = True
+    st.session_state.user_email = (user.email or "").lower()
+    st.session_state.user_id = user.id
+    st.session_state.user_name = metadata.get("full_name", "")
+    st.session_state.company_name = metadata.get("company_name", "")
+    st.session_state.user_plan = metadata.get("plan", "Free") or "Free"
+
+
+def clear_authentication():
+    sign_out_user()
+
+    st.session_state.authenticated = False
+    st.session_state.user_email = ""
+    st.session_state.user_id = ""
+    st.session_state.user_name = ""
+    st.session_state.company_name = ""
+    st.session_state.user_plan = "Free"
+    clear_analysis()
 
 
 def get_plan_config(plan):
@@ -592,7 +666,7 @@ def show_pricing():
 
 
 # ============================================================
-# LOGIN / AUTHENTICATION
+# SIGN UP / LOGIN / AUTHENTICATION
 # ============================================================
 
 if not st.session_state.authenticated:
@@ -601,7 +675,9 @@ if not st.session_state.authenticated:
         unsafe_allow_html=True,
     )
     st.markdown(
-        '<div class="brand-subtitle">AI-powered operational intelligence for managers.</div>',
+        '<div class="brand-subtitle">'
+        "AI-powered operational intelligence for managers."
+        "</div>",
         unsafe_allow_html=True,
     )
 
@@ -609,42 +685,160 @@ if not st.session_state.authenticated:
         """
         <div class="hero">
         <h3>Turn operational data into management decisions.</h3>
-        Upload Excel/CSV data, identify KPI risks, investigate team and employee
-        performance, ask the AI Operations Copilot questions, and generate
-        management-ready reports.
+        <p>
+        Create your account, upload Excel/CSV data, identify KPI risks,
+        investigate team and employee performance, ask the AI Operations
+        Copilot questions, and generate management-ready reports.
+        </p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    login_tab, pricing_tab = st.tabs(["🔐 Sign In", "💳 Plans"])
+    if not secret("SUPABASE_URL") or not secret("SUPABASE_ANON_KEY"):
+        st.error(
+            "🔐 Authentication is not configured yet. "
+            "Add SUPABASE_URL and SUPABASE_ANON_KEY in "
+            "Streamlit → App Settings → Secrets."
+        )
+        st.stop()
 
-    with login_tab:
-        with st.form("login_form"):
-            email = st.text_input("Email")
-            password = st.text_input("Password", type="password")
-            submitted = st.form_submit_button(
-                "Sign In",
+    signup_tab, login_tab, pricing_tab = st.tabs(
+        ["🆕 Create Account", "🔐 Sign In", "💳 Plans"]
+    )
+
+    with signup_tab:
+        st.markdown("### Create your Generative Insight account")
+        st.caption("Start with the Free plan. You can upgrade later.")
+
+        with st.form("signup_form", clear_on_submit=False):
+            signup_name = st.text_input(
+                "Full Name",
+                placeholder="e.g. Sunil Sethy",
+            )
+
+            signup_company = st.text_input(
+                "Company / Organization",
+                placeholder="e.g. ABC Technologies",
+            )
+
+            signup_email = st.text_input(
+                "Work Email",
+                placeholder="name@company.com",
+            )
+
+            signup_password = st.text_input(
+                "Password",
+                type="password",
+                help="Use a strong password. Supabase enforces the configured password policy.",
+            )
+
+            signup_confirm = st.text_input(
+                "Confirm Password",
+                type="password",
+            )
+
+            signup_submitted = st.form_submit_button(
+                "🚀 Create Free Account",
                 type="primary",
                 use_container_width=True,
             )
 
-        if submitted:
-            ok, plan = authenticate(email, password)
+        if signup_submitted:
+            if not signup_name.strip():
+                st.warning("Please enter your full name.")
 
-            if ok:
-                st.session_state.authenticated = True
-                st.session_state.user_email = email.strip().lower()
-                st.session_state.user_plan = plan
-                st.rerun()
+            elif not signup_company.strip():
+                st.warning("Please enter your company or organization.")
+
+            elif not signup_email.strip() or "@" not in signup_email:
+                st.warning("Please enter a valid email address.")
+
+            elif len(signup_password) < 6:
+                st.warning("Please use a password with at least 6 characters.")
+
+            elif signup_password != signup_confirm:
+                st.warning("Passwords do not match.")
+
             else:
-                st.error(
-                    "Invalid credentials. Configure users in Streamlit Secrets."
-                )
+                try:
+                    with st.spinner("Creating your account..."):
+                        signup_response = sign_up_user(
+                            signup_name,
+                            signup_company,
+                            signup_email,
+                            signup_password,
+                        )
+
+                    signup_user = getattr(signup_response, "user", None)
+                    signup_session = getattr(signup_response, "session", None)
+
+                    if signup_user is not None and signup_session is not None:
+                        set_authenticated_user(signup_response)
+                        st.success("✅ Account created successfully.")
+                        st.rerun()
+
+                    elif signup_user is not None:
+                        st.success(
+                            "✅ Account created. Please check your email and "
+                            "click the verification link before signing in."
+                        )
+                    else:
+                        st.info(
+                            "If the email is valid, check your inbox for the "
+                            "verification email."
+                        )
+
+                except Exception as e:
+                    st.error(f"❌ Could not create account: {friendly_auth_error(e)}")
 
         st.caption(
-            "For production, use a proper identity provider or enterprise SSO. "
-            "The secrets-based login is intended as a lightweight launch control."
+            "By creating an account, you agree to use the platform responsibly "
+            "and validate AI recommendations before taking material business action."
+        )
+
+    with login_tab:
+        st.markdown("### Welcome back")
+
+        with st.form("login_form"):
+            login_email = st.text_input(
+                "Email",
+                placeholder="name@company.com",
+            )
+
+            login_password = st.text_input(
+                "Password",
+                type="password",
+            )
+
+            login_submitted = st.form_submit_button(
+                "🔐 Sign In",
+                type="primary",
+                use_container_width=True,
+            )
+
+        if login_submitted:
+            if not login_email.strip() or not login_password:
+                st.warning("Please enter your email and password.")
+
+            else:
+                try:
+                    with st.spinner("Signing you in..."):
+                        login_response = sign_in_user(
+                            login_email,
+                            login_password,
+                        )
+
+                    set_authenticated_user(login_response)
+                    st.success("✅ Signed in successfully.")
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"❌ Sign in failed: {friendly_auth_error(e)}")
+
+        st.info(
+            "If email confirmation is enabled in Supabase, verify your email "
+            "before signing in."
         )
 
     with pricing_tab:
@@ -657,6 +851,8 @@ if not st.session_state.authenticated:
 # SIDEBAR
 # ============================================================
 
+# ============================================================
+
 plan_config = get_plan_config(st.session_state.user_plan)
 
 with st.sidebar:
@@ -664,6 +860,8 @@ with st.sidebar:
     st.caption("AI Operations Copilot")
 
     st.success(f"Plan: **{st.session_state.user_plan}**")
+    if st.session_state.get("user_name"):
+        st.caption(st.session_state.user_name)
     st.caption(st.session_state.user_email)
 
     st.divider()
@@ -708,13 +906,7 @@ with st.sidebar:
         st.rerun()
 
     if st.button("🚪 Sign Out", use_container_width=True):
-        for key in [
-            "authenticated",
-            "user_email",
-            "user_plan",
-        ]:
-            st.session_state[key] = DEFAULT_STATE[key]
-        clear_analysis()
+        clear_authentication()
         st.rerun()
 
 
@@ -752,6 +944,7 @@ col1, col2, col3 = st.columns(3)
 with col1:
     company_name = st.text_input(
         "Company Name",
+        value=st.session_state.get("company_name", ""),
         placeholder="e.g. ABC Technologies",
     )
 
