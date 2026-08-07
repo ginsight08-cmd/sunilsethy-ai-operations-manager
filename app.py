@@ -12,9 +12,10 @@ from engine import analyze_data, make_ai_prompt
 # ============================================================
 
 st.set_page_config(
-    page_title="AI Operations Manager",
+    page_title="Generative Insight | AI Operations Copilot",
     page_icon="🤖",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 
