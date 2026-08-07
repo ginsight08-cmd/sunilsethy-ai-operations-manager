@@ -19,7 +19,7 @@ from engine import analyze_data, make_ai_prompt
 # ============================================================
 
 APP_NAME = "Generative Insight"
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.0.0"
 
 st.set_page_config(
     page_title="Generative Insight | AI Operations Copilot",
@@ -1531,90 +1531,38 @@ if (
 
 
 # ============================================================
-# ROBUST FILE READER — DESKTOP + MOBILE
-# ============================================================
-
-def read_uploaded_file(uploaded_file):
-    """Read CSV/XLS/XLSX from Streamlit UploadedFile safely."""
-    if uploaded_file is None:
-        raise ValueError("No file was uploaded.")
-
-    filename = str(uploaded_file.name or "").strip()
-    suffix = Path(filename).suffix.lower()
-    raw = uploaded_file.getvalue()
-
-    if not raw:
-        raise ValueError("The uploaded file is empty. Please select it again.")
-
-    if suffix == ".csv":
-        last_error = None
-        for encoding in ("utf-8-sig", "utf-8", "cp1252", "latin1"):
-            try:
-                return pd.read_csv(io.BytesIO(raw), encoding=encoding, low_memory=False)
-            except Exception as exc:
-                last_error = exc
-        raise ValueError(f"Could not read this CSV. Save/export it as UTF-8 CSV. Details: {last_error}")
-
-    if suffix == ".xlsx":
-        try:
-            workbook = pd.ExcelFile(io.BytesIO(raw), engine="openpyxl")
-        except Exception as exc:
-            raise ValueError(f"Could not open this XLSX file. Save/export it again as .xlsx. Details: {exc}")
-
-        sheets = [str(x).strip() for x in (workbook.sheet_names or []) if str(x).strip()]
-        if not sheets:
-            raise ValueError("The XLSX workbook contains no readable worksheets.")
-
-        sheet = next((x for x in sheets if x.lower() == "operational_data"), sheets[0])
-        try:
-            return pd.read_excel(io.BytesIO(raw), sheet_name=sheet, engine="openpyxl")
-        except Exception as exc:
-            raise ValueError(f"Could not read Excel sheet '{sheet}'. Details: {exc}")
-
-    if suffix == ".xls":
-        try:
-            workbook = pd.ExcelFile(io.BytesIO(raw), engine="xlrd")
-        except ImportError:
-            raise ValueError("Old .xls files require xlrd. Please upload .xlsx or .csv, or add xlrd to requirements.txt.")
-        except Exception as exc:
-            raise ValueError(f"Could not open this .xls file. Save it as .xlsx or CSV. Details: {exc}")
-
-        sheets = [str(x).strip() for x in (workbook.sheet_names or []) if str(x).strip()]
-        if not sheets:
-            raise ValueError("The XLS workbook contains no readable worksheets.")
-
-        sheet = next((x for x in sheets if x.lower() == "operational_data"), sheets[0])
-        try:
-            return pd.read_excel(io.BytesIO(raw), sheet_name=sheet, engine="xlrd")
-        except Exception as exc:
-            raise ValueError(f"Could not read Excel sheet '{sheet}'. Details: {exc}")
-
-    raise ValueError("Unsupported file type. Please upload a CSV, XLSX, or XLS file.")
-
-
-def clean_uploaded_dataframe(frame):
-    if frame is None:
-        raise ValueError("The uploaded file returned no data.")
-    frame = frame.copy()
-    frame.columns = [str(col).replace("\ufeff", "").strip() for col in frame.columns]
-    frame = frame.dropna(axis=0, how="all").dropna(axis=1, how="all")
-    if frame.empty:
-        raise ValueError("The uploaded file contains no usable rows.")
-    return frame
-
-
-# ============================================================
-# READ FILE — MOBILE SAFE
+# READ FILE
 # ============================================================
 
 try:
-    df = clean_uploaded_dataframe(read_uploaded_file(uploaded))
-except Exception as exc:
-    st.error("❌ Could not read the uploaded file.")
-    st.warning(str(exc))
-    st.info("📱 Mobile tip: upload a real .csv/.xlsx/.xls file. For Excel, make sure at least one worksheet contains the operational data.")
-    with st.expander("Technical details"):
-        st.code(repr(exc), language="text")
+
+    uploaded.seek(0)
+
+    if uploaded.name.lower().endswith(".csv"):
+
+        df = pd.read_csv(uploaded)
+
+    else:
+
+        xls = pd.ExcelFile(uploaded)
+
+        sheet = (
+            "Operational_Data"
+            if "Operational_Data" in xls.sheet_names
+            else xls.sheet_names[0]
+        )
+
+        df = pd.read_excel(
+            uploaded,
+            sheet_name=sheet,
+        )
+
+except Exception as e:
+
+    st.error(
+        f"❌ Could not read the uploaded file: {e}"
+    )
+
     st.stop()
 
 
@@ -1631,8 +1579,6 @@ required_columns = [
     "AHT_Actual",
     "Quality_%",
     "SLA_%",
-    "Attendance",
-    "Error_Count",
 ]
 
 missing_columns = [
