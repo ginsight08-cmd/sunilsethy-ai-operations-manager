@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import json
 
 from engine import analyze_data, make_ai_prompt
 
@@ -97,6 +98,7 @@ with st.sidebar:
         st.session_state.n8n_result = None
         st.session_state.copilot_answer = None
         st.session_state.last_question = ""
+        st.session_state.file_name = ""
 
         st.rerun()
 
@@ -163,9 +165,13 @@ if not uploaded:
 if st.session_state.file_name != uploaded.name:
 
     st.session_state.file_name = uploaded.name
+
     st.session_state.n8n_sent = False
+
     st.session_state.n8n_result = None
+
     st.session_state.copilot_answer = None
+
     st.session_state.last_question = ""
 
 
@@ -257,7 +263,7 @@ if not st.session_state.n8n_sent:
 
                     n8n_result = response.json()
 
-                except Exception:
+                except ValueError:
 
                     n8n_result = {
                         "status": "success",
@@ -267,21 +273,19 @@ if not st.session_state.n8n_sent:
                         "report_name": report_name
                     }
 
-                if isinstance(
-                    n8n_result,
-                    list
-                ) and len(n8n_result) > 0:
+                if (
+                    isinstance(n8n_result, list)
+                    and len(n8n_result) > 0
+                ):
 
                     n8n_result = n8n_result[0]
 
-                if not isinstance(
-                    n8n_result,
-                    dict
-                ):
+                if not isinstance(n8n_result, dict):
 
                     n8n_result = {}
 
                 st.session_state.n8n_result = n8n_result
+
                 st.session_state.n8n_sent = True
 
             else:
@@ -292,7 +296,8 @@ if not st.session_state.n8n_sent:
                 )
 
                 st.code(
-                    response.text
+                    response.text,
+                    language="text"
                 )
 
         except requests.exceptions.Timeout:
@@ -530,6 +535,7 @@ try:
             if possible_column in actions_df.columns:
 
                 priority_column = possible_column
+
                 break
 
         if priority_column:
@@ -803,7 +809,8 @@ try:
     question = st.text_input(
         "Ask your operational question",
         placeholder=(
-            "Example: Why is Quality below target?"
+            "Example: Which team has the quality drop "
+            "and what action should be taken?"
         ),
         key="copilot_question"
     )
@@ -894,10 +901,15 @@ KPI Summary:
             # ------------------------------------------------
 
             copilot_payload = {
+
                 "question": question.strip(),
+
                 "company_name": company_name.strip(),
+
                 "report_name": report_name.strip(),
+
                 "context": copilot_context
+
             }
 
 
@@ -912,12 +924,17 @@ KPI Summary:
                 ):
 
                     copilot_response = requests.post(
+
                         copilot_url,
+
                         json=copilot_payload,
+
                         headers={
                             "Content-Type": "application/json"
                         },
+
                         timeout=120
+
                     )
 
 
@@ -941,7 +958,7 @@ KPI Summary:
                         }
 
 
-                    # n8n sometimes returns an array
+                    # n8n may return array
 
                     if (
                         isinstance(
@@ -960,48 +977,69 @@ KPI Summary:
                     # EXTRACT ANSWER
                     # ------------------------------------------------
 
-                    copilot_answer = None
+                    answer_data = None
 
                     if isinstance(
                         copilot_result,
                         dict
                     ):
 
-                        copilot_answer = (
-                            copilot_result.get("answer")
-                            or copilot_result.get("response")
-                            or copilot_result.get("output")
-                            or copilot_result.get("text")
-                            or copilot_result.get("message")
+                        answer_data = (
+                            copilot_result.get(
+                                "answer"
+                            )
+                            or copilot_result.get(
+                                "response"
+                            )
+                            or copilot_result.get(
+                                "output"
+                            )
+                            or copilot_result.get(
+                                "text"
+                            )
+                            or copilot_result.get(
+                                "message"
+                            )
                         )
 
-                    elif copilot_result:
+                    else:
 
-                        copilot_answer = str(
-                            copilot_result
-                        )
+                        answer_data = copilot_result
+
+
+                    # ------------------------------------------------
+                    # PARSE JSON ANSWER
+                    # ------------------------------------------------
+
+                    if isinstance(
+                        answer_data,
+                        str
+                    ):
+
+                        answer_data = answer_data.strip()
+
+                        try:
+
+                            answer_data = json.loads(
+                                answer_data
+                            )
+
+                        except json.JSONDecodeError:
+
+                            pass
 
 
                     # ------------------------------------------------
                     # SAVE ANSWER
                     # ------------------------------------------------
 
-                    if copilot_answer:
+                    st.session_state.copilot_answer = (
+                        answer_data
+                    )
 
-                        st.session_state.copilot_answer = (
-                            copilot_answer
-                        )
-
-                        st.session_state.last_question = (
-                            question.strip()
-                        )
-
-                    else:
-
-                        st.session_state.copilot_answer = (
-                            "The n8n workflow completed successfully, "
-                            "but no AI answer was returned."
-                        )
+                    st.session_state.last_question = (
+                        question.strip()
+                    )
 
 
                 # ------------------------------------------------
@@ -1069,24 +1107,214 @@ KPI Summary:
 
         st.divider()
 
-        st.markdown(
-            "### 🧠 Copilot Analysis"
+        st.subheader(
+            "🧠 Copilot Analysis"
         )
 
         if st.session_state.last_question:
 
             st.caption(
-                f"Question: "
-                f"{st.session_state.last_question}"
+                f"Question: {st.session_state.last_question}"
             )
+
 
         st.success(
             "✅ AI response received from n8n."
         )
 
-        st.markdown(
-            st.session_state.copilot_answer
-        )
+
+        answer = st.session_state.copilot_answer
+
+
+        # ====================================================
+        # PROFESSIONAL JSON RESPONSE
+        # ====================================================
+
+        if isinstance(
+            answer,
+            dict
+        ):
+
+            # -----------------------------------------------
+            # WHAT IS HAPPENING
+            # -----------------------------------------------
+
+            what_is_happening = answer.get(
+                "what_is_happening"
+            )
+
+            if what_is_happening:
+
+                st.markdown(
+                    "### 🔎 What is happening"
+                )
+
+                st.info(
+                    what_is_happening
+                )
+
+
+            # -----------------------------------------------
+            # CONTRIBUTING FACTORS
+            # -----------------------------------------------
+
+            factors = answer.get(
+                "contributing_factors",
+                []
+            )
+
+            if factors:
+
+                st.markdown(
+                    "### 🔍 Contributing Factors"
+                )
+
+                for factor in factors:
+
+                    st.markdown(
+                        f"- {factor}"
+                    )
+
+
+            # -----------------------------------------------
+            # RECOMMENDED ACTIONS
+            # -----------------------------------------------
+
+            actions = answer.get(
+                "recommended_actions",
+                []
+            )
+
+            if actions:
+
+                st.markdown(
+                    "### ✅ Recommended Actions"
+                )
+
+                for index, action in enumerate(
+                    actions,
+                    start=1
+                ):
+
+                    st.markdown(
+                        f"**{index}.** {action}"
+                    )
+
+
+            # -----------------------------------------------
+            # MANAGEMENT DECISION
+            # -----------------------------------------------
+
+            priority = answer.get(
+                "priority",
+                ""
+            )
+
+            owner = answer.get(
+                "owner",
+                ""
+            )
+
+            timeline = answer.get(
+                "timeline",
+                ""
+            )
+
+
+            st.markdown(
+                "### 📌 Management Decision"
+            )
+
+
+            d1, d2, d3 = st.columns(3)
+
+
+            with d1:
+
+                st.metric(
+                    "Priority",
+                    priority or "N/A"
+                )
+
+
+            with d2:
+
+                st.metric(
+                    "Owner",
+                    owner or "N/A"
+                )
+
+
+            with d3:
+
+                st.metric(
+                    "Timeline",
+                    timeline or "N/A"
+                )
+
+
+            # -----------------------------------------------
+            # DATA SUFFICIENCY
+            # -----------------------------------------------
+
+            data_sufficiency = answer.get(
+                "data_sufficiency"
+            )
+
+            if data_sufficiency:
+
+                st.markdown(
+                    "### 📊 Data Sufficiency"
+                )
+
+                st.warning(
+                    data_sufficiency
+                )
+
+
+            # -----------------------------------------------
+            # USER / EMPLOYEE WARNING
+            # -----------------------------------------------
+
+            question_lower = st.session_state.last_question.lower()
+
+            if (
+                "user" in question_lower
+                or "employee" in question_lower
+                or "agent" in question_lower
+            ):
+
+                st.caption(
+                    "ℹ️ Employee-level identification is shown "
+                    "only when employee-level data is provided "
+                    "to the Copilot."
+                )
+
+
+        # ====================================================
+        # FALLBACK FOR PLAIN TEXT
+        # ====================================================
+
+        elif isinstance(
+            answer,
+            str
+        ):
+
+            st.markdown(
+                answer
+            )
+
+
+        # ====================================================
+        # FALLBACK FOR OTHER RESPONSE TYPES
+        # ====================================================
+
+        else:
+
+            st.code(
+                str(answer),
+                language="text"
+            )
 
 
     # ========================================================
@@ -1108,18 +1336,33 @@ KPI Summary:
 
             with info1:
 
-                st.write("**Company**")
-                st.write(company_name)
+                st.write(
+                    "**Company**"
+                )
+
+                st.write(
+                    company_name
+                )
 
             with info2:
 
-                st.write("**Manager Email**")
-                st.write(manager_email)
+                st.write(
+                    "**Manager Email**"
+                )
+
+                st.write(
+                    manager_email
+                )
 
             with info3:
 
-                st.write("**Report**")
-                st.write(report_name)
+                st.write(
+                    "**Report**"
+                )
+
+                st.write(
+                    report_name
+                )
 
 
     # ========================================================
@@ -1128,14 +1371,16 @@ KPI Summary:
 
     st.divider()
 
-    tabs = st.tabs([
-        "📊 Dashboard",
-        "🚨 AI Insights",
-        "👥 Employee Risk",
-        "✅ Action Center",
-        "🧠 AI Prompt",
-        "📥 Export"
-    ])
+    tabs = st.tabs(
+        [
+            "📊 Dashboard",
+            "🚨 AI Insights",
+            "👥 Employee Risk",
+            "✅ Action Center",
+            "🧠 AI Prompt",
+            "📥 Export"
+        ]
+    )
 
 
     # ========================================================
@@ -1160,9 +1405,13 @@ KPI Summary:
             )
 
             st.bar_chart(
-                result["team"].set_index(
+                result[
+                    "team"
+                ].set_index(
                     "Team"
-                )["Productivity_%"]
+                )[
+                    "Productivity_%"
+                ]
             )
 
 
@@ -1176,7 +1425,9 @@ KPI Summary:
             "🚨 Automated Findings"
         )
 
-        if result["findings"].empty:
+        if result[
+            "findings"
+        ].empty:
 
             st.success(
                 "✅ No threshold breaches detected."
@@ -1185,7 +1436,9 @@ KPI Summary:
         else:
 
             st.dataframe(
-                result["findings"],
+                result[
+                    "findings"
+                ],
                 use_container_width=True
             )
 
@@ -1235,7 +1488,9 @@ KPI Summary:
         )
 
         st.dataframe(
-            result["actions"],
+            result[
+                "actions"
+            ],
             use_container_width=True
         )
 
@@ -1256,8 +1511,8 @@ KPI Summary:
         )
 
         st.caption(
-            "This prompt is used by the AI Operations Manager "
-            "workflow."
+            "This prompt is used by the "
+            "AI Operations Manager workflow."
         )
 
 
@@ -1274,21 +1529,34 @@ KPI Summary:
         st.download_button(
             "⬇️ Download Team Analysis CSV",
 
-            result["team"]
-            .to_csv(index=False)
-            .encode("utf-8"),
+            result[
+                "team"
+            ]
+            .to_csv(
+                index=False
+            )
+            .encode(
+                "utf-8"
+            ),
 
             "team_analysis.csv",
 
             "text/csv"
         )
 
+
         st.download_button(
             "⬇️ Download Action Plan CSV",
 
-            result["actions"]
-            .to_csv(index=False)
-            .encode("utf-8"),
+            result[
+                "actions"
+            ]
+            .to_csv(
+                index=False
+            )
+            .encode(
+                "utf-8"
+            ),
 
             "action_plan.csv",
 
@@ -1305,4 +1573,3 @@ except Exception as e:
     st.error(
         f"❌ Could not process the file: {e}"
     )
-
