@@ -233,6 +233,117 @@ st.markdown(
         padding: 1.5rem 0;
     }}
 
+
+    /* ========================================================
+       WIX / EMBED CLEAN MODE
+       Hide Streamlit developer chrome and force readable text.
+       ======================================================== */
+
+    /* Hide Streamlit top toolbar, GitHub/source/share controls,
+       menu, decoration, status indicator and footer. */
+    header[data-testid="stHeader"],
+    div[data-testid="stToolbar"],
+    div[data-testid="stDecoration"],
+    div[data-testid="stStatusWidget"],
+    #MainMenu,
+    footer {
+        visibility: hidden !important;
+        display: none !important;
+        height: 0 !important;
+    }
+
+    /* Remove the blank space left by the hidden header. */
+    .stAppViewContainer > .main {
+        padding-top: 0 !important;
+    }
+
+    .stAppViewContainer .main .block-container {
+        padding-top: 1.25rem !important;
+    }
+
+    /* Force readable text regardless of Streamlit/browser theme. */
+    .stApp,
+    .stApp p,
+    .stApp label,
+    .stApp span,
+    .stApp div,
+    .stApp li,
+    .stApp td,
+    .stApp th,
+    .stApp small,
+    .stApp caption {
+        color: #172033;
+    }
+
+    .stApp h1,
+    .stApp h2,
+    .stApp h3,
+    .stApp h4,
+    .stApp h5,
+    .stApp h6 {
+        color: #071A3D !important;
+    }
+
+    /* Keep status/alert text readable instead of overriding its own
+       semantic colors. */
+    div[data-testid="stAlert"] p,
+    div[data-testid="stAlert"] span {
+        color: inherit !important;
+    }
+
+    /* Sidebar text */
+    section[data-testid="stSidebar"],
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] h4 {
+        color: #172033 !important;
+    }
+
+    /* Inputs/selectboxes */
+    .stTextInput input,
+    .stNumberInput input,
+    .stTextArea textarea,
+    .stSelectbox div[data-baseweb="select"] > div,
+    .stFileUploader,
+    .stFileUploader label {
+        color: #172033 !important;
+    }
+
+    .stTextInput input::placeholder,
+    .stNumberInput input::placeholder,
+    .stTextArea textarea::placeholder {
+        color: #667085 !important;
+        opacity: 1 !important;
+    }
+
+    /* Make tabs readable */
+    button[data-baseweb="tab"] {
+        color: #344054 !important;
+    }
+
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #0757B8 !important;
+    }
+
+    /* Ensure code/dataframe text does not disappear against the background. */
+    .stCodeBlock,
+    .stDataFrame,
+    [data-testid="stDataFrame"] {
+        color: #172033 !important;
+    }
+
+    /* Do not show Streamlit's own GitHub/source/share toolbar even when
+       the app is opened directly or through Wix fullscreen. */
+    [data-testid="stToolbarActions"],
+    [data-testid="stToolbarContent"],
+    [data-testid="stAppDeployButton"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
 </style>
 """,
     unsafe_allow_html=True,
