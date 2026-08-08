@@ -3,6 +3,7 @@ import json
 import smtplib
 from datetime import datetime
 from pathlib import Path
+from textwrap import dedent
 from email.message import EmailMessage
 
 import pandas as pd
@@ -19,7 +20,7 @@ from engine import analyze_data, make_ai_prompt
 # ============================================================
 
 APP_NAME = "Generative Insight"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.2.0"
 
 st.set_page_config(
     page_title="Generative Insight | AI Operations Copilot",
@@ -260,14 +261,8 @@ def show_brand_header(compact=False):
         )
     else:
         st.markdown(
-            """
-            <div class="gi-brand">
-                Generative <span>Insight</span>
-            </div>
-            <div class="gi-tagline">
-                Insights today. Intelligence tomorrow.
-            </div>
-            """,
+            '<div class="gi-brand">Generative <span>Insight</span></div>'
+            '<div class="gi-tagline">Insights today. Intelligence tomorrow.</div>',
             unsafe_allow_html=True,
         )
 
@@ -970,27 +965,21 @@ if not st.session_state.authenticated:
 
     show_brand_header()
 
-    st.markdown(
-        """
-        <div class="hero">
-            <div class="main-title">
-                AI-powered operational intelligence
-            </div>
-
-            <div class="brand-subtitle">
-                Turn operational data into management decisions.
-            </div>
-
-            <p>
-                Create your account, upload Excel/CSV operational data,
-                identify KPI risks, investigate team and employee
-                performance, ask the AI Operations Copilot questions,
-                and generate management-ready reports.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    # Native Streamlit components prevent source HTML/Python from appearing as text.
+    with st.container(border=True):
+        st.markdown(
+            '<div class="main-title">AI-powered operational intelligence</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="brand-subtitle">Turn operational data into management decisions.</div>',
+            unsafe_allow_html=True,
+        )
+        st.write(
+            "Create your account, upload Excel/CSV operational data, identify KPI risks, "
+            "investigate team and employee performance, ask the AI Operations Copilot questions, "
+            "and generate management-ready reports."
+        )
 
     if (
         not secret("SUPABASE_URL")
@@ -1267,22 +1256,26 @@ with st.sidebar:
     else:
 
         st.markdown(
-            """
-            <div class="gi-brand">
-                Generative <span>Insight</span>
-            </div>
-            """,
+            dedent(
+                """
+                <div class="gi-brand">
+                    Generative <span>Insight</span>
+                </div>
+                """
+            ).strip(),
             unsafe_allow_html=True,
         )
 
     st.caption("AI Operations Copilot")
 
     st.markdown(
-        f"""
-        <a href="{WEBSITE_URL}" target="_blank">
-            🌐 Visit Generative Insight
-        </a>
-        """,
+        dedent(
+            f"""
+            <a href="{WEBSITE_URL}" target="_blank">
+                🌐 Visit Generative Insight
+            </a>
+            """
+        ).strip(),
         unsafe_allow_html=True,
     )
 
@@ -1436,6 +1429,8 @@ uploaded = st.file_uploader(
         f"max {plan_config['max_mb']} MB"
     ),
     type=["xlsx", "xls", "csv"],
+    key="operations_data_uploader",
+    help="For mobile uploads, select a real .xlsx, .xls, or .csv file. Avoid renamed files or empty Excel workbooks.",
 )
 
 if not uploaded:
@@ -1531,40 +1526,134 @@ if (
 
 
 # ============================================================
-# READ FILE
+# ROBUST FILE READER
 # ============================================================
+def read_uploaded_data(uploaded_file):
+    """Safely read CSV/XLSX/XLS, including mobile uploads."""
+    if uploaded_file is None:
+        raise ValueError("No file was selected.")
 
-try:
+    raw = uploaded_file.getvalue()
+    if not raw:
+        raise ValueError("The uploaded file is empty (0 bytes).")
 
-    uploaded.seek(0)
+    filename = (uploaded_file.name or "").strip()
+    suffix = Path(filename).suffix.lower()
 
-    if uploaded.name.lower().endswith(".csv"):
+    if suffix == ".csv":
+        last_error = None
+        for encoding in ("utf-8-sig", "utf-8", "cp1252", "latin1"):
+            try:
+                data = pd.read_csv(io.BytesIO(raw), encoding=encoding, low_memory=False)
+                if data is None or (data.empty and len(data.columns) == 0):
+                    raise ValueError("The CSV contains no readable columns.")
+                return data, "CSV"
+            except Exception as exc:
+                last_error = exc
+        raise ValueError(f"Could not read the CSV file: {last_error}")
 
-        df = pd.read_csv(uploaded)
+    if suffix == ".xlsx":
+        try:
+            from openpyxl import load_workbook
+            workbook = load_workbook(
+                filename=io.BytesIO(raw),
+                read_only=True,
+                data_only=True,
+            )
+            sheet_names = list(workbook.sheetnames)
+            workbook.close()
+        except Exception as exc:
+            raise ValueError(
+                "This .xlsx file could not be opened. It may be damaged, incomplete, "
+                "or not a real XLSX file. Re-save/export it as .xlsx and try again. "
+                f"Details: {exc}"
+            ) from exc
 
-    else:
+        if not sheet_names:
+            raise ValueError(
+                "The Excel workbook contains no worksheets. Open it in Excel/Google Sheets "
+                "and save it again as .xlsx."
+            )
 
-        xls = pd.ExcelFile(uploaded)
+        preferred = next(
+            (name for name in sheet_names if name.strip().lower() == "operational_data"),
+            None,
+        )
+        candidates = ([preferred] if preferred else []) + [
+            name for name in sheet_names if name != preferred
+        ]
 
-        sheet = (
-            "Operational_Data"
-            if "Operational_Data" in xls.sheet_names
-            else xls.sheet_names[0]
+        for sheet_name in candidates:
+            try:
+                data = pd.read_excel(
+                    io.BytesIO(raw),
+                    sheet_name=sheet_name,
+                    engine="openpyxl",
+                )
+                if data is not None and len(data.columns) > 0:
+                    data = data.dropna(axis=0, how="all").dropna(axis=1, how="all")
+                    if len(data.columns) > 0:
+                        return data, sheet_name
+            except Exception:
+                continue
+
+        raise ValueError(
+            "The XLSX workbook was opened, but none of its worksheets contains readable "
+            "tabular data. Put the operational data on a worksheet and save the workbook "
+            "again as .xlsx."
         )
 
-        df = pd.read_excel(
-            uploaded,
-            sheet_name=sheet,
-        )
+    if suffix == ".xls":
+        try:
+            data = pd.read_excel(io.BytesIO(raw), sheet_name=0, engine="xlrd")
+        except ImportError as exc:
+            raise ValueError(
+                "Reading .xls files requires the xlrd package. Add xlrd to requirements.txt, "
+                "or save the file as .xlsx."
+            ) from exc
+        except Exception as exc:
+            raise ValueError(
+                "This .xls file could not be read. Re-save it as .xlsx and try again. "
+                f"Details: {exc}"
+            ) from exc
+        if data is None or len(data.columns) == 0:
+            raise ValueError("The .xls workbook contains no readable data.")
+        return data, "XLS"
 
-except Exception as e:
-
-    st.error(
-        f"❌ Could not read the uploaded file: {e}"
+    raise ValueError(
+        f"Unsupported file type '{suffix or 'unknown'}'. Please upload a real .csv, .xlsx, or .xls file."
     )
 
+
+# ============================================================
+# READ FILE
+# ============================================================
+try:
+    df, source_sheet = read_uploaded_data(uploaded)
+except Exception as e:
+    st.error("❌ Could not read the uploaded file.")
+    st.warning(str(e))
+    with st.expander("🔧 Upload troubleshooting", expanded=False):
+        st.write(
+            "1. On your phone, open the file in Excel or Google Sheets and save/export it again as a real .xlsx or .csv file.\n"
+            "2. Make sure the workbook has at least one worksheet containing the operational data.\n"
+            "3. Do not simply rename .xls/.ods/.numbers to .xlsx.\n"
+            "4. Try CSV if the Excel workbook still fails.\n"
+            "5. The file must be within your plan's upload-size limit."
+        )
     st.stop()
 
+st.caption(
+    f"✅ File loaded: {uploaded.name}"
+    + (f" · Sheet: {source_sheet}" if source_sheet not in ("CSV", "XLS") else "")
+    + f" · {len(df):,} rows × {len(df.columns):,} columns"
+)
+
+
+# ============================================================
+# NORMALIZE COLUMN NAMES
+# ============================================================
+df.columns = [str(col).replace("\ufeff", "").strip() for col in df.columns]
 
 # ============================================================
 # VALIDATE DATA
@@ -1737,14 +1826,8 @@ if (
 # ============================================================
 
 st.markdown(
-    f"""
-    <div class="hero">
-        <h3>Executive Health: {risk_level}</h3>
-        <p class="small-muted">
-        {company_name or "Your organization"} · {report_name}
-        </p>
-    </div>
-    """,
+    f'<div class="hero"><h3>Executive Health: {risk_level}</h3>'
+    f'<p class="small-muted">{company_name or "Your organization"} · {report_name}</p></div>',
     unsafe_allow_html=True,
 )
 
@@ -2743,19 +2826,21 @@ with st.expander(
 st.divider()
 
 st.markdown(
-    f"""
-    <div class="gi-footer">
-        <strong>Generative Insight</strong>
-        · AI Operations Copilot v{APP_VERSION}
-        <br>
-        Insights today. Intelligence tomorrow.
-        <br>
-        <a href="{WEBSITE_URL}" target="_blank">
-            generativeinsight.in
-        </a>
-        &nbsp;·&nbsp;
-        © {datetime.now().year}
-    </div>
-    """,
+    dedent(
+        f"""
+        <div class="gi-footer">
+            <strong>Generative Insight</strong>
+            · AI Operations Copilot v{APP_VERSION}
+            <br>
+            Insights today. Intelligence tomorrow.
+            <br>
+            <a href="{WEBSITE_URL}" target="_blank">
+                generativeinsight.in
+            </a>
+            &nbsp;·&nbsp;
+            © {datetime.now().year}
+        </div>
+        """
+    ).strip(),
     unsafe_allow_html=True,
 )
