@@ -5,3 +5,4 @@ xlrd
 requests
 reportlab
 supabase
+razorpay
