@@ -233,117 +233,6 @@ st.markdown(
         padding: 1.5rem 0;
     }}
 
-
-    /* ========================================================
-       WIX / EMBED CLEAN MODE
-       Hide Streamlit developer chrome and force readable text.
-       ======================================================== */
-
-    /* Hide Streamlit top toolbar, GitHub/source/share controls,
-       menu, decoration, status indicator and footer. */
-    header[data-testid="stHeader"],
-    div[data-testid="stToolbar"],
-    div[data-testid="stDecoration"],
-    div[data-testid="stStatusWidget"],
-    #MainMenu,
-    footer {
-        visibility: hidden !important;
-        display: none !important;
-        height: 0 !important;
-    }
-
-    /* Remove the blank space left by the hidden header. */
-    .stAppViewContainer > .main {
-        padding-top: 0 !important;
-    }
-
-    .stAppViewContainer .main .block-container {
-        padding-top: 1.25rem !important;
-    }
-
-    /* Force readable text regardless of Streamlit/browser theme. */
-    .stApp,
-    .stApp p,
-    .stApp label,
-    .stApp span,
-    .stApp div,
-    .stApp li,
-    .stApp td,
-    .stApp th,
-    .stApp small,
-    .stApp caption {
-        color: #172033;
-    }
-
-    .stApp h1,
-    .stApp h2,
-    .stApp h3,
-    .stApp h4,
-    .stApp h5,
-    .stApp h6 {
-        color: #071A3D !important;
-    }
-
-    /* Keep status/alert text readable instead of overriding its own
-       semantic colors. */
-    div[data-testid="stAlert"] p,
-    div[data-testid="stAlert"] span {
-        color: inherit !important;
-    }
-
-    /* Sidebar text */
-    section[data-testid="stSidebar"],
-    section[data-testid="stSidebar"] p,
-    section[data-testid="stSidebar"] label,
-    section[data-testid="stSidebar"] span,
-    section[data-testid="stSidebar"] h1,
-    section[data-testid="stSidebar"] h2,
-    section[data-testid="stSidebar"] h3,
-    section[data-testid="stSidebar"] h4 {
-        color: #172033 !important;
-    }
-
-    /* Inputs/selectboxes */
-    .stTextInput input,
-    .stNumberInput input,
-    .stTextArea textarea,
-    .stSelectbox div[data-baseweb="select"] > div,
-    .stFileUploader,
-    .stFileUploader label {
-        color: #172033 !important;
-    }
-
-    .stTextInput input::placeholder,
-    .stNumberInput input::placeholder,
-    .stTextArea textarea::placeholder {
-        color: #667085 !important;
-        opacity: 1 !important;
-    }
-
-    /* Make tabs readable */
-    button[data-baseweb="tab"] {
-        color: #344054 !important;
-    }
-
-    button[data-baseweb="tab"][aria-selected="true"] {
-        color: #0757B8 !important;
-    }
-
-    /* Ensure code/dataframe text does not disappear against the background. */
-    .stCodeBlock,
-    .stDataFrame,
-    [data-testid="stDataFrame"] {
-        color: #172033 !important;
-    }
-
-    /* Do not show Streamlit's own GitHub/source/share toolbar even when
-       the app is opened directly or through Wix fullscreen. */
-    [data-testid="stToolbarActions"],
-    [data-testid="stToolbarContent"],
-    [data-testid="stAppDeployButton"] {
-        display: none !important;
-        visibility: hidden !important;
-    }
 </style>
 """,
     unsafe_allow_html=True,
@@ -362,15 +251,45 @@ def secret(name, default=""):
 
 
 def show_brand_header(compact=False):
-    """Native Streamlit branding; no visible raw HTML."""
-    if compact:
-        st.markdown("### 🤖 Generative Insight")
-        st.caption("AI Operations Copilot")
-    else:
-        st.title("🤖 Generative Insight")
-        st.caption("Insights today. Intelligence tomorrow.")
+    """Display the Generative Insight logo and website branding."""
 
-    st.caption("AI / ML  •  Annotation  •  Web & App Development")
+    if LOGO_PATH.exists():
+        st.image(
+            str(LOGO_PATH),
+            width=230 if compact else 420,
+        )
+    else:
+        st.markdown(
+            """
+            <div class="gi-brand">
+                Generative <span>Insight</span>
+            </div>
+            <div class="gi-tagline">
+                Insights today. Intelligence tomorrow.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(
+        f"""
+        <div style="
+            margin-top:-8px;
+            margin-bottom:18px;
+            color:#667085;
+            font-size:0.85rem;
+        ">
+            AI / ML &nbsp; | &nbsp;
+            Annotation &nbsp; | &nbsp;
+            Web & App Development
+            &nbsp;&nbsp;·&nbsp;&nbsp;
+            <a href="{WEBSITE_URL}" target="_blank">
+                Visit Website
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def get_supabase_client() -> Client:
@@ -1003,6 +922,11 @@ def show_pricing(section_id="default"):
 
         with col:
 
+            st.markdown(
+                '<div class="plan-card">',
+                unsafe_allow_html=True,
+            )
+
             st.markdown(f"#### {name}")
             st.markdown(f"### {price}")
 
@@ -1032,6 +956,10 @@ def show_pricing(section_id="default"):
                     key=f"disabled_{section_id}_{name}",
                 )
 
+            st.markdown(
+                "</div>",
+                unsafe_allow_html=True,
+            )
 
 
 # ============================================================
@@ -1042,13 +970,26 @@ if not st.session_state.authenticated:
 
     show_brand_header()
 
-    st.subheader("AI-powered operational intelligence")
-    st.write("Turn operational data into management decisions.")
-    st.info(
-        "Create your account, upload Excel/CSV operational data, "
-        "identify KPI risks, investigate team and employee performance, "
-        "ask the AI Operations Copilot questions, and generate "
-        "management-ready reports."
+    st.markdown(
+        """
+        <div class="hero">
+            <div class="main-title">
+                AI-powered operational intelligence
+            </div>
+
+            <div class="brand-subtitle">
+                Turn operational data into management decisions.
+            </div>
+
+            <p>
+                Create your account, upload Excel/CSV operational data,
+                identify KPI risks, investigate team and employee
+                performance, ask the AI Operations Copilot questions,
+                and generate management-ready reports.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
     if (
@@ -1316,9 +1257,34 @@ plan_config = get_plan_config(
 
 with st.sidebar:
 
-    st.markdown("### 🤖 Generative Insight")
+    if LOGO_PATH.exists():
+
+        st.image(
+            str(LOGO_PATH),
+            use_container_width=True,
+        )
+
+    else:
+
+        st.markdown(
+            """
+            <div class="gi-brand">
+                Generative <span>Insight</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
     st.caption("AI Operations Copilot")
-    st.caption("generativeinsight.in")
+
+    st.markdown(
+        f"""
+        <a href="{WEBSITE_URL}" target="_blank">
+            🌐 Visit Generative Insight
+        </a>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.divider()
 
@@ -1408,10 +1374,17 @@ if st.session_state.get("show_plans"):
 
 show_brand_header(compact=True)
 
-st.title("AI Operations Manager")
-st.caption(
+st.markdown(
+    '<div class="main-title">AI Operations Manager</div>',
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    '<div class="brand-subtitle">'
     "Executive operational intelligence → risk detection → "
     "AI decisions → action plans → management reports"
+    "</div>",
+    unsafe_allow_html=True,
 )
 
 
@@ -1763,11 +1736,16 @@ if (
 # EXECUTIVE HERO
 # ============================================================
 
-st.subheader(
-    f"Executive Health: {risk_level}"
-)
-st.caption(
-    f"{company_name or 'Your organization'} · {report_name}"
+st.markdown(
+    f"""
+    <div class="hero">
+        <h3>Executive Health: {risk_level}</h3>
+        <p class="small-muted">
+        {company_name or "Your organization"} · {report_name}
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
 
@@ -2764,7 +2742,20 @@ with st.expander(
 
 st.divider()
 
-st.caption(
-    f"© {datetime.now().year} Generative Insight · "
-    f"AI Operations Copilot v{APP_VERSION} · generativeinsight.in"
+st.markdown(
+    f"""
+    <div class="gi-footer">
+        <strong>Generative Insight</strong>
+        · AI Operations Copilot v{APP_VERSION}
+        <br>
+        Insights today. Intelligence tomorrow.
+        <br>
+        <a href="{WEBSITE_URL}" target="_blank">
+            generativeinsight.in
+        </a>
+        &nbsp;·&nbsp;
+        © {datetime.now().year}
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
