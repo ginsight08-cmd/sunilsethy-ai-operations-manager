@@ -14,7 +14,7 @@ from engine import analyze_data, make_ai_prompt
 
 # ============================================================
 # GENERATIVE INSIGHT | AI OPERATIONS COPILOT
-# Production-ready Streamlit application
+# Clean Wix / Streamlit Embedded Version
 # ============================================================
 
 APP_NAME = "Generative Insight"
@@ -22,497 +22,14 @@ APP_VERSION = "1.0.0"
 
 
 # ============================================================
-# STREAMLIT PAGE CONFIG
+# PAGE CONFIG
 # ============================================================
 
 st.set_page_config(
     page_title="Generative Insight | AI Operations Manager",
     page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="collapsed",
-)
-
-
-# ============================================================
-# GLOBAL CSS
-# IMPORTANT:
-# Keep CSS inside a triple-quoted string.
-# Never place CSS directly into Python code.
-# ============================================================
-
-st.markdown(
-    """
-<style>
-
-/* ============================================================
-   GLOBAL APP
-   ============================================================ */
-
-html,
-body,
-[class*="css"] {
-    font-family:
-        Inter,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Roboto,
-        Helvetica,
-        Arial,
-        sans-serif !important;
-}
-
-.stApp {
-    background:
-        radial-gradient(
-            circle at 85% 5%,
-            rgba(219, 234, 254, 0.65),
-            transparent 30%
-        ),
-        radial-gradient(
-            circle at 10% 35%,
-            rgba(239, 246, 255, 0.75),
-            transparent 35%
-        ),
-        #f8fafc !important;
-
-    color: #0f172a !important;
-}
-
-
-/* ============================================================
-   HIDE STREAMLIT DEVELOPER UI
-   ============================================================ */
-
-/* Top Streamlit toolbar */
-[data-testid="stToolbar"] {
-    display: none !important;
-    visibility: hidden !important;
-}
-
-/* Streamlit header */
-header[data-testid="stHeader"] {
-    display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
-}
-
-/* Streamlit decoration */
-[data-testid="stDecoration"] {
-    display: none !important;
-}
-
-/* Status widget */
-[data-testid="stStatusWidget"] {
-    display: none !important;
-}
-
-/* Deploy / manage type controls */
-[data-testid="stAppDeployButton"] {
-    display: none !important;
-}
-
-/* Main menu */
-#MainMenu {
-    display: none !important;
-}
-
-/* Footer */
-footer {
-    visibility: hidden !important;
-    display: none !important;
-}
-
-
-/* ============================================================
-   MAIN CONTENT
-   ============================================================ */
-
-.block-container {
-    max-width: 1200px !important;
-    padding-top: 32px !important;
-    padding-bottom: 60px !important;
-    padding-left: 5% !important;
-    padding-right: 5% !important;
-}
-
-
-/* ============================================================
-   TEXT COLORS
-   ============================================================ */
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-label,
-span,
-div {
-    color: inherit;
-}
-
-.stMarkdown,
-.stMarkdown p {
-    color: #334155 !important;
-}
-
-.stCaption,
-[data-testid="stCaptionContainer"] {
-    color: #64748b !important;
-}
-
-
-/* ============================================================
-   BRAND HEADER
-   ============================================================ */
-
-.gi-brand {
-    padding: 10px 0 22px 0;
-}
-
-.gi-brand-name {
-    font-size: 30px;
-    font-weight: 800;
-    line-height: 1.1;
-    letter-spacing: -0.8px;
-    color: #0f172a !important;
-}
-
-.gi-brand-name span {
-    color: #2563eb !important;
-}
-
-.gi-tagline {
-    margin-top: 7px;
-    font-size: 14px;
-    color: #64748b !important;
-    font-weight: 500;
-}
-
-.gi-services {
-    margin-top: 7px;
-    font-size: 13px;
-    color: #475569 !important;
-}
-
-.gi-services a {
-    color: #2563eb !important;
-    text-decoration: none;
-    font-weight: 700;
-}
-
-.gi-services a:hover {
-    text-decoration: underline;
-}
-
-
-/* ============================================================
-   HERO
-   ============================================================ */
-
-.gi-hero {
-    background:
-        linear-gradient(
-            135deg,
-            rgba(239, 246, 255, 0.98),
-            rgba(248, 250, 252, 0.98)
-        );
-
-    border: 1px solid #dbeafe;
-    border-radius: 22px;
-
-    padding: 38px 34px;
-
-    margin-bottom: 30px;
-
-    box-shadow:
-        0 15px 45px rgba(15, 23, 42, 0.07);
-}
-
-.gi-hero h1 {
-    margin: 0;
-    padding: 0;
-
-    color: #0f172a !important;
-
-    font-size: 42px;
-    line-height: 1.08;
-    font-weight: 850;
-    letter-spacing: -1.5px;
-}
-
-.gi-hero-subtitle {
-    margin-top: 14px;
-
-    color: #2563eb !important;
-
-    font-size: 20px;
-    font-weight: 700;
-}
-
-.gi-hero-description {
-    margin-top: 15px;
-
-    max-width: 850px;
-
-    color: #475569 !important;
-
-    font-size: 15px;
-    line-height: 1.7;
-}
-
-
-/* ============================================================
-   EXECUTIVE HERO
-   ============================================================ */
-
-.gi-executive {
-    background: #ffffff;
-
-    border: 1px solid #e2e8f0;
-    border-radius: 18px;
-
-    padding: 22px 24px;
-
-    margin: 18px 0 25px 0;
-
-    box-shadow:
-        0 8px 25px rgba(15, 23, 42, 0.05);
-}
-
-.gi-executive-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: #64748b !important;
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-}
-
-.gi-executive-risk {
-    margin-top: 5px;
-
-    font-size: 26px;
-    font-weight: 800;
-
-    color: #0f172a !important;
-}
-
-.gi-executive-company {
-    margin-top: 5px;
-
-    color: #64748b !important;
-    font-size: 14px;
-}
-
-
-/* ============================================================
-   CARDS
-   ============================================================ */
-
-.gi-card {
-    background: #ffffff;
-
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-
-    padding: 22px;
-
-    box-shadow:
-        0 8px 25px rgba(15, 23, 42, 0.04);
-}
-
-.gi-card-title {
-    color: #0f172a !important;
-
-    font-size: 17px;
-    font-weight: 750;
-}
-
-.gi-card-text {
-    color: #64748b !important;
-
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-
-/* ============================================================
-   PLAN CARDS
-   ============================================================ */
-
-.plan-card {
-    background: #ffffff;
-
-    border: 1px solid #e2e8f0;
-    border-radius: 18px;
-
-    padding: 22px;
-
-    min-height: 310px;
-
-    box-shadow:
-        0 8px 25px rgba(15, 23, 42, 0.05);
-}
-
-.plan-card h3,
-.plan-card h4 {
-    color: #0f172a !important;
-}
-
-.plan-card p,
-.plan-card li {
-    color: #475569 !important;
-}
-
-
-/* ============================================================
-   STREAMLIT INPUTS
-   ============================================================ */
-
-div[data-baseweb="input"] {
-    background: #ffffff !important;
-}
-
-div[data-baseweb="select"] {
-    background: #ffffff !important;
-}
-
-input,
-textarea {
-    color: #0f172a !important;
-    background: #ffffff !important;
-}
-
-input::placeholder,
-textarea::placeholder {
-    color: #94a3b8 !important;
-}
-
-
-/* ============================================================
-   BUTTONS
-   ============================================================ */
-
-.stButton > button,
-.stDownloadButton > button,
-.stLinkButton > a {
-    border-radius: 10px !important;
-
-    font-weight: 700 !important;
-
-    min-height: 42px !important;
-}
-
-
-/* ============================================================
-   METRICS
-   ============================================================ */
-
-[data-testid="stMetric"] {
-    background: #ffffff !important;
-
-    border: 1px solid #e2e8f0 !important;
-
-    border-radius: 15px !important;
-
-    padding: 17px !important;
-
-    box-shadow:
-        0 6px 20px rgba(15, 23, 42, 0.04);
-}
-
-[data-testid="stMetricLabel"] {
-    color: #64748b !important;
-}
-
-[data-testid="stMetricValue"] {
-    color: #0f172a !important;
-}
-
-
-/* ============================================================
-   DATAFRAME
-   ============================================================ */
-
-[data-testid="stDataFrame"] {
-    border-radius: 12px !important;
-    overflow: hidden !important;
-}
-
-
-/* ============================================================
-   TABS
-   ============================================================ */
-
-button[data-baseweb="tab"] {
-    color: #475569 !important;
-    font-weight: 700 !important;
-}
-
-button[data-baseweb="tab"][aria-selected="true"] {
-    color: #2563eb !important;
-}
-
-
-/* ============================================================
-   ALERTS
-   ============================================================ */
-
-[data-testid="stAlert"] {
-    border-radius: 12px !important;
-}
-
-
-/* ============================================================
-   SIDEBAR
-   ============================================================ */
-
-section[data-testid="stSidebar"] {
-    background: #ffffff !important;
-    border-right: 1px solid #e2e8f0 !important;
-}
-
-section[data-testid="stSidebar"] * {
-    color: #0f172a !important;
-}
-
-
-/* ============================================================
-   MOBILE
-   ============================================================ */
-
-@media (max-width: 768px) {
-
-    .block-container {
-        padding-left: 18px !important;
-        padding-right: 18px !important;
-        padding-top: 20px !important;
-    }
-
-    .gi-hero {
-        padding: 26px 22px;
-        border-radius: 18px;
-    }
-
-    .gi-hero h1 {
-        font-size: 31px;
-    }
-
-    .gi-hero-subtitle {
-        font-size: 17px;
-    }
-
-    .gi-brand-name {
-        font-size: 25px;
-    }
-}
-
-</style>
-""",
-    unsafe_allow_html=True,
+    initial_sidebar_state="expanded",
 )
 
 
@@ -527,21 +44,338 @@ DEFAULT_STATE = {
     "user_name": "",
     "company_name": "",
     "user_plan": "Free",
+
     "n8n_sent": False,
     "n8n_result": None,
+
     "copilot_answer": None,
     "last_question": "",
+
     "file_name": "",
     "analysis_result": None,
     "analysis_df": None,
+
     "report_pdf": None,
     "report_generated_at": None,
+
     "show_plans": False,
 }
+
 
 for key, value in DEFAULT_STATE.items():
     if key not in st.session_state:
         st.session_state[key] = value
+
+
+# ============================================================
+# WIX / STREAMLIT CSS
+#
+# IMPORTANT:
+# This is CSS only.
+# Do NOT put HTML tags inside this block.
+# ============================================================
+
+st.markdown(
+    """
+    <style>
+
+    /* ======================================================
+       GLOBAL APP
+       ====================================================== */
+
+    .stApp {
+        background:
+            radial-gradient(
+                circle at 90% 0%,
+                rgba(37, 99, 235, 0.07),
+                transparent 30%
+            ),
+            linear-gradient(
+                180deg,
+                #f8fbff 0%,
+                #ffffff 45%,
+                #f8fbff 100%
+            );
+        color: #172033;
+    }
+
+    .main .block-container {
+        max-width: 1180px;
+        padding-top: 2rem;
+        padding-bottom: 4rem;
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+
+
+    /* ======================================================
+       READABLE DEFAULT TEXT
+       ====================================================== */
+
+    .stMarkdown,
+    .stMarkdown p,
+    .stMarkdown li,
+    .stCaption,
+    label,
+    .stTextInput label,
+    .stNumberInput label,
+    .stFileUploader label {
+        color: #172033 !important;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        color: #102a56 !important;
+    }
+
+    p {
+        color: #334155;
+    }
+
+
+    /* ======================================================
+       BRAND
+       ====================================================== */
+
+    .gi-brand {
+        font-size: 30px;
+        font-weight: 800;
+        color: #102a56 !important;
+        margin-bottom: 0;
+        letter-spacing: -0.7px;
+    }
+
+    .gi-brand span {
+        color: #1769e0 !important;
+    }
+
+    .gi-tagline {
+        color: #52637a !important;
+        font-size: 14px;
+        margin-top: 3px;
+        margin-bottom: 8px;
+    }
+
+    .gi-services {
+        color: #52637a !important;
+        font-size: 13px;
+        margin-bottom: 24px;
+    }
+
+
+    /* ======================================================
+       HERO
+       ====================================================== */
+
+    .gi-hero {
+        border: 1px solid #d8e7fb;
+        border-radius: 22px;
+        padding: 36px 38px;
+        margin-bottom: 28px;
+
+        background:
+            linear-gradient(
+                135deg,
+                rgba(235, 245, 255, 0.98),
+                rgba(255, 255, 255, 0.98)
+            );
+
+        box-shadow:
+            0 12px 35px rgba(31, 72, 125, 0.08);
+    }
+
+    .gi-hero-title {
+        color: #102a56 !important;
+        font-size: 36px;
+        line-height: 1.15;
+        font-weight: 800;
+        letter-spacing: -1px;
+        margin-bottom: 12px;
+    }
+
+    .gi-hero-subtitle {
+        color: #1769e0 !important;
+        font-size: 19px;
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+
+    .gi-hero-description {
+        color: #475569 !important;
+        font-size: 15px;
+        line-height: 1.7;
+        max-width: 850px;
+    }
+
+
+    /* ======================================================
+       CARDS
+       ====================================================== */
+
+    .gi-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 5px 20px rgba(15, 23, 42, 0.05);
+    }
+
+
+    /* ======================================================
+       BUTTONS
+       ====================================================== */
+
+    .stButton > button,
+    .stLinkButton > a {
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+    }
+
+
+    /* ======================================================
+       INPUTS
+       ====================================================== */
+
+    .stTextInput input,
+    .stNumberInput input,
+    .stTextArea textarea {
+        color: #172033 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 9px !important;
+    }
+
+    .stTextInput input::placeholder,
+    .stTextArea textarea::placeholder {
+        color: #64748b !important;
+        opacity: 1 !important;
+    }
+
+
+    /* ======================================================
+       FILE UPLOADER
+       ====================================================== */
+
+    [data-testid="stFileUploader"] {
+        background: #ffffff;
+        border: 1px dashed #94a3b8;
+        border-radius: 14px;
+        padding: 10px;
+    }
+
+
+    /* ======================================================
+       TABS
+       ====================================================== */
+
+    button[data-baseweb="tab"] {
+        color: #475569 !important;
+        font-weight: 600 !important;
+    }
+
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #1769e0 !important;
+    }
+
+
+    /* ======================================================
+       METRICS
+       ====================================================== */
+
+    [data-testid="stMetric"] {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 15px;
+    }
+
+    [data-testid="stMetricLabel"] {
+        color: #475569 !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        color: #102a56 !important;
+    }
+
+
+    /* ======================================================
+       SIDEBAR
+       ====================================================== */
+
+    [data-testid="stSidebar"] {
+        background: #f8fbff;
+        border-right: 1px solid #e2e8f0;
+    }
+
+    [data-testid="stSidebar"] * {
+        color: #172033;
+    }
+
+
+    /* ======================================================
+       STREAMLIT CLOUD CONTROLS
+       
+       Hide Streamlit application toolbar/share/edit/GitHub
+       controls where supported by current Streamlit DOM.
+       ====================================================== */
+
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+    }
+
+    [data-testid="stToolbar"] {
+        visibility: hidden !important;
+        height: 0 !important;
+    }
+
+    [data-testid="stDecoration"] {
+        display: none !important;
+    }
+
+    [data-testid="stStatusWidget"] {
+        display: none !important;
+    }
+
+    .stAppDeployButton {
+        display: none !important;
+    }
+
+    button[title="Share"] {
+        display: none !important;
+    }
+
+    button[aria-label="Share"] {
+        display: none !important;
+    }
+
+    button[title="GitHub"] {
+        display: none !important;
+    }
+
+    button[aria-label="GitHub"] {
+        display: none !important;
+    }
+
+    button[title="Edit"] {
+        display: none !important;
+    }
+
+    button[aria-label="Edit"] {
+        display: none !important;
+    }
+
+
+    /* ======================================================
+       FOOTER
+       ====================================================== */
+
+    footer {
+        visibility: hidden !important;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # ============================================================
@@ -553,7 +387,7 @@ def secret(name, default=""):
 
 
 # ============================================================
-# CENTRALIZED KPI STATUS LOGIC
+# CENTRALIZED KPI STATUS
 # ============================================================
 
 KPI_RULES = {
@@ -577,7 +411,6 @@ KPI_RULES = {
 
 
 def get_kpi_status(kpi_name, actual, target):
-    """Return one consistent KPI status object."""
 
     if kpi_name not in KPI_RULES:
         raise ValueError(f"Unknown KPI: {kpi_name}")
@@ -609,8 +442,16 @@ def get_kpi_status(kpi_name, actual, target):
         "target": target,
         "gap": gap,
         "is_good": is_good,
-        "status": "GOOD" if is_good else "NEEDS ATTENTION",
-        "icon": "🟢" if is_good else "🔴",
+        "status": (
+            "GOOD"
+            if is_good
+            else "NEEDS ATTENTION"
+        ),
+        "icon": (
+            "🟢"
+            if is_good
+            else "🔴"
+        ),
         "delta_color": delta_color,
         "unit": rule["unit"],
     }
@@ -633,16 +474,19 @@ def get_kpi_statuses(
             productivity,
             productivity_target,
         ),
+
         "Quality": get_kpi_status(
             "Quality",
             quality,
             quality_target,
         ),
+
         "SLA": get_kpi_status(
             "SLA",
             sla,
             sla_target,
         ),
+
         "AHT": get_kpi_status(
             "AHT",
             aht,
@@ -681,24 +525,17 @@ def get_supabase_client() -> Client:
     if not url or not anon_key:
         raise RuntimeError(
             "Supabase authentication is not configured. "
-            "Add SUPABASE_URL and SUPABASE_ANON_KEY to "
-            "Streamlit Secrets."
+            "Add SUPABASE_URL and SUPABASE_ANON_KEY "
+            "to Streamlit Secrets."
         )
 
-    return create_client(
-        url,
-        anon_key,
-    )
+    return create_client(url, anon_key)
 
 
 def friendly_auth_error(error):
 
     message = str(
-        getattr(
-            error,
-            "message",
-            error,
-        )
+        getattr(error, "message", error)
     )
 
     lowered = message.lower()
@@ -757,10 +594,7 @@ def sign_up_user(
     )
 
 
-def sign_in_user(
-    email,
-    password,
-):
+def sign_in_user(email, password):
 
     supabase = get_supabase_client()
 
@@ -784,11 +618,7 @@ def sign_out_user():
 
 def set_authenticated_user(response):
 
-    user = getattr(
-        response,
-        "user",
-        None,
-    )
+    user = getattr(response, "user", None)
 
     if user is None:
         raise RuntimeError(
@@ -796,11 +626,10 @@ def set_authenticated_user(response):
             "no user was returned."
         )
 
-    metadata = getattr(
-        user,
-        "user_metadata",
-        {},
-    ) or {}
+    metadata = (
+        getattr(user, "user_metadata", {})
+        or {}
+    )
 
     st.session_state.authenticated = True
 
@@ -811,30 +640,21 @@ def set_authenticated_user(response):
     st.session_state.user_id = user.id
 
     st.session_state.user_name = (
-        metadata.get(
-            "full_name",
-            "",
-        )
+        metadata.get("full_name", "")
     )
 
     st.session_state.company_name = (
-        metadata.get(
-            "company_name",
-            "",
-        )
+        metadata.get("company_name", "")
     )
 
     st.session_state.user_plan = (
-        metadata.get(
-            "plan",
-            "Free",
-        )
+        metadata.get("plan", "Free")
         or "Free"
     )
 
 
 # ============================================================
-# ANALYSIS STATE
+# ANALYSIS RESET
 # ============================================================
 
 def clear_analysis():
@@ -869,7 +689,7 @@ def clear_authentication():
 
 
 # ============================================================
-# PLAN CONFIG
+# PLAN CONFIGURATION
 # ============================================================
 
 def get_plan_config(plan):
@@ -972,7 +792,7 @@ def parse_ai_answer(data):
 
 
 # ============================================================
-# DATAFRAME HELPERS
+# DATAFRAME TO TEXT
 # ============================================================
 
 def dataframe_to_text(df):
@@ -982,6 +802,10 @@ def dataframe_to_text(df):
 
     return df.to_string(index=False)
 
+
+# ============================================================
+# COPILOT CONTEXT
+# ============================================================
 
 def build_copilot_context(
     company_name,
@@ -1058,16 +882,12 @@ def create_pdf_report(
     try:
 
         from reportlab.lib import colors
-
         from reportlab.lib.pagesizes import A4
-
         from reportlab.lib.styles import (
             getSampleStyleSheet,
             ParagraphStyle,
         )
-
         from reportlab.lib.units import mm
-
         from reportlab.platypus import (
             SimpleDocTemplate,
             Paragraph,
@@ -1209,16 +1029,14 @@ def create_pdf_report(
                     "BACKGROUND",
                     (0, 0),
                     (-1, 0),
-                    colors.HexColor("#111827"),
+                    colors.HexColor("#102a56"),
                 ),
-
                 (
                     "TEXTCOLOR",
                     (0, 0),
                     (-1, 0),
                     colors.white,
                 ),
-
                 (
                     "GRID",
                     (0, 0),
@@ -1226,35 +1044,30 @@ def create_pdf_report(
                     0.35,
                     colors.grey,
                 ),
-
                 (
                     "FONTNAME",
                     (0, 0),
                     (-1, 0),
                     "Helvetica-Bold",
                 ),
-
                 (
                     "FONTSIZE",
                     (0, 0),
                     (-1, -1),
                     8,
                 ),
-
                 (
                     "VALIGN",
                     (0, 0),
                     (-1, -1),
                     "MIDDLE",
                 ),
-
                 (
                     "BOTTOMPADDING",
                     (0, 0),
                     (-1, -1),
                     6,
                 ),
-
                 (
                     "TOPPADDING",
                     (0, 0),
@@ -1281,7 +1094,6 @@ def create_pdf_report(
             .replace("🔴 ", "")
             .replace("🟢 ", "")
             .replace("🟠 ", "")
-            .replace("🟡 ", "")
         )
 
         story.append(
@@ -1312,11 +1124,11 @@ def create_pdf_report(
         ("Employee Risk", "employees"),
     ]:
 
-        df = result.get(key)
+        data_frame = result.get(key)
 
         if (
-            isinstance(df, pd.DataFrame)
-            and not df.empty
+            isinstance(data_frame, pd.DataFrame)
+            and not data_frame.empty
         ):
 
             story.append(
@@ -1326,7 +1138,7 @@ def create_pdf_report(
                 )
             )
 
-            pdf_df = df.copy()
+            pdf_df = data_frame.copy()
 
             if len(pdf_df.columns) > 8:
                 pdf_df = pdf_df.iloc[:, :8]
@@ -1352,8 +1164,8 @@ def create_pdf_report(
             available_width = 180 * mm
 
             col_width = (
-                available_width /
-                max(col_count, 1)
+                available_width
+                / max(col_count, 1)
             )
 
             tbl = Table(
@@ -1371,16 +1183,14 @@ def create_pdf_report(
                             "BACKGROUND",
                             (0, 0),
                             (-1, 0),
-                            colors.HexColor("#111827"),
+                            colors.HexColor("#102a56"),
                         ),
-
                         (
                             "TEXTCOLOR",
                             (0, 0),
                             (-1, 0),
                             colors.white,
                         ),
-
                         (
                             "GRID",
                             (0, 0),
@@ -1388,14 +1198,12 @@ def create_pdf_report(
                             0.25,
                             colors.grey,
                         ),
-
                         (
                             "FONTSIZE",
                             (0, 0),
                             (-1, -1),
                             6,
                         ),
-
                         (
                             "VALIGN",
                             (0, 0),
@@ -1409,13 +1217,15 @@ def create_pdf_report(
             story.append(tbl)
             story.append(Spacer(1, 5))
 
-    story.append(Spacer(1, 8))
+    story.append(
+        Spacer(1, 8)
+    )
 
     story.append(
         Paragraph(
-            "Generated by Generative Insight AI Operations "
-            "Copilot. AI recommendations should be validated "
-            "against operational evidence before management action.",
+            "Generated by Generative Insight AI Operations Copilot. "
+            "AI recommendations should be validated against "
+            "operational evidence before management action.",
             body_style,
         )
     )
@@ -1448,13 +1258,8 @@ def send_email_report(
         )
     )
 
-    smtp_user = secret(
-        "SMTP_USERNAME"
-    )
-
-    smtp_password = secret(
-        "SMTP_PASSWORD"
-    )
+    smtp_user = secret("SMTP_USERNAME")
+    smtp_password = secret("SMTP_PASSWORD")
 
     smtp_from = secret(
         "SMTP_FROM",
@@ -1514,9 +1319,7 @@ def send_email_report(
 
 def show_pricing():
 
-    st.markdown(
-        "### 💳 Plans"
-    )
+    st.subheader("💳 Plans")
 
     c1, c2, c3 = st.columns(3)
 
@@ -1526,14 +1329,12 @@ def show_pricing():
             c1,
             "Free",
             "₹0",
-
             [
                 "5 MB file limit",
                 "Dashboard analytics",
                 "AI Copilot",
                 "PDF report",
             ],
-
             (
                 "Current plan"
                 if st.session_state.user_plan == "Free"
@@ -1545,14 +1346,12 @@ def show_pricing():
             c2,
             "Professional",
             "₹1,999/mo",
-
             [
                 "25 MB file limit",
                 "AI Copilot",
                 "PDF + email reports",
                 "n8n automation",
             ],
-
             "Upgrade",
         ),
 
@@ -1560,14 +1359,12 @@ def show_pricing():
             c3,
             "Business",
             "Custom",
-
             [
                 "100 MB file limit",
                 "Advanced automation",
                 "Custom workflows",
                 "Team deployment",
             ],
-
             "Contact Sales",
         ),
     ]
@@ -1583,20 +1380,14 @@ def show_pricing():
         with col:
 
             st.markdown(
-                '<div class="plan-card">',
-                unsafe_allow_html=True,
+                f"### {name}"
             )
 
             st.markdown(
-                f"#### {name}"
-            )
-
-            st.markdown(
-                f"### {price}"
+                f"## {price}"
             )
 
             for feature in features:
-
                 st.write(
                     f"✓ {feature}"
                 )
@@ -1626,11 +1417,6 @@ def show_pricing():
                     key=f"disabled_{name}",
                 )
 
-            st.markdown(
-                "</div>",
-                unsafe_allow_html=True,
-            )
-
 
 # ============================================================
 # AUTHENTICATION SCREEN
@@ -1643,61 +1429,59 @@ if not st.session_state.authenticated:
     # --------------------------------------------------------
 
     st.markdown(
-        """
-<div class="gi-brand">
+        '<div class="gi-brand">'
+        'Generative <span>Insight</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
-    <div class="gi-brand-name">
-        Generative <span>Insight</span>
-    </div>
+    st.markdown(
+        '<div class="gi-tagline">'
+        'Insights today. Intelligence tomorrow.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
-    <div class="gi-tagline">
-        Insights today. Intelligence tomorrow.
-    </div>
-
-    <div class="gi-services">
-        AI / ML &nbsp; | &nbsp;
-        Annotation &nbsp; | &nbsp;
-        Web & App Development
-        &nbsp; · &nbsp;
-
-        <a
-            href="https://generativeinsight.in/"
-            target="_blank"
-        >
-            Visit Website
-        </a>
-    </div>
-
-</div>
-""",
+    st.markdown(
+        '<div class="gi-services">'
+        'AI / ML &nbsp; | &nbsp; '
+        'Annotation &nbsp; | &nbsp; '
+        'Web & App Development'
+        '</div>',
         unsafe_allow_html=True,
     )
 
     # --------------------------------------------------------
     # HERO
+    #
+    # This is intentionally NOT HTML.
+    # Native Streamlit markdown is used here.
     # --------------------------------------------------------
 
     st.markdown(
         """
-<div class="gi-hero">
+        <div class="gi-hero">
+        """,
+        unsafe_allow_html=True,
+    )
 
-    <h1>
-        AI-powered operational intelligence
-    </h1>
+    st.markdown(
+        "## AI-powered operational intelligence"
+    )
 
-    <div class="gi-hero-subtitle">
-        Turn operational data into management decisions.
-    </div>
+    st.markdown(
+        "**Turn operational data into management decisions.**"
+    )
 
-    <div class="gi-hero-description">
-        Create your account, upload Excel/CSV operational
-        data, identify KPI risks, investigate team and
-        employee performance, ask the AI Operations Copilot
-        questions, and generate management-ready reports.
-    </div>
+    st.write(
+        "Create your account, upload Excel/CSV operational "
+        "data, identify KPI risks, investigate team and "
+        "employee performance, ask the AI Operations Copilot "
+        "questions, and generate management-ready reports."
+    )
 
-</div>
-""",
+    st.markdown(
+        "</div>",
         unsafe_allow_html=True,
     )
 
@@ -1711,12 +1495,16 @@ if not st.session_state.authenticated:
     ):
 
         st.error(
-            "🔐 Authentication is not configured yet. "
+            "Authentication is not configured yet. "
             "Add SUPABASE_URL and SUPABASE_ANON_KEY "
-            "in Streamlit → App Settings → Secrets."
+            "in Streamlit Secrets."
         )
 
         st.stop()
+
+    # --------------------------------------------------------
+    # AUTH TABS
+    # --------------------------------------------------------
 
     signup_tab, login_tab, pricing_tab = st.tabs(
         [
@@ -1732,8 +1520,8 @@ if not st.session_state.authenticated:
 
     with signup_tab:
 
-        st.markdown(
-            "### Create your Generative Insight account"
+        st.subheader(
+            "Create your Generative Insight account"
         )
 
         st.caption(
@@ -1771,12 +1559,10 @@ if not st.session_state.authenticated:
                 type="password",
             )
 
-            signup_submitted = (
-                st.form_submit_button(
-                    "🚀 Create Free Account",
-                    type="primary",
-                    use_container_width=True,
-                )
+            signup_submitted = st.form_submit_button(
+                "🚀 Create Free Account",
+                type="primary",
+                use_container_width=True,
             )
 
         if signup_submitted:
@@ -1790,7 +1576,8 @@ if not st.session_state.authenticated:
             elif not signup_company.strip():
 
                 st.warning(
-                    "Please enter your company or organization."
+                    "Please enter your company "
+                    "or organization."
                 )
 
             elif (
@@ -1805,7 +1592,8 @@ if not st.session_state.authenticated:
             elif len(signup_password) < 6:
 
                 st.warning(
-                    "Please use a password with at least 6 characters."
+                    "Please use a password with "
+                    "at least 6 characters."
                 )
 
             elif signup_password != signup_confirm:
@@ -1851,7 +1639,7 @@ if not st.session_state.authenticated:
                         )
 
                         st.success(
-                            "✅ Account created successfully."
+                            "Account created successfully."
                         )
 
                         st.rerun()
@@ -1859,7 +1647,7 @@ if not st.session_state.authenticated:
                     elif signup_user is not None:
 
                         st.success(
-                            "✅ Account created. "
+                            "Account created. "
                             "Please check your email and "
                             "click the verification link."
                         )
@@ -1867,16 +1655,22 @@ if not st.session_state.authenticated:
                     else:
 
                         st.info(
-                            "Check your inbox for the "
-                            "verification email."
+                            "If the email is valid, "
+                            "check your inbox."
                         )
 
                 except Exception as e:
 
                     st.error(
-                        "❌ Could not create account: "
-                        f"{friendly_auth_error(e)}"
+                        "Could not create account: "
+                        + friendly_auth_error(e)
                     )
+
+        st.caption(
+            "Use the platform responsibly and validate "
+            "AI recommendations before taking material "
+            "business action."
+        )
 
     # ========================================================
     # LOGIN
@@ -1884,8 +1678,8 @@ if not st.session_state.authenticated:
 
     with login_tab:
 
-        st.markdown(
-            "### Welcome back"
+        st.subheader(
+            "Welcome back"
         )
 
         with st.form("login_form"):
@@ -1900,12 +1694,10 @@ if not st.session_state.authenticated:
                 type="password",
             )
 
-            login_submitted = (
-                st.form_submit_button(
-                    "🔐 Sign In",
-                    type="primary",
-                    use_container_width=True,
-                )
+            login_submitted = st.form_submit_button(
+                "🔐 Sign In",
+                type="primary",
+                use_container_width=True,
             )
 
         if login_submitted:
@@ -1916,7 +1708,8 @@ if not st.session_state.authenticated:
             ):
 
                 st.warning(
-                    "Please enter your email and password."
+                    "Please enter your email "
+                    "and password."
                 )
 
             else:
@@ -1937,7 +1730,7 @@ if not st.session_state.authenticated:
                     )
 
                     st.success(
-                        "✅ Signed in successfully."
+                        "Signed in successfully."
                     )
 
                     st.rerun()
@@ -1945,13 +1738,13 @@ if not st.session_state.authenticated:
                 except Exception as e:
 
                     st.error(
-                        "❌ Sign in failed: "
-                        f"{friendly_auth_error(e)}"
+                        "Sign in failed: "
+                        + friendly_auth_error(e)
                     )
 
         st.info(
-            "If email confirmation is enabled in Supabase, "
-            "verify your email before signing in."
+            "If email confirmation is enabled in "
+            "Supabase, verify your email before signing in."
         )
 
     # ========================================================
@@ -1966,7 +1759,7 @@ if not st.session_state.authenticated:
 
 
 # ============================================================
-# AUTHENTICATED USER
+# AUTHENTICATED APP
 # ============================================================
 
 plan_config = get_plan_config(
@@ -1992,7 +1785,9 @@ with st.sidebar:
         f"Plan: **{st.session_state.user_plan}**"
     )
 
-    if st.session_state.get("user_name"):
+    if st.session_state.get(
+        "user_name"
+    ):
 
         st.caption(
             st.session_state.user_name
@@ -2063,10 +1858,12 @@ with st.sidebar:
 
 
 # ============================================================
-# PLAN VIEW
+# PLANS
 # ============================================================
 
-if st.session_state.get("show_plans"):
+if st.session_state.get(
+    "show_plans"
+):
 
     st.divider()
 
@@ -2076,74 +1873,50 @@ if st.session_state.get("show_plans"):
 
 
 # ============================================================
-# APPLICATION BRAND
+# MAIN APP BRAND
 # ============================================================
 
 st.markdown(
-    """
-<div class="gi-brand">
+    '<div class="gi-brand">'
+    'Generative <span>Insight</span>'
+    '</div>',
+    unsafe_allow_html=True,
+)
 
-    <div class="gi-brand-name">
-        Generative <span>Insight</span>
-    </div>
+st.markdown(
+    '<div class="gi-tagline">'
+    'Insights today. Intelligence tomorrow.'
+    '</div>',
+    unsafe_allow_html=True,
+)
 
-    <div class="gi-tagline">
-        Insights today. Intelligence tomorrow.
-    </div>
-
-    <div class="gi-services">
-        AI / ML &nbsp; | &nbsp;
-        Annotation &nbsp; | &nbsp;
-        Web & App Development
-        &nbsp; · &nbsp;
-
-        <a
-            href="https://generativeinsight.in/"
-            target="_blank"
-        >
-            Visit Website
-        </a>
-    </div>
-
-</div>
-""",
+st.markdown(
+    '<div class="gi-services">'
+    'AI / ML &nbsp; | &nbsp; '
+    'Annotation &nbsp; | &nbsp; '
+    'Web & App Development'
+    '</div>',
     unsafe_allow_html=True,
 )
 
 
 # ============================================================
-# APPLICATION HEADER
+# MAIN TITLE
 # ============================================================
 
-st.markdown(
-    """
-<div class="gi-hero">
+st.title(
+    "🤖 AI Operations Manager"
+)
 
-    <h1>
-        AI Operations Manager
-    </h1>
-
-    <div class="gi-hero-subtitle">
-        Executive operational intelligence →
-        risk detection →
-        AI decisions →
-        action plans →
-        management reports
-    </div>
-
-    <div class="gi-hero-description">
-        Transform operational data into clear,
-        evidence-based management decisions.
-    </div>
-
-</div>
-""",
-    unsafe_allow_html=True,
+st.caption(
+    "Executive operational intelligence → "
+    "risk detection → AI decisions → "
+    "action plans → management reports"
 )
 
 
 # ============================================================
-# REPORT SETUP
+# CUSTOMER INFORMATION
 # ============================================================
 
 st.subheader(
@@ -2184,8 +1957,8 @@ with col3:
 
 uploaded = st.file_uploader(
     (
-        "📁 Upload Excel or CSV operational data — "
-        f"max {plan_config['max_mb']} MB"
+        "📁 Upload Excel or CSV operational data "
+        f"— max {plan_config['max_mb']} MB"
     ),
     type=[
         "xlsx",
@@ -2207,9 +1980,10 @@ if not uploaded:
     )
 
     st.code(
-        "Date, Employee_ID, Employee_Name, Team, Target, "
-        "Production, AHT_Actual, AHT_Target, Quality_%, "
-        "SLA_%, Attendance, Error_Count, Error_Category"
+        "Date, Employee_ID, Employee_Name, Team, "
+        "Target, Production, AHT_Actual, AHT_Target, "
+        "Quality_%, SLA_%, Attendance, Error_Count, "
+        "Error_Category"
     )
 
     st.markdown(
@@ -2262,7 +2036,7 @@ if file_mb > plan_config["max_mb"]:
 
 
 # ============================================================
-# RESET WHEN NEW FILE
+# RESET ON NEW FILE
 # ============================================================
 
 if (
@@ -2270,7 +2044,9 @@ if (
     != uploaded.name
 ):
 
-    st.session_state.file_name = uploaded.name
+    st.session_state.file_name = (
+        uploaded.name
+    )
 
     st.session_state.n8n_sent = False
     st.session_state.n8n_result = None
@@ -2305,7 +2081,9 @@ try:
 
     uploaded.seek(0)
 
-    if uploaded.name.lower().endswith(".csv"):
+    if uploaded.name.lower().endswith(
+        ".csv"
+    ):
 
         df = pd.read_csv(
             uploaded
@@ -2332,7 +2110,7 @@ try:
 except Exception as e:
 
     st.error(
-        f"❌ Could not read the uploaded file: {e}"
+        f"Could not read the uploaded file: {e}"
     )
 
     st.stop()
@@ -2364,7 +2142,7 @@ missing_columns = [
 if missing_columns:
 
     st.error(
-        "❌ Required columns are missing."
+        "Required columns are missing."
     )
 
     st.write(
@@ -2391,7 +2169,7 @@ try:
 except Exception as e:
 
     st.error(
-        f"❌ Analysis failed: {e}"
+        f"Analysis failed: {e}"
     )
 
     st.stop()
@@ -2454,27 +2232,6 @@ sla_status = (
 
 aht_status = (
     kpi_statuses["AHT"]
-)
-
-
-# ============================================================
-# KPI GAPS
-# ============================================================
-
-productivity_gap = (
-    productivity_status["gap"]
-)
-
-quality_gap = (
-    quality_status["gap"]
-)
-
-sla_gap = (
-    sla_status["gap"]
-)
-
-aht_gap = (
-    aht_status["gap"]
 )
 
 
@@ -2562,39 +2319,26 @@ if (
 
 
 # ============================================================
-# EXECUTIVE HERO
+# EXECUTIVE HEALTH
 # ============================================================
 
-st.markdown(
-    f"""
-<div class="gi-executive">
+st.divider()
 
-    <div class="gi-executive-title">
-        Executive Health
-    </div>
+st.subheader(
+    f"Executive Health: {risk_level}"
+)
 
-    <div class="gi-executive-risk">
-        {risk_level}
-    </div>
-
-    <div class="gi-executive-company">
-        {company_name or "Your organization"}
-        ·
-        {report_name}
-    </div>
-
-</div>
-""",
-    unsafe_allow_html=True,
+st.caption(
+    f"{company_name or 'Your organization'} · "
+    f"{report_name}"
 )
 
 
 # ============================================================
-# TOP EXECUTIVE METRICS
+# EXECUTIVE METRICS
 # ============================================================
 
 r1, r2, r3, r4 = st.columns(4)
-
 
 with r1:
 
@@ -2602,7 +2346,6 @@ with r1:
         "Operational Risk",
         risk_level,
     )
-
 
 with r2:
 
@@ -2612,14 +2355,12 @@ with r2:
         delta=f"{4 - breaches} on target",
     )
 
-
 with r3:
 
     st.metric(
         "Action Items",
         action_count,
     )
-
 
 with r4:
 
@@ -2778,7 +2519,6 @@ st.subheader(
     "🧠 Executive Summary"
 )
 
-
 for point in summary_points:
 
     st.write(point)
@@ -2857,27 +2597,27 @@ if (
                 st.session_state.n8n_sent = True
 
                 st.success(
-                    "✅ Operational automation completed."
+                    "Operational automation completed."
                 )
 
             else:
 
                 st.error(
-                    "❌ n8n workflow failed: "
+                    f"n8n workflow failed: "
                     f"HTTP {response.status_code}"
                 )
 
         except requests.exceptions.Timeout:
 
             st.warning(
-                "⏱️ n8n timed out. "
+                "n8n timed out. "
                 "The workflow may still be running."
             )
 
         except requests.exceptions.RequestException as e:
 
             st.error(
-                f"❌ Could not connect to n8n: {e}"
+                f"Could not connect to n8n: {e}"
             )
 
 
@@ -3034,7 +2774,7 @@ with tabs[1]:
     else:
 
         st.success(
-            "✅ No threshold breaches detected."
+            "No threshold breaches detected."
         )
 
     st.info(
@@ -3078,7 +2818,8 @@ with tabs[2]:
         if sort_cols:
 
             employee_data = (
-                employee_data.sort_values(
+                employee_data
+                .sort_values(
                     sort_cols,
                     ascending=[
                         False
@@ -3131,7 +2872,7 @@ with tabs[3]:
 
 
 # ============================================================
-# TAB 5 — MANAGEMENT COPILOT
+# TAB 5 — COPILOT
 # ============================================================
 
 with tabs[4]:
@@ -3141,9 +2882,9 @@ with tabs[4]:
     )
 
     st.caption(
-        "Ask questions about the uploaded operational data. "
-        "The Copilot is instructed to use only the supplied "
-        "operational context."
+        "Ask questions about the uploaded operational "
+        "data. The Copilot uses the supplied operational "
+        "context."
     )
 
     question = st.text_input(
@@ -3166,20 +2907,21 @@ with tabs[4]:
         if not question.strip():
 
             st.warning(
-                "⚠️ Please enter a question first."
+                "Please enter a question first."
             )
 
         elif not plan_config["copilot"]:
 
             st.error(
-                "Copilot is not available on this plan."
+                "Copilot is not available "
+                "on this plan."
             )
 
         elif not copilot_url:
 
             st.error(
-                "❌ N8N_COPILOT_WEBHOOK_URL "
-                "is not configured in Streamlit Secrets."
+                "N8N_COPILOT_WEBHOOK_URL is not "
+                "configured in Streamlit Secrets."
             )
 
         else:
@@ -3249,8 +2991,9 @@ with tabs[4]:
                     st.session_state.copilot_answer = None
 
                     st.error(
-                        "❌ Copilot workflow failed: "
-                        f"HTTP {copilot_response.status_code}"
+                        f"Copilot workflow failed: "
+                        f"HTTP "
+                        f"{copilot_response.status_code}"
                     )
 
             except requests.exceptions.Timeout:
@@ -3258,7 +3001,7 @@ with tabs[4]:
                 st.session_state.copilot_answer = None
 
                 st.error(
-                    "⏱️ Management Copilot timed out."
+                    "Management Copilot timed out."
                 )
 
             except requests.exceptions.ConnectionError:
@@ -3266,8 +3009,8 @@ with tabs[4]:
                 st.session_state.copilot_answer = None
 
                 st.error(
-                    "🔌 Could not connect to "
-                    "the n8n Copilot webhook."
+                    "Could not connect to the "
+                    "n8n Copilot webhook."
                 )
 
             except requests.exceptions.RequestException as e:
@@ -3275,7 +3018,7 @@ with tabs[4]:
                 st.session_state.copilot_answer = None
 
                 st.error(
-                    f"❌ Copilot request failed: {e}"
+                    f"Copilot request failed: {e}"
                 )
 
             except Exception as e:
@@ -3283,12 +3026,9 @@ with tabs[4]:
                 st.session_state.copilot_answer = None
 
                 st.error(
-                    f"❌ Unexpected Copilot error: {e}"
+                    f"Unexpected Copilot error: {e}"
                 )
 
-    # --------------------------------------------------------
-    # COPILOT ANSWER
-    # --------------------------------------------------------
 
     if st.session_state.copilot_answer:
 
@@ -3299,7 +3039,7 @@ with tabs[4]:
         )
 
         st.caption(
-            "Question: "
+            f"Question: "
             f"{st.session_state.last_question}"
         )
 
@@ -3307,7 +3047,10 @@ with tabs[4]:
             st.session_state.copilot_answer
         )
 
-        if isinstance(answer, dict):
+        if isinstance(
+            answer,
+            dict,
+        ):
 
             what = answer.get(
                 "what_is_happening"
@@ -3448,10 +3191,11 @@ with tabs[5]:
 
     else:
 
-        report_result = dict(result)
+        report_result = dict(
+            result
+        )
 
         report_result["_targets"] = {
-
             "productivity":
                 productivity_target,
 
@@ -3502,8 +3246,9 @@ with tabs[5]:
             except Exception as e:
 
                 st.error(
-                    f"❌ Could not generate PDF: {e}"
+                    f"Could not generate PDF: {e}"
                 )
+
 
         if st.session_state.report_pdf:
 
@@ -3514,14 +3259,21 @@ with tabs[5]:
 
             st.download_button(
                 "⬇️ Download Executive PDF",
-                data=st.session_state.report_pdf,
+
+                data=(
+                    st.session_state.report_pdf
+                ),
+
                 file_name=filename,
+
                 mime="application/pdf",
+
                 use_container_width=True,
             )
 
             if (
-                st.session_state.report_generated_at
+                st.session_state
+                .report_generated_at
             ):
 
                 st.caption(
@@ -3533,6 +3285,7 @@ with tabs[5]:
                         "%d %b %Y, %H:%M"
                     )
                 )
+
 
         st.divider()
 
@@ -3584,10 +3337,9 @@ with tabs[5]:
 
                             (
                                 "Please find attached "
-                                "the management report "
-                                f"for {company_name or 'your organization'}.\n\n"
-                                "Generated by Generative Insight "
-                                "AI Operations Copilot."
+                                "the management report.\n\n"
+                                "Generated by Generative "
+                                "Insight AI Operations Copilot."
                             ),
 
                             st.session_state.report_pdf,
@@ -3596,14 +3348,15 @@ with tabs[5]:
                         )
 
                         st.success(
-                            "✅ Report emailed successfully."
+                            "Report emailed successfully."
                         )
 
                     except Exception as e:
 
                         st.error(
-                            f"❌ Email failed: {e}"
+                            f"Email failed: {e}"
                         )
+
 
         st.divider()
 
@@ -3627,11 +3380,15 @@ with tabs[5]:
 
                 st.download_button(
                     "⬇️ Team Analysis CSV",
+
                     team_df.to_csv(
                         index=False
                     ).encode("utf-8"),
+
                     "team_analysis.csv",
+
                     "text/csv",
+
                     use_container_width=True,
                 )
 
@@ -3644,11 +3401,15 @@ with tabs[5]:
 
                 st.download_button(
                     "⬇️ Action Plan CSV",
+
                     actions_df.to_csv(
                         index=False
                     ).encode("utf-8"),
+
                     "action_plan.csv",
+
                     "text/csv",
+
                     use_container_width=True,
                 )
 
@@ -3671,9 +3432,9 @@ with tabs[6]:
     show_pricing()
 
     st.caption(
-        "Configure your payment provider checkout "
-        "URLs in Streamlit Secrets to activate "
-        "real paid checkout."
+        "To activate real paid checkout, configure "
+        "the plan checkout URLs in Streamlit Secrets "
+        "using your payment provider."
     )
 
 
@@ -3698,22 +3459,9 @@ with st.expander(
 
 st.divider()
 
-st.markdown(
-    f"""
-<div style="
-    text-align:center;
-    padding:18px 0 10px 0;
-    color:#64748b;
-    font-size:12px;
-">
-    © {datetime.now().year}
-    Generative Insight
-    · AI Operations Copilot
-    · v{APP_VERSION}
-    <br>
-    Validate AI recommendations before taking
-    material business action.
-</div>
-""",
-    unsafe_allow_html=True,
+st.caption(
+    f"© {datetime.now().year} Generative Insight · "
+    f"AI Operations Copilot v{APP_VERSION} · "
+    "Validate AI recommendations before taking "
+    "material business action."
 )
