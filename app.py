@@ -1122,7 +1122,15 @@ def show_pricing(section_id="default"):
                         "Razorpay checkout is not configured yet."
                     )
                 else:
-                    if st.button(
+                    if not st.session_state.get("authenticated"):
+                        st.button(
+                            "Sign in to Upgrade",
+                            use_container_width=True,
+                            disabled=True,
+                            key=f"professional_auth_required_{section_id}",
+                        )
+                        st.caption("Create an account or sign in before starting a Professional subscription.")
+                    elif st.button(
                         "Upgrade",
                         type="primary",
                         use_container_width=True,
@@ -1145,11 +1153,25 @@ def show_pricing(section_id="default"):
                                 "short_url"
                             ]
                             st.session_state.razorpay_subscription_id = subscription["id"]
-                            try:
-                                update_user_plan("Free", subscription["id"], subscription.get("status", "created"))
-                            except Exception as exc:
-                                st.warning(f"Checkout was created, but subscription tracking could not be saved: {exc}")
-                            st.success("Subscription created. Continue to secure Razorpay checkout.")
+                            # Only persist the Razorpay subscription against a user
+                            # when the customer is authenticated. The public Plans tab
+                            # must never attempt an authenticated-user update.
+                            if st.session_state.get("authenticated") and st.session_state.get("user_id"):
+                                try:
+                                    update_user_plan(
+                                        st.session_state.get("user_plan", "Free"),
+                                        subscription["id"],
+                                        subscription.get("status", "created"),
+                                    )
+                                except Exception as exc:
+                                    st.warning(
+                                        "Checkout was created, but subscription tracking "
+                                        f"could not be saved: {exc}"
+                                    )
+
+                            st.success(
+                                "Subscription created. Continue to secure Razorpay checkout."
+                            )
                         except Exception as exc:
                             st.error(f"❌ {exc}")
 
