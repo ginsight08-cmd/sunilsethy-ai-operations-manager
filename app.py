@@ -8,28 +8,18 @@ from email.message import EmailMessage
 import pandas as pd
 import requests
 import streamlit as st
-
 from supabase import create_client, Client
 
 from engine import analyze_data, make_ai_prompt
 
 
 # ============================================================
-# GENERATIVE INSIGHT
-# AI OPERATIONS COPILOT
+# GENERATIVE INSIGHT | AI OPERATIONS COPILOT
+# Complete Streamlit application
 # ============================================================
 
 APP_NAME = "Generative Insight"
 APP_VERSION = "1.0.0"
-
-WEBSITE_URL = "https://generativeinsight.in"
-
-RAZORPAY_API_BASE = "https://api.razorpay.com/v1"
-
-
-# ============================================================
-# PAGE CONFIG
-# ============================================================
 
 st.set_page_config(
     page_title="Generative Insight | AI Operations Copilot",
@@ -40,16 +30,16 @@ st.set_page_config(
 
 
 # ============================================================
-# PATHS / BRAND
+# BRAND CONFIGURATION
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
 
-LOGO_PATH = (
-    BASE_DIR
-    / "assets"
-    / "Generative_insight.png"
-)
+# Add your logo here:
+# assets/Generative_insight.png
+LOGO_PATH = BASE_DIR / "assets" / "Generative_insight.png"
+
+WEBSITE_URL = "https://generativeinsight.in"
 
 BRAND_BLUE = "#0757B8"
 BRAND_CYAN = "#00AEEF"
@@ -68,1172 +58,535 @@ DEFAULT_STATE = {
     "user_name": "",
     "company_name": "",
     "user_plan": "Free",
-
     "n8n_sent": False,
     "n8n_result": None,
-
     "copilot_answer": None,
     "last_question": "",
-
     "file_name": "",
     "analysis_result": None,
     "analysis_df": None,
-
     "report_pdf": None,
     "report_generated_at": None,
-
     "show_plans": False,
-
     "razorpay_checkout_url": "",
     "razorpay_subscription_id": "",
 }
 
-
 for key, value in DEFAULT_STATE.items():
-
     if key not in st.session_state:
         st.session_state[key] = value
 
 
 # ============================================================
-# GLOBAL CSS
+# BRAND THEME
 # ============================================================
 
 st.markdown(
-    """
-    <style>
+    f"""
+<style>
 
-    /* ======================================================
-       GLOBAL
-       ====================================================== */
+    .stApp {{
+        background:
+            radial-gradient(
+                circle at 85% 0%,
+                rgba(0,174,239,0.08),
+                transparent 30%
+            ),
+            linear-gradient(
+                180deg,
+                #FFFFFF 0%,
+                #F7FAFF 100%
+            );
+    }}
 
-    .stApp {
-        background: #F8FAFC !important;
-        color: #111827 !important;
-    }
+    .main {{
+        padding-top: 1.5rem;
+    }}
 
-    .main .block-container {
-        color: #111827 !important;
-    }
-
-    /* ======================================================
-       TEXT
-       ====================================================== */
-
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
-        color: #071A3D !important;
-    }
-
-    p {
-        color: #344054 !important;
-    }
-
-    label {
-        color: #111827 !important;
-    }
-
-    span {
-        color: inherit;
-    }
-
-    /* ======================================================
-       BRAND
-       ====================================================== */
-
-    .gi-brand {
-        font-size: 2.3rem;
+    .main-title {{
+        font-size: 2.35rem;
         font-weight: 850;
-        line-height: 1.1;
-        color: #071A3D !important;
-        margin-bottom: 4px;
-    }
+        color: {BRAND_NAVY};
+        margin-bottom: 0.15rem;
+        letter-spacing: -1px;
+    }}
 
-    .gi-brand span {
+    .brand-subtitle {{
         color: #0757B8 !important;
-    }
-
-    .brand-tagline {
-        color: #475467 !important;
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 8px;
-    }
-
-    .brand-subtitle {
-        color: #475467 !important;
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 10px;
-    }
-
-    .website-link {
-        color: #0757B8 !important;
-        text-decoration: none !important;
+        -webkit-text-fill-color: #0757B8 !important;
+        font-size: 1.02rem;
         font-weight: 700;
-    }
-
-    .website-link:hover {
-        color: #00AEEF !important;
-    }
-
-    /* ======================================================
-       HERO
-       ====================================================== */
-
-    .gi-hero {
-        background: linear-gradient(
-            135deg,
-            #071A3D 0%,
-            #0757B8 100%
-        ) !important;
-
-        border-radius: 20px;
-        padding: 30px;
-        margin: 10px 0 25px 0;
-        box-shadow:
-            0 12px 35px rgba(7, 26, 61, 0.18);
-    }
-
-    .gi-hero * {
-        color: #FFFFFF !important;
-    }
-
-    .gi-hero-title {
-        font-size: 2rem;
-        font-weight: 850;
-        line-height: 1.2;
-        margin-bottom: 8px;
-    }
-
-    .gi-hero-text {
-        font-size: 1rem;
-        line-height: 1.6;
-        color: #EAF2FF !important;
-    }
-
-    /* ======================================================
-       PLAN CARDS
-       ====================================================== */
-
-    .plan-card {
-        background: #FFFFFF !important;
-        border: 1px solid #D0D5DD !important;
-        border-radius: 18px !important;
-        padding: 24px !important;
-        min-height: 330px !important;
-        box-shadow:
-            0 8px 25px rgba(16, 24, 40, 0.08) !important;
-        margin-bottom: 12px;
-    }
-
-    .plan-card * {
-        color: #111827 !important;
-    }
-
-    .plan-name {
-        color: #071A3D !important;
-        font-size: 1.2rem;
-        font-weight: 800;
-    }
-
-    .plan-price {
-        color: #0757B8 !important;
-        font-size: 1.7rem;
-        font-weight: 850;
-    }
-
-    .plan-description {
-        color: #475467 !important;
-        font-size: 0.88rem;
-    }
-
-    .plan-feature {
-        color: #344054 !important;
-        font-size: 0.9rem;
-    }
-
-    /* ======================================================
-       AUTH CARD
-       ====================================================== */
-
-    .auth-card {
-        background: #FFFFFF !important;
-        border: 1px solid #E4E7EC !important;
-        border-radius: 18px !important;
-        padding: 25px !important;
-        box-shadow:
-            0 8px 30px rgba(16, 24, 40, 0.07) !important;
-    }
-
-    .auth-card * {
-        color: #111827 !important;
-    }
-
-    /* ======================================================
-       INPUTS
-       ====================================================== */
-
-    input,
-    textarea,
-    select {
-        color: #111827 !important;
-        background-color: #FFFFFF !important;
-    }
-
-    input::placeholder,
-    textarea::placeholder {
-        color: #667085 !important;
+        margin-bottom: 1rem;
         opacity: 1 !important;
-    }
+        visibility: visible !important;
+    }}
 
-    /* ======================================================
-       SIDEBAR
-       ====================================================== */
+    .gi-brand {{
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: {BRAND_NAVY};
+        letter-spacing: -0.5px;
+    }}
 
-    [data-testid="stSidebar"] {
-        background: #F8FAFC !important;
-    }
+    .gi-brand span {{
+        color: {BRAND_BLUE};
+    }}
 
-    [data-testid="stSidebar"] * {
-        color: #111827 !important;
-    }
+    .gi-tagline {{
+        color: #667085;
+        font-size: 0.82rem;
+        margin-top: 0.15rem;
+    }}
 
-    /* ======================================================
-       METRICS
-       ====================================================== */
+    .hero {{
+        padding: 1.45rem 1.6rem;
+        border-radius: 20px;
+        border: 1px solid #DCE8F8;
+        background:
+            linear-gradient(
+                135deg,
+                rgba(7,87,184,0.08),
+                rgba(0,174,239,0.04),
+                rgba(255,157,0,0.05)
+            );
+        box-shadow: 0 8px 30px rgba(7,87,184,0.06);
+        margin-bottom: 1.2rem;
+    }}
 
-    [data-testid="stMetric"] {
-        background: #FFFFFF !important;
-        border: 1px solid #E4E7EC !important;
-        border-radius: 14px !important;
-        padding: 12px !important;
-    }
+    .small-muted {{
+        color: #667085;
+        font-size: .88rem;
+    }}
 
-    [data-testid="stMetricLabel"] {
-        color: #475467 !important;
-    }
+    div[data-testid="stMetric"] {{
+        background: #FFFFFF;
+        border: 1px solid #E0E8F5;
+        border-radius: 16px;
+        padding: 0.8rem;
+        box-shadow: 0 4px 15px rgba(7,87,184,0.05);
+    }}
 
-    [data-testid="stMetricValue"] {
-        color: #071A3D !important;
-    }
+    div[data-testid="stMetricValue"] {{
+        color: {BRAND_NAVY};
+        font-weight: 800;
+    }}
 
-    /* ======================================================
-       DATAFRAME
-       ====================================================== */
+    .plan-card {{
+        padding: 1.25rem;
+        border-radius: 18px;
+        border: 1px solid #DDE7F5;
+        background: #FFFFFF;
+        min-height: 260px;
+        box-shadow: 0 8px 24px rgba(7,87,184,0.06);
+        color: #172033 !important;
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }}
 
-    [data-testid="stDataFrame"] {
-        border-radius: 12px;
-    }
+    .plan-card:hover {{
+        border-color: {BRAND_CYAN};
+        box-shadow: 0 10px 30px rgba(0,174,239,0.12);
+        transform: translateY(-3px);
+    }}
 
-    /* ======================================================
-       CODE
-       ====================================================== */
+    section[data-testid="stSidebar"] {{
+        background:
+            linear-gradient(
+                180deg,
+                #F5F9FF 0%,
+                #FFFFFF 100%
+            );
+        border-right: 1px solid #E0E8F5;
+    }}
 
-    code {
-        color: #111827 !important;
-    }
+    .stButton > button {{
+        border-radius: 10px;
+        font-weight: 700;
+        border: 1px solid #C9D8EE;
+    }}
 
-    /* ======================================================
-       FOOTER
-       ====================================================== */
+    .stButton > button[kind="primary"] {{
+        background: linear-gradient(
+            90deg,
+            {BRAND_BLUE},
+            {BRAND_CYAN}
+        );
+        color: white;
+        border: none;
+    }}
 
-    .gi-footer {
+    .stButton > button[kind="primary"]:hover {{
+        background: linear-gradient(
+            90deg,
+            #064A9D,
+            #009BD5
+        );
+        color: white;
+    }}
+
+    button[data-baseweb="tab"] {{
+        font-weight: 700;
+    }}
+
+    button[data-baseweb="tab"][aria-selected="true"] {{
+        color: {BRAND_BLUE};
+    }}
+
+    a {{
+        color: {BRAND_BLUE};
+    }}
+
+    .gi-footer {{
         text-align: center;
-        color: #667085 !important;
-        font-size: 0.85rem;
-        padding: 20px 0;
-    }
+        color: #667085;
+        font-size: 0.82rem;
+        padding: 1.5rem 0;
+    }}
 
-    </style>
-    """,
+
+    /* EMBED-SAFE TYPOGRAPHY: explicit dark text prevents host-page CSS
+       from making Streamlit content white/invisible inside an iframe. */
+    .stApp .stMarkdown, .stApp .stMarkdown p, .stApp .stMarkdown li,
+    .stApp .stMarkdown span, .stApp label,
+    .stApp [data-testid="stWidgetLabel"], .stApp [data-testid="stWidgetLabel"] * {{
+        color: #172033 !important;
+    }}
+    .stApp .stCaption, .stApp [data-testid="stCaptionContainer"],
+    .stApp [data-testid="stCaptionContainer"] * {{
+        color: #52637A !important;
+    }}
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{
+        color: #071A3D !important;
+    }}
+    .stApp input, .stApp textarea, .stApp select,
+    .stApp input::placeholder, .stApp textarea::placeholder {{
+        color: #172033 !important;
+        -webkit-text-fill-color: #172033 !important;
+        opacity: 1 !important;
+    }}
+    .stApp [data-baseweb="select"] * {{
+        color: #172033 !important;
+    }}
+    .stApp button[data-baseweb="tab"] {{
+        color: #334155 !important;
+    }}
+    .stApp button[data-baseweb="tab"][aria-selected="true"] {{
+        color: #0757B8 !important;
+    }}
+    .stApp [data-testid="stDataFrame"] *,
+    .stApp [data-testid="stTable"] * {{
+        color: #172033 !important;
+    }}
+    .plan-card, .plan-card * {{
+        color: #172033 !important;
+    }}
+    .plan-card .plan-name, .plan-card .plan-price {{
+        color: #071A3D !important;
+    }}
+    .plan-card .plan-description, .plan-card .plan-feature {{
+        color: #52637A !important;
+    }}
+    .plan-card .plan-feature {{
+        font-weight: 600 !important;
+    }}
+    .stApp a {{
+        color: #0757B8 !important;
+        text-decoration: none;
+    }}
+    .stApp a:hover {{
+        color: #003F8F !important;
+        text-decoration: underline;
+    }}
+
+    /* ========================================================
+       HARD EMBED CONTRAST FIX
+       Explicitly style Streamlit-generated content and the
+       custom HTML blocks. This prevents invisible text when
+       the app is embedded inside a website/iframe.
+       ======================================================== */
+    .stApp [data-testid="stMarkdownContainer"],
+    .stApp [data-testid="stMarkdownContainer"] p,
+    .stApp [data-testid="stMarkdownContainer"] div,
+    .stApp [data-testid="stMarkdownContainer"] span,
+    .stApp [data-testid="stMarkdownContainer"] li,
+    .stApp [data-testid="stMarkdownContainer"] strong,
+    .stApp [data-testid="stMarkdownContainer"] em {{
+        color: #172033 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: #172033 !important;
+    }}
+
+    .stApp [data-testid="stMarkdownContainer"] h1,
+    .stApp [data-testid="stMarkdownContainer"] h2,
+    .stApp [data-testid="stMarkdownContainer"] h3,
+    .stApp [data-testid="stMarkdownContainer"] h4,
+    .stApp [data-testid="stMarkdownContainer"] h5,
+    .stApp [data-testid="stMarkdownContainer"] h6 {{
+        color: #071A3D !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: #071A3D !important;
+    }}
+
+    .stApp .hero p {{
+        color: #475569 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: #475569 !important;
+        font-size: 0.98rem !important;
+        line-height: 1.65 !important;
+    }}
+
+    .stApp .hero .brand-subtitle {{
+        color: #0757B8 !important;
+        opacity: 1 !important;
+        -webkit-text-fill-color: #0757B8 !important;
+    }}
+
+    /* Tabs: force both selected and unselected labels to remain visible. */
+    .stApp [data-baseweb="tab-list"] {{
+        background: transparent !important;
+    }}
+    .stApp button[data-baseweb="tab"],
+    .stApp button[data-baseweb="tab"] span,
+    .stApp button[data-baseweb="tab"] div {{
+        color: #334155 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: #334155 !important;
+        font-weight: 700 !important;
+    }}
+    .stApp button[data-baseweb="tab"][aria-selected="true"],
+    .stApp button[data-baseweb="tab"][aria-selected="true"] span,
+    .stApp button[data-baseweb="tab"][aria-selected="true"] div {{
+        color: #0757B8 !important;
+        -webkit-text-fill-color: #0757B8 !important;
+    }}
+
+    /* Streamlit headings/captions outside markdown containers. */
+    .stApp [data-testid="stHeader"] *,
+    .stApp [data-testid="stText"],
+    .stApp [data-testid="stCaptionContainer"] *,
+    .stApp [data-testid="stWidgetLabel"] *,
+    .stApp [data-testid="stForm"] label,
+    .stApp [data-testid="stForm"] p {{
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+
+    .stApp [data-testid="stCaptionContainer"] *,
+    .stApp .stCaption {{
+        color: #52637A !important;
+        -webkit-text-fill-color: #52637A !important;
+    }}
+
+    /* Inputs and buttons in an embedded page. */
+    .stApp input,
+    .stApp textarea,
+    .stApp [role="textbox"],
+    .stApp [data-baseweb="input"] input,
+    .stApp [data-baseweb="textarea"] textarea {{
+        background-color: #FFFFFF !important;
+        color: #172033 !important;
+        -webkit-text-fill-color: #172033 !important;
+        opacity: 1 !important;
+    }}
+
+    .stApp input::placeholder,
+    .stApp textarea::placeholder {{
+        color: #64748B !important;
+        -webkit-text-fill-color: #64748B !important;
+        opacity: 1 !important;
+    }}
+
+    .stApp .stButton button,
+    .stApp [data-testid="stFormSubmitButton"] button,
+    .stApp [data-testid="stLinkButton"] a {{
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+
+    /* FINAL EMBED / WIX CONTRAST + MOBILE SAFETY */
+    .stApp .gi-brand, .stApp .gi-brand * {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; opacity:1 !important; visibility:visible !important; }}
+    .stApp .gi-brand span {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; }}
+    .stApp .gi-tagline {{ color:#52637A !important; -webkit-text-fill-color:#52637A !important; opacity:1 !important; }}
+    .stApp .hero .main-title {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; }}
+    .stApp .hero .brand-subtitle {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; opacity:1 !important; visibility:visible !important; }}
+    .stApp .hero p, .stApp .hero .hero-description {{ color:#334155 !important; -webkit-text-fill-color:#334155 !important; opacity:1 !important; visibility:visible !important; }}
+    .stApp .website-link {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; font-weight:700 !important; text-decoration:none !important; }}
+    .stApp .plan-card, .stApp .plan-card * {{ opacity:1 !important; visibility:visible !important; }}
+    .stApp .plan-card .plan-name, .stApp .plan-card .plan-price {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; }}
+    .stApp .plan-card .plan-description, .stApp .plan-card .plan-feature {{ color:#52637A !important; -webkit-text-fill-color:#52637A !important; }}
+    @media (max-width:768px) {{
+        .main-title {{ font-size:1.8rem !important; }}
+        .hero {{ padding:1.1rem 1rem !important; border-radius:16px !important; }}
+        .plan-card {{ min-height:auto !important; margin-bottom:.75rem !important; }}
+        .stApp .stButton > button, .stApp [data-testid="stLinkButton"] a, .stApp [data-testid="stFormSubmitButton"] button {{ width:100% !important; min-height:44px !important; }}
+    }}
+</style>
+""",
     unsafe_allow_html=True,
 )
 
 
 # ============================================================
-# SECRET HELPER
+# HELPERS
 # ============================================================
 
 def secret(name, default=""):
-    """
-    Safely read a Streamlit Secret.
-
-    Returns an empty string if the secret does not exist.
-    """
-
     try:
-        value = st.secrets.get(name, default)
-
-        if value is None:
-            return default
-
-        return str(value).strip()
-
+        return st.secrets.get(name, default)
     except Exception:
         return default
 
 
-# ============================================================
-# BRAND HEADER
-# ============================================================
-
 def show_brand_header(compact=False):
-    """
-    Display Generative Insight branding.
-    """
+    """Display the Generative Insight logo and website branding."""
 
     if LOGO_PATH.exists():
-
         st.image(
             str(LOGO_PATH),
-            width=230 if compact else 360,
+            width=230 if compact else 420,
         )
-
     else:
-
         st.markdown(
-            """
-            <div class="gi-brand">
-                Generative <span>Insight</span>
-            </div>
-            """,
+            """<div class="gi-brand">Generative <span>Insight</span></div>
+<div class="gi-tagline">Insights today. Intelligence tomorrow.</div>""",
             unsafe_allow_html=True,
         )
 
     st.markdown(
-        """
-        <div class="brand-tagline">
-            Insights today. Intelligence tomorrow.
-        </div>
-        """,
+        f"""<div style="margin-top:-8px; margin-bottom:18px; color:#667085; font-size:0.85rem;">
+AI / ML &nbsp; | &nbsp; Annotation &nbsp; | &nbsp; Web & App Development
+&nbsp;&nbsp;·&nbsp;&nbsp;
+<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">Visit Website</a>
+</div>""",
         unsafe_allow_html=True,
     )
 
-    st.markdown(
-        f"""
-        <div class="brand-subtitle">
-            AI / ML &nbsp; | &nbsp; Annotation &nbsp; | &nbsp;
-            Web & App Development
-            &nbsp; · &nbsp;
-            <a
-                class="website-link"
-                href="{WEBSITE_URL}"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                Visit Website
-            </a>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-# ============================================================
-# SUPABASE CLIENT
-# ============================================================
 
 def get_supabase_client() -> Client:
-    """
-    Normal client for login/signup.
-    """
-
+    """Create the Supabase client from Streamlit Secrets."""
     url = secret("SUPABASE_URL")
     anon_key = secret("SUPABASE_ANON_KEY")
 
-    if not url:
+    if not url or not anon_key:
         raise RuntimeError(
-            "SUPABASE_URL is missing from Streamlit Secrets."
+            "Supabase authentication is not configured. "
+            "Add SUPABASE_URL and SUPABASE_ANON_KEY to Streamlit Secrets."
         )
 
-    if not anon_key:
-        raise RuntimeError(
-            "SUPABASE_ANON_KEY is missing from Streamlit Secrets."
-        )
-
-    return create_client(
-        url,
-        anon_key,
-    )
-
-
-# ============================================================
-# SUPABASE ADMIN HEADERS
-# ============================================================
-
-def get_supabase_admin_headers():
-    """
-    Server-side Supabase admin headers.
-
-    This explicitly sends:
-        Authorization: Bearer <service-role-key>
-
-    The service role key is never displayed to the user.
-    """
-
-    service_key = secret(
-        "SUPABASE_SERVICE_ROLE_KEY"
-    )
-
-    if not service_key:
-
-        raise RuntimeError(
-            "SUPABASE_SERVICE_ROLE_KEY is missing "
-            "from Streamlit Secrets."
-        )
-
-    return {
-        "apikey": service_key,
-        "Authorization": f"Bearer {service_key}",
-        "Content-Type": "application/json",
-    }
-
-
-# ============================================================
-# SUPABASE ADMIN USER GET
-# ============================================================
-
-def get_supabase_admin_user(user_id):
-    """
-    Get authenticated user using Supabase Auth Admin REST API.
-    """
-
-    if not user_id:
-
-        raise RuntimeError(
-            "No authenticated user ID is available."
-        )
-
-    supabase_url = secret(
-        "SUPABASE_URL"
-    ).rstrip("/")
-
-    headers = get_supabase_admin_headers()
-
-    endpoint = (
-        f"{supabase_url}/auth/v1/admin/users/{user_id}"
-    )
-
-    try:
-
-        response = requests.get(
-            endpoint,
-            headers=headers,
-            timeout=30,
-        )
-
-    except requests.exceptions.Timeout as exc:
-
-        raise RuntimeError(
-            "Supabase user lookup timed out."
-        ) from exc
-
-    except requests.exceptions.RequestException as exc:
-
-        raise RuntimeError(
-            f"Could not connect to Supabase: {exc}"
-        ) from exc
-
-    try:
-
-        data = response.json()
-
-    except ValueError:
-
-        data = {
-            "error": response.text
-        }
-
-    if response.status_code >= 300:
-
-        error_message = data
-
-        if isinstance(data, dict):
-
-            error_message = (
-                data.get("message")
-                or data.get("msg")
-                or data.get("error_description")
-                or data.get("error")
-                or str(data)
-            )
-
-        raise RuntimeError(
-            f"Supabase user lookup failed "
-            f"(HTTP {response.status_code}): "
-            f"{error_message}"
-        )
-
-    return data
-
-
-# ============================================================
-# SUPABASE ADMIN USER UPDATE
-# ============================================================
-
-def update_supabase_user_metadata(
-    user_id,
-    metadata,
-):
-    """
-    Update Supabase Auth metadata using REST API.
-
-    This avoids relying on the Python admin client's
-    internal authentication behavior.
-    """
-
-    if not user_id:
-
-        raise RuntimeError(
-            "No authenticated user is available."
-        )
-
-    if not isinstance(metadata, dict):
-
-        raise RuntimeError(
-            "User metadata must be a dictionary."
-        )
-
-    supabase_url = secret(
-        "SUPABASE_URL"
-    ).rstrip("/")
-
-    headers = get_supabase_admin_headers()
-
-    endpoint = (
-        f"{supabase_url}/auth/v1/admin/users/{user_id}"
-    )
-
-    payload = {
-        "user_metadata": metadata
-    }
-
-    try:
-
-        response = requests.put(
-            endpoint,
-            headers=headers,
-            json=payload,
-            timeout=30,
-        )
-
-    except requests.exceptions.Timeout as exc:
-
-        raise RuntimeError(
-            "Supabase user update timed out."
-        ) from exc
-
-    except requests.exceptions.RequestException as exc:
-
-        raise RuntimeError(
-            f"Could not connect to Supabase: {exc}"
-        ) from exc
-
-    try:
-
-        data = response.json()
-
-    except ValueError:
-
-        data = {
-            "error": response.text
-        }
-
-    if response.status_code >= 300:
-
-        error_message = data
-
-        if isinstance(data, dict):
-
-            error_message = (
-                data.get("message")
-                or data.get("msg")
-                or data.get("error_description")
-                or data.get("error")
-                or str(data)
-            )
-
-        raise RuntimeError(
-            f"Supabase user update failed "
-            f"(HTTP {response.status_code}): "
-            f"{error_message}"
-        )
-
-    return data
-
-
-# ============================================================
-# USER PLAN UPDATE
-# ============================================================
-
-def update_user_plan(
-    plan,
-    subscription_id="",
-    razorpay_status="",
-):
-    """
-    Update user plan and Razorpay subscription metadata.
-    """
-
-    user_id = st.session_state.get(
-        "user_id",
-        "",
-    )
-
-    if not user_id:
-
-        raise RuntimeError(
-            "No authenticated user is available. "
-            "Please sign in again."
-        )
-
-    user = get_supabase_admin_user(
-        user_id
-    )
-
-    metadata = dict(
-        user.get("user_metadata") or {}
-    )
-
-    existing_subscription_id = metadata.get(
-        "razorpay_subscription_id",
-        "",
-    )
-
-    existing_status = metadata.get(
-        "razorpay_subscription_status",
-        "",
-    )
-
-    metadata.update(
-        {
-            "plan": plan,
-
-            "razorpay_subscription_id": (
-                subscription_id
-                or existing_subscription_id
-            ),
-
-            "razorpay_subscription_status": (
-                razorpay_status
-                or existing_status
-            ),
-
-            "plan_updated_at": (
-                datetime.utcnow().isoformat()
-                + "Z"
-            ),
-        }
-    )
-
-    update_supabase_user_metadata(
-        user_id,
-        metadata,
-    )
-
+    return create_client(url, anon_key)
+
+
+def get_supabase_admin_client() -> Client:
+    url = secret("SUPABASE_URL")
+    service_role_key = secret("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not service_role_key:
+        raise RuntimeError("Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets for secure plan activation.")
+    return create_client(url, service_role_key)
+
+
+def update_user_plan(plan, subscription_id="", razorpay_status=""):
+    if not st.session_state.get("user_id"):
+        raise RuntimeError("No authenticated user is available.")
+    admin = get_supabase_admin_client()
+    current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
+    user = getattr(current, "user", None)
+    metadata = dict(getattr(user, "user_metadata", {}) or {}) if user else {}
+    metadata.update({
+        "plan": plan,
+        "razorpay_subscription_id": subscription_id or metadata.get("razorpay_subscription_id", ""),
+        "razorpay_subscription_status": razorpay_status or metadata.get("razorpay_subscription_status", ""),
+        "plan_updated_at": datetime.utcnow().isoformat() + "Z",
+    })
+    admin.auth.admin.update_user_by_id(st.session_state.user_id, {"user_metadata": metadata})
     st.session_state.user_plan = plan
-
-    st.session_state.razorpay_subscription_id = (
-        metadata.get(
-            "razorpay_subscription_id",
-            "",
-        )
-    )
+    st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
 
 
-# ============================================================
-# RAZORPAY
-# ============================================================
-
-def razorpay_is_configured():
-
-    return all(
-        [
-            secret("RAZORPAY_KEY_ID"),
-            secret("RAZORPAY_KEY_SECRET"),
-            secret(
-                "RAZORPAY_PROFESSIONAL_PLAN_ID"
-            ),
-        ]
-    )
-
-
-# ============================================================
-# CREATE RAZORPAY SUBSCRIPTION
-# ============================================================
-
-def create_razorpay_subscription(
-    customer_email="",
-    customer_name="",
-):
-    """
-    Create Razorpay subscription.
-
-    IMPORTANT:
-    Razorpay secret remains server-side.
-    """
-
-    key_id = secret(
-        "RAZORPAY_KEY_ID"
-    )
-
-    key_secret = secret(
-        "RAZORPAY_KEY_SECRET"
-    )
-
-    plan_id = secret(
-        "RAZORPAY_PROFESSIONAL_PLAN_ID"
-    )
-
-    if not key_id:
-
-        raise RuntimeError(
-            "RAZORPAY_KEY_ID is missing."
-        )
-
-    if not key_secret:
-
-        raise RuntimeError(
-            "RAZORPAY_KEY_SECRET is missing."
-        )
-
-    if not plan_id:
-
-        raise RuntimeError(
-            "RAZORPAY_PROFESSIONAL_PLAN_ID is missing."
-        )
-
-    raw_total_count = secret(
-        "RAZORPAY_PROFESSIONAL_TOTAL_COUNT",
-        "12",
-    )
-
-    try:
-
-        total_count = int(
-            raw_total_count
-        )
-
-    except (
-        TypeError,
-        ValueError,
-    ):
-
-        total_count = 12
-
-    if total_count < 1:
-        total_count = 12
-
-    payload = {
-        "plan_id": plan_id,
-        "total_count": total_count,
-        "customer_notify": 1,
-        "notes": {
-            "application": APP_NAME,
-            "plan": "Professional",
-            "customer_email": (
-                str(customer_email or "")[:255]
-            ),
-            "customer_name": (
-                str(customer_name or "")[:255]
-            ),
-        },
-    }
-
-    try:
-
-        response = requests.post(
-            f"{RAZORPAY_API_BASE}/subscriptions",
-            auth=(
-                key_id,
-                key_secret,
-            ),
-            json=payload,
-            timeout=30,
-        )
-
-    except requests.exceptions.Timeout as exc:
-
-        raise RuntimeError(
-            "Razorpay request timed out. "
-            "Please try again."
-        ) from exc
-
-    except requests.exceptions.RequestException as exc:
-
-        raise RuntimeError(
-            f"Could not connect to Razorpay: {exc}"
-        ) from exc
-
-    try:
-
-        data = response.json()
-
-    except ValueError:
-
-        data = {
-            "error": response.text
-        }
-
-    if response.status_code >= 300:
-
-        error_message = data
-
-        if isinstance(data, dict):
-
-            error_message = (
-                data.get("error")
-                or data.get("message")
-                or str(data)
-            )
-
-            if isinstance(
-                error_message,
-                dict,
-            ):
-
-                error_message = (
-                    error_message.get("description")
-                    or error_message.get("reason")
-                    or str(error_message)
-                )
-
-        raise RuntimeError(
-            "Razorpay subscription creation failed "
-            f"(HTTP {response.status_code}): "
-            f"{error_message}"
-        )
-
-    subscription_id = data.get("id")
-
-    checkout_url = data.get(
-        "short_url"
-    )
-
-    if not subscription_id:
-
-        raise RuntimeError(
-            "Razorpay did not return a subscription ID."
-        )
-
-    if not checkout_url:
-
-        raise RuntimeError(
-            "Razorpay created the subscription but "
-            "did not return a checkout URL."
-        )
-
-    return {
-        "id": subscription_id,
-        "status": data.get(
-            "status",
-            "created",
-        ),
-        "short_url": checkout_url,
-        "plan_id": data.get(
-            "plan_id",
-            plan_id,
-        ),
-    }
-
-
-# ============================================================
-# GET RAZORPAY SUBSCRIPTION
-# ============================================================
-
-def get_razorpay_subscription(
-    subscription_id,
-):
-
-    key_id = secret(
-        "RAZORPAY_KEY_ID"
-    )
-
-    key_secret = secret(
-        "RAZORPAY_KEY_SECRET"
-    )
-
+def get_razorpay_subscription(subscription_id):
+    key_id, key_secret = secret("RAZORPAY_KEY_ID"), secret("RAZORPAY_KEY_SECRET")
     if not key_id or not key_secret:
-
-        raise RuntimeError(
-            "Razorpay credentials are not configured."
-        )
-
+        raise RuntimeError("Razorpay credentials are not configured.")
     if not subscription_id:
-
-        raise RuntimeError(
-            "No Razorpay subscription ID is available."
-        )
-
+        raise RuntimeError("No Razorpay subscription ID is available.")
     try:
-
-        response = requests.get(
-            (
-                f"{RAZORPAY_API_BASE}"
-                f"/subscriptions/"
-                f"{subscription_id}"
-            ),
-            auth=(
-                key_id,
-                key_secret,
-            ),
-            timeout=30,
-        )
-
+        response = requests.get(f"{RAZORPAY_API_BASE}/subscriptions/{subscription_id}", auth=(key_id, key_secret), timeout=30)
     except requests.exceptions.Timeout as exc:
-
-        raise RuntimeError(
-            "Razorpay verification timed out."
-        ) from exc
-
+        raise RuntimeError("Razorpay verification timed out. Please try again.") from exc
     except requests.exceptions.RequestException as exc:
-
-        raise RuntimeError(
-            f"Could not connect to Razorpay: {exc}"
-        ) from exc
-
+        raise RuntimeError(f"Could not connect to Razorpay: {exc}") from exc
     try:
-
         data = response.json()
-
     except ValueError:
-
-        data = {
-            "error": response.text
-        }
-
+        data = {"error": response.text}
     if response.status_code >= 300:
-
-        error_message = data
-
-        if isinstance(data, dict):
-
-            error_message = (
-                data.get("error")
-                or data.get("message")
-                or str(data)
-            )
-
-            if isinstance(
-                error_message,
-                dict,
-            ):
-
-                error_message = (
-                    error_message.get("description")
-                    or error_message.get("reason")
-                    or str(error_message)
-                )
-
-        raise RuntimeError(
-            "Razorpay verification failed "
-            f"(HTTP {response.status_code}): "
-            f"{error_message}"
-        )
-
+        error = data.get("error", data) if isinstance(data, dict) else data
+        if isinstance(error, dict):
+            error = error.get("description") or error.get("reason") or str(error)
+        raise RuntimeError(f"Razorpay verification failed (HTTP {response.status_code}): {error}")
     return data
 
-
-# ============================================================
-# RAZORPAY ACTIVATION CHECK
-# ============================================================
 
 def razorpay_activation_ready():
-
-    if not st.session_state.get(
-        "authenticated"
-    ):
-
-        return (
-            False,
-            "Please create an account or sign in "
-            "before starting a Professional subscription.",
-        )
-
-    if not st.session_state.get(
-        "user_id"
-    ):
-
-        return (
-            False,
-            "No authenticated user is available. "
-            "Please sign in again.",
-        )
-
-    if not secret(
-        "SUPABASE_SERVICE_ROLE_KEY"
-    ):
-
-        return (
-            False,
-            "Secure plan activation is not configured. "
-            "Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets.",
-        )
-
+    if not st.session_state.get("authenticated") or not st.session_state.get("user_id"):
+        return False, "Please create an account or sign in before starting a Professional subscription."
+    if not secret("SUPABASE_SERVICE_ROLE_KEY"):
+        return False, "Secure plan activation is not configured. Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets."
     if not razorpay_is_configured():
-
-        return (
-            False,
-            "Razorpay is not fully configured. "
-            "Add RAZORPAY_KEY_ID, "
-            "RAZORPAY_KEY_SECRET and "
-            "RAZORPAY_PROFESSIONAL_PLAN_ID.",
-        )
-
+        return False, "Razorpay is not fully configured. Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_PROFESSIONAL_PLAN_ID to Streamlit Secrets."
     return True, ""
 
 
-# ============================================================
-# VERIFY PROFESSIONAL SUBSCRIPTION
-# ============================================================
-
 def verify_professional_subscription():
-
-    ready, message = (
-        razorpay_activation_ready()
-    )
-
+    ready, message = razorpay_activation_ready()
     if not ready:
         raise RuntimeError(message)
-
-    subscription_id = (
-        st.session_state.get(
-            "razorpay_subscription_id",
-            "",
-        )
-    )
-
+    subscription_id = st.session_state.get("razorpay_subscription_id", "")
     if not subscription_id:
-
-        user = get_supabase_admin_user(
-            st.session_state.user_id
-        )
-
-        metadata = (
-            user.get("user_metadata")
-            or {}
-        )
-
-        subscription_id = metadata.get(
-            "razorpay_subscription_id",
-            "",
-        )
-
+        admin = get_supabase_admin_client()
+        current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
+        user = getattr(current, "user", None)
+        metadata = getattr(user, "user_metadata", {}) or {} if user else {}
+        subscription_id = metadata.get("razorpay_subscription_id", "")
     if not subscription_id:
-
-        raise RuntimeError(
-            "No Razorpay subscription ID is available. "
-            "Create the Professional checkout first."
-        )
-
-    data = get_razorpay_subscription(
-        subscription_id
-    )
-
-    status = str(
-        data.get(
-            "status",
-            "",
-        )
-    ).lower()
-
-    active_statuses = {
-        "active",
-        "authenticated",
-    }
-
-    if status in active_statuses:
-
-        update_user_plan(
-            "Professional",
-            subscription_id,
-            status,
-        )
-
+        raise RuntimeError("No Razorpay subscription ID is available. Create the Professional checkout first.")
+    data = get_razorpay_subscription(subscription_id)
+    status = str(data.get("status", "")).lower()
+    if status == "active":
+        update_user_plan("Professional", subscription_id, status)
         return True, status
-
-    update_user_plan(
-        "Free",
-        subscription_id,
-        status,
-    )
-
+    update_user_plan("Free", subscription_id, status)
     return False, status
 
 
-# ============================================================
-# AUTH ERRORS
-# ============================================================
-
-def friendly_auth_error(error):
-
-    message = str(
-        getattr(
-            error,
-            "message",
-            error,
-        )
-    )
-
+def friendly_auth_error(error) -> str:
+    """Convert Supabase auth errors into user-friendly messages."""
+    message = str(getattr(error, "message", error))
     lowered = message.lower()
 
     if "invalid login credentials" in lowered:
         return "Invalid email or password."
-
     if "email not confirmed" in lowered:
-        return (
-            "Please verify your email address "
-            "before signing in."
-        )
-
+        return "Please verify your email address before signing in."
     if "user already registered" in lowered:
-        return (
-            "An account with this email already exists. "
-            "Please sign in."
-        )
-
+        return "An account with this email already exists. Please sign in."
     if "password should be at least" in lowered:
-        return (
-            "Password does not meet Supabase's "
-            "minimum password requirements."
-        )
-
+        return "Password must meet Supabase's minimum password requirements."
     if "rate limit" in lowered:
+        return "Too many attempts. Please wait a moment and try again."
+    if "name or service not known" in lowered:
         return (
-            "Too many attempts. Please wait a moment "
-            "and try again."
-        )
-
-    if (
-        "name or service not known"
-        in lowered
-    ):
-
-        return (
-            "Could not connect to Supabase. "
-            "Check SUPABASE_URL and "
-            "SUPABASE_ANON_KEY."
+            "Could not connect to Supabase. Check SUPABASE_URL and "
+            "SUPABASE_ANON_KEY in Streamlit Secrets."
         )
 
     return message
 
 
-# ============================================================
-# SIGN UP
-# ============================================================
-
-def sign_up_user(
-    full_name,
-    company_name,
-    email,
-    password,
-):
-
+def sign_up_user(full_name, company_name, email, password):
+    """Create a persistent customer account in Supabase Auth."""
     supabase = get_supabase_client()
 
     return supabase.auth.sign_up(
@@ -1242,12 +595,8 @@ def sign_up_user(
             "password": password,
             "options": {
                 "data": {
-                    "full_name": (
-                        full_name.strip()
-                    ),
-                    "company_name": (
-                        company_name.strip()
-                    ),
+                    "full_name": full_name.strip(),
+                    "company_name": company_name.strip(),
                     "plan": "Free",
                 }
             },
@@ -1255,15 +604,8 @@ def sign_up_user(
     )
 
 
-# ============================================================
-# SIGN IN
-# ============================================================
-
-def sign_in_user(
-    email,
-    password,
-):
-
+def sign_in_user(email, password):
+    """Authenticate a customer using Supabase Auth."""
     supabase = get_supabase_client()
 
     return supabase.auth.sign_in_with_password(
@@ -1274,96 +616,36 @@ def sign_in_user(
     )
 
 
-# ============================================================
-# SIGN OUT
-# ============================================================
-
 def sign_out_user():
-
+    """Sign the current user out of Supabase."""
     try:
-
         supabase = get_supabase_client()
-
         supabase.auth.sign_out()
-
     except Exception:
-
         pass
 
 
-# ============================================================
-# SESSION USER
-# ============================================================
-
-def set_authenticated_user(
-    response,
-):
-
-    user = getattr(
-        response,
-        "user",
-        None,
-    )
+def set_authenticated_user(response):
+    """Copy authenticated Supabase user information into session state."""
+    user = getattr(response, "user", None)
 
     if user is None:
-
         raise RuntimeError(
             "Authentication succeeded but no user was returned."
         )
 
-    metadata = (
-        getattr(
-            user,
-            "user_metadata",
-            {},
-        )
-        or {}
-    )
+    metadata = getattr(user, "user_metadata", {}) or {}
 
     st.session_state.authenticated = True
-
-    st.session_state.user_email = (
-        user.email or ""
-    ).lower()
-
+    st.session_state.user_email = (user.email or "").lower()
     st.session_state.user_id = user.id
+    st.session_state.user_name = metadata.get("full_name", "")
+    st.session_state.company_name = metadata.get("company_name", "")
+    st.session_state.user_plan = metadata.get("plan", "Free") or "Free"
+    st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
 
-    st.session_state.user_name = (
-        metadata.get(
-            "full_name",
-            "",
-        )
-    )
-
-    st.session_state.company_name = (
-        metadata.get(
-            "company_name",
-            "",
-        )
-    )
-
-    st.session_state.user_plan = (
-        metadata.get(
-            "plan",
-            "Free",
-        )
-        or "Free"
-    )
-
-    st.session_state.razorpay_subscription_id = (
-        metadata.get(
-            "razorpay_subscription_id",
-            "",
-        )
-    )
-
-
-# ============================================================
-# CLEAR AUTH
-# ============================================================
 
 def clear_authentication():
-
     sign_out_user()
 
     st.session_state.authenticated = False
@@ -1372,23 +654,15 @@ def clear_authentication():
     st.session_state.user_name = ""
     st.session_state.company_name = ""
     st.session_state.user_plan = "Free"
-
     st.session_state.show_plans = False
-
     st.session_state.razorpay_checkout_url = ""
     st.session_state.razorpay_subscription_id = ""
 
     clear_analysis()
 
 
-# ============================================================
-# PLAN CONFIG
-# ============================================================
-
 def get_plan_config(plan):
-
     configs = {
-
         "Free": {
             "max_mb": 5,
             "copilot": True,
@@ -1397,7 +671,6 @@ def get_plan_config(plan):
             "automation": False,
             "price": "₹0",
         },
-
         "Professional": {
             "max_mb": 25,
             "copilot": True,
@@ -1406,7 +679,6 @@ def get_plan_config(plan):
             "automation": True,
             "price": "₹1,999/mo",
         },
-
         "Business": {
             "max_mb": 100,
             "copilot": True,
@@ -1417,83 +689,37 @@ def get_plan_config(plan):
         },
     }
 
-    return configs.get(
-        plan,
-        configs["Free"],
-    )
+    return configs.get(plan, configs["Free"])
 
-
-# ============================================================
-# CLEAR ANALYSIS
-# ============================================================
 
 def clear_analysis():
-
     st.session_state.n8n_sent = False
     st.session_state.n8n_result = None
-
     st.session_state.copilot_answer = None
     st.session_state.last_question = ""
-
     st.session_state.file_name = ""
-
     st.session_state.analysis_result = None
     st.session_state.analysis_df = None
-
     st.session_state.report_pdf = None
     st.session_state.report_generated_at = None
 
 
-# ============================================================
-# N8N RESPONSE
-# ============================================================
-
-def normalize_n8n_response(
-    response,
-):
-
+def normalize_n8n_response(response):
     try:
-
         data = response.json()
-
     except ValueError:
+        return {"answer": response.text}
 
-        return {
-            "answer": response.text
-        }
-
-    if isinstance(
-        data,
-        list,
-    ) and data:
-
+    if isinstance(data, list) and data:
         data = data[0]
 
-    if isinstance(
-        data,
-        dict,
-    ):
+    return data if isinstance(data, dict) else {"answer": data}
 
-        return data
-
-    return {
-        "answer": data
-    }
-
-
-# ============================================================
-# AI ANSWER PARSER
-# ============================================================
 
 def parse_ai_answer(data):
-
     answer = data
 
-    if isinstance(
-        data,
-        dict,
-    ):
-
+    if isinstance(data, dict):
         answer = (
             data.get("answer")
             or data.get("response")
@@ -1502,55 +728,30 @@ def parse_ai_answer(data):
             or data.get("message")
         )
 
-    if isinstance(
-        answer,
-        str,
-    ):
-
+    if isinstance(answer, str):
         text = answer.strip()
 
         if text.startswith("```"):
-
             text = text[3:].strip()
-
             if text.lower().startswith("json"):
                 text = text[4:].strip()
-
             if text.endswith("```"):
                 text = text[:-3].strip()
 
         try:
-
             return json.loads(text)
-
         except json.JSONDecodeError:
-
             return text
 
     return answer
 
 
-# ============================================================
-# DATAFRAME TEXT
-# ============================================================
-
 def dataframe_to_text(df):
-
-    if (
-        df is None
-        or df.empty
-    ):
-
+    if df is None or df.empty:
         return "No records available."
 
-    return df.to_string(
-        index=False
-    )
+    return df.to_string(index=False)
 
-
-# ============================================================
-# COPILOT CONTEXT
-# ============================================================
 
 def build_copilot_context(
     company_name,
@@ -1563,7 +764,6 @@ def build_copilot_context(
     risk_level,
     summary_points,
 ):
-
     overall = result["overall"]
 
     return f"""
@@ -1607,10 +807,6 @@ KPI Summary:
 """.strip()
 
 
-# ============================================================
-# PDF REPORT
-# ============================================================
-
 def create_pdf_report(
     company_name,
     report_name,
@@ -1619,20 +815,14 @@ def create_pdf_report(
     summary_points,
     recommendation,
 ):
-
     try:
-
         from reportlab.lib import colors
-
         from reportlab.lib.pagesizes import A4
-
         from reportlab.lib.styles import (
             getSampleStyleSheet,
             ParagraphStyle,
         )
-
         from reportlab.lib.units import mm
-
         from reportlab.platypus import (
             SimpleDocTemplate,
             Paragraph,
@@ -1640,13 +830,11 @@ def create_pdf_report(
             Table,
             TableStyle,
         )
-
-    except ImportError as exc:
-
+    except ImportError:
         raise RuntimeError(
             "PDF generation requires reportlab. "
             "Add reportlab to requirements.txt."
-        ) from exc
+        )
 
     buffer = io.BytesIO()
 
@@ -1657,10 +845,7 @@ def create_pdf_report(
         leftMargin=14 * mm,
         topMargin=14 * mm,
         bottomMargin=14 * mm,
-        title=(
-            f"{company_name} - "
-            f"{report_name}"
-        ),
+        title=f"{company_name} - {report_name}",
         author=APP_NAME,
     )
 
@@ -1692,67 +877,45 @@ def create_pdf_report(
 
     story = []
 
+    story.append(Paragraph("Generative Insight", title_style))
     story.append(
         Paragraph(
-            "Generative Insight",
-            title_style,
-        )
-    )
-
-    story.append(
-        Paragraph(
-            f"<b>{company_name}</b> — "
-            f"{report_name}<br/>"
-            f"Generated: "
-            f"{datetime.now().strftime('%d %b %Y, %H:%M')}",
+            f"<b>{company_name}</b> — {report_name}<br/>"
+            f"Generated: {datetime.now().strftime('%d %b %Y, %H:%M')}",
             body_style,
         )
     )
 
-    story.append(
-        Spacer(1, 8)
-    )
+    story.append(Spacer(1, 8))
 
     overall = result["overall"]
 
-    targets = result.get(
-        "_targets",
-        {},
-    )
-
     kpi_rows = [
-        [
-            "KPI",
-            "Actual",
-            "Target",
-        ],
+        ["KPI", "Actual", "Target"],
         [
             "Productivity",
             f'{float(overall["productivity"]):.2f}%',
-            f'{targets.get("productivity", "")}%',
+            f'{result.get("_targets", {}).get("productivity", "")}%',
         ],
         [
             "Quality",
             f'{float(overall["quality"]):.2f}%',
-            f'{targets.get("quality", "")}%',
+            f'{result.get("_targets", {}).get("quality", "")}%',
         ],
         [
             "SLA",
             f'{float(overall["sla"]):.2f}%',
-            f'{targets.get("sla", "")}%',
+            f'{result.get("_targets", {}).get("sla", "")}%',
         ],
         [
             "Average AHT",
             f'{float(overall["aht"]):.2f}',
-            f'{targets.get("aht", "")}',
+            f'{result.get("_targets", {}).get("aht", "")}',
         ],
     ]
 
     story.append(
-        Paragraph(
-            "Executive Overview",
-            heading_style,
-        )
+        Paragraph("Executive Overview", heading_style)
     )
 
     story.append(
@@ -1762,71 +925,24 @@ def create_pdf_report(
         )
     )
 
-    story.append(
-        Spacer(1, 5)
-    )
+    story.append(Spacer(1, 5))
 
     table = Table(
         kpi_rows,
-        colWidths=[
-            55 * mm,
-            45 * mm,
-            45 * mm,
-        ],
+        colWidths=[55 * mm, 45 * mm, 45 * mm],
     )
 
     table.setStyle(
         TableStyle(
             [
-                (
-                    "BACKGROUND",
-                    (0, 0),
-                    (-1, 0),
-                    colors.HexColor("#111827"),
-                ),
-                (
-                    "TEXTCOLOR",
-                    (0, 0),
-                    (-1, 0),
-                    colors.white,
-                ),
-                (
-                    "GRID",
-                    (0, 0),
-                    (-1, -1),
-                    0.35,
-                    colors.grey,
-                ),
-                (
-                    "FONTNAME",
-                    (0, 0),
-                    (-1, 0),
-                    "Helvetica-Bold",
-                ),
-                (
-                    "FONTSIZE",
-                    (0, 0),
-                    (-1, -1),
-                    8,
-                ),
-                (
-                    "VALIGN",
-                    (0, 0),
-                    (-1, -1),
-                    "MIDDLE",
-                ),
-                (
-                    "BOTTOMPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    6,
-                ),
-                (
-                    "TOPPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    6,
-                ),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111827")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("GRID", (0, 0), (-1, -1), 0.35, colors.grey),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
             ]
         )
     )
@@ -1834,34 +950,22 @@ def create_pdf_report(
     story.append(table)
 
     story.append(
-        Paragraph(
-            "KPI Summary",
-            heading_style,
-        )
+        Paragraph("KPI Summary", heading_style)
     )
 
     for item in summary_points:
-
         cleaned = (
-            item
-            .replace("🔴 ", "")
+            item.replace("🔴 ", "")
             .replace("🟢 ", "")
             .replace("🟠 ", "")
             .replace("🟡 ", "")
         )
-
         story.append(
-            Paragraph(
-                cleaned,
-                body_style,
-            )
+            Paragraph(cleaned, body_style)
         )
 
     story.append(
-        Paragraph(
-            "Management Recommendation",
-            heading_style,
-        )
+        Paragraph("Management Recommendation", heading_style)
     )
 
     story.append(
@@ -1872,87 +976,38 @@ def create_pdf_report(
     )
 
     for title, key in [
-        (
-            "Team Performance",
-            "team",
-        ),
-        (
-            "Operational Findings",
-            "findings",
-        ),
-        (
-            "Recommended Actions",
-            "actions",
-        ),
-        (
-            "Employee Risk",
-            "employees",
-        ),
+        ("Team Performance", "team"),
+        ("Operational Findings", "findings"),
+        ("Recommended Actions", "actions"),
+        ("Employee Risk", "employees"),
     ]:
-
         df = result.get(key)
 
-        if (
-            isinstance(
-                df,
-                pd.DataFrame,
-            )
-            and not df.empty
-        ):
-
+        if isinstance(df, pd.DataFrame) and not df.empty:
             story.append(
-                Paragraph(
-                    title,
-                    heading_style,
-                )
+                Paragraph(title, heading_style)
             )
 
             pdf_df = df.copy()
 
             if len(pdf_df.columns) > 8:
+                pdf_df = pdf_df.iloc[:, :8]
 
-                pdf_df = (
-                    pdf_df.iloc[:, :8]
-                )
-
-            headers = [
-                str(c)
-                for c in pdf_df.columns
-            ]
-
+            headers = [str(c) for c in pdf_df.columns]
             rows = [headers]
 
-            for _, row in (
-                pdf_df.head(50).iterrows()
-            ):
-
+            for _, row in pdf_df.head(50).iterrows():
                 rows.append(
-                    [
-                        str(v)[:90]
-                        for v in row.tolist()
-                    ]
+                    [str(v)[:90] for v in row.tolist()]
                 )
 
             col_count = len(headers)
-
-            available_width = (
-                180 * mm
-            )
-
-            col_width = (
-                available_width
-                / max(
-                    col_count,
-                    1,
-                )
-            )
+            available_width = 180 * mm
+            col_width = available_width / max(col_count, 1)
 
             tbl = Table(
                 rows,
-                colWidths=[
-                    col_width
-                ]
-                * col_count,
+                colWidths=[col_width] * col_count,
                 repeatRows=1,
             )
 
@@ -1963,9 +1018,7 @@ def create_pdf_report(
                             "BACKGROUND",
                             (0, 0),
                             (-1, 0),
-                            colors.HexColor(
-                                "#111827"
-                            ),
+                            colors.HexColor("#111827"),
                         ),
                         (
                             "TEXTCOLOR",
@@ -1997,20 +1050,14 @@ def create_pdf_report(
             )
 
             story.append(tbl)
+            story.append(Spacer(1, 5))
 
-            story.append(
-                Spacer(1, 5)
-            )
-
-    story.append(
-        Spacer(1, 8)
-    )
+    story.append(Spacer(1, 8))
 
     story.append(
         Paragraph(
-            "Generated by Generative Insight AI "
-            "Operations Copilot. AI recommendations "
-            "should be validated against operational "
+            "Generated by Generative Insight AI Operations Copilot. "
+            "AI recommendations should be validated against operational "
             "evidence before management action.",
             body_style,
         )
@@ -2019,13 +1066,8 @@ def create_pdf_report(
     doc.build(story)
 
     buffer.seek(0)
-
     return buffer.getvalue()
 
-
-# ============================================================
-# EMAIL
-# ============================================================
 
 def send_email_report(
     recipient,
@@ -2034,47 +1076,20 @@ def send_email_report(
     pdf_bytes=None,
     pdf_filename="operations_report.pdf",
 ):
-
-    smtp_host = secret(
-        "SMTP_HOST"
-    )
-
-    smtp_port = int(
-        secret(
-            "SMTP_PORT",
-            "587",
-        )
-    )
-
-    smtp_user = secret(
-        "SMTP_USERNAME"
-    )
-
-    smtp_password = secret(
-        "SMTP_PASSWORD"
-    )
-
-    smtp_from = secret(
-        "SMTP_FROM",
-        smtp_user,
-    )
+    smtp_host = secret("SMTP_HOST")
+    smtp_port = int(secret("SMTP_PORT", "587"))
+    smtp_user = secret("SMTP_USERNAME")
+    smtp_password = secret("SMTP_PASSWORD")
+    smtp_from = secret("SMTP_FROM", smtp_user)
 
     if not all(
-        [
-            smtp_host,
-            smtp_user,
-            smtp_password,
-            smtp_from,
-        ]
+        [smtp_host, smtp_user, smtp_password, smtp_from]
     ):
-
         raise RuntimeError(
-            "SMTP settings are not configured "
-            "in Streamlit Secrets."
+            "SMTP settings are not configured in Streamlit Secrets."
         )
 
     message = EmailMessage()
-
     message["Subject"] = subject
     message["From"] = smtp_from
     message["To"] = recipient
@@ -2082,7 +1097,6 @@ def send_email_report(
     message.set_content(body)
 
     if pdf_bytes:
-
         message.add_attachment(
             pdf_bytes,
             maintype="application",
@@ -2095,30 +1109,123 @@ def send_email_report(
         smtp_port,
         timeout=30,
     ) as server:
-
         server.starttls()
-
         server.login(
             smtp_user,
             smtp_password,
         )
+        server.send_message(message)
 
-        server.send_message(
-            message
+
+# ============================================================
+# RAZORPAY SUBSCRIPTIONS
+# ============================================================
+
+RAZORPAY_API_BASE = "https://api.razorpay.com/v1"
+
+
+def razorpay_is_configured():
+    return all(
+        [
+            secret("RAZORPAY_KEY_ID"),
+            secret("RAZORPAY_KEY_SECRET"),
+            secret("RAZORPAY_PROFESSIONAL_PLAN_ID"),
+        ]
+    )
+
+
+def create_razorpay_subscription(customer_email="", customer_name=""):
+    key_id = secret("RAZORPAY_KEY_ID")
+    key_secret = secret("RAZORPAY_KEY_SECRET")
+    plan_id = secret("RAZORPAY_PROFESSIONAL_PLAN_ID")
+
+    if not key_id or not key_secret or not plan_id:
+        raise RuntimeError(
+            "Razorpay is not configured. Add RAZORPAY_KEY_ID, "
+            "RAZORPAY_KEY_SECRET and RAZORPAY_PROFESSIONAL_PLAN_ID "
+            "to Streamlit Secrets."
         )
+
+    raw_total_count = secret("RAZORPAY_PROFESSIONAL_TOTAL_COUNT", "12")
+    try:
+        total_count = int(raw_total_count)
+    except (TypeError, ValueError):
+        total_count = 12
+
+    if total_count < 1:
+        total_count = 12
+
+    payload = {
+        "plan_id": plan_id,
+        "total_count": total_count,
+        "customer_notify": 1,
+        "notes": {
+            "application": APP_NAME,
+            "plan": "Professional",
+            "customer_email": str(customer_email or "")[:255],
+            "customer_name": str(customer_name or "")[:255],
+        },
+    }
+
+    try:
+        response = requests.post(
+            f"{RAZORPAY_API_BASE}/subscriptions",
+            auth=(key_id, key_secret),
+            json=payload,
+            timeout=30,
+        )
+    except requests.exceptions.Timeout as exc:
+        raise RuntimeError(
+            "Razorpay request timed out. Please try again."
+        ) from exc
+    except requests.exceptions.RequestException as exc:
+        raise RuntimeError(
+            f"Could not connect to Razorpay: {exc}"
+        ) from exc
+
+    try:
+        data = response.json()
+    except ValueError:
+        data = {"error": response.text}
+
+    if response.status_code >= 300:
+        error_message = data.get("error", data) if isinstance(data, dict) else data
+        if isinstance(error_message, dict):
+            error_message = (
+                error_message.get("description")
+                or error_message.get("reason")
+                or str(error_message)
+            )
+        raise RuntimeError(
+            f"Razorpay subscription creation failed (HTTP {response.status_code}): "
+            f"{error_message}"
+        )
+
+    checkout_url = data.get("short_url")
+    subscription_id = data.get("id")
+
+    if not checkout_url or not subscription_id:
+        raise RuntimeError(
+            "Razorpay created the subscription but did not return a valid "
+            "subscription checkout URL."
+        )
+
+    return {
+        "id": subscription_id,
+        "status": data.get("status", "created"),
+        "short_url": checkout_url,
+        "plan_id": data.get("plan_id", plan_id),
+    }
 
 
 # ============================================================
 # PRICING
 # ============================================================
 
-def show_pricing(
-    section_id="default",
-):
+def show_pricing(section_id="default"):
+    """Display the existing pricing UI with Razorpay Professional checkout."""
 
-    st.markdown(
-        "### 💳 Plans"
-    )
+    st.markdown("### 💳 Plans")
 
     c1, c2, c3 = st.columns(3)
 
@@ -2135,8 +1242,7 @@ def show_pricing(
             ],
             (
                 "Current plan"
-                if st.session_state.user_plan
-                == "Free"
+                if st.session_state.user_plan == "Free"
                 else "Start Free"
             ),
         ),
@@ -2150,12 +1256,9 @@ def show_pricing(
                 "PDF + email reports",
                 "n8n automation",
             ],
-            (
-                "Current plan"
-                if st.session_state.user_plan
-                == "Professional"
-                else "Upgrade"
-            ),
+            "Current plan"
+            if st.session_state.user_plan == "Professional"
+            else "Upgrade",
         ),
         (
             c3,
@@ -2171,331 +1274,144 @@ def show_pricing(
         ),
     ]
 
-    for (
-        col,
-        name,
-        price,
-        features,
-        button,
-    ) in plans:
-
+    for col, name, price, features, button in plans:
         with col:
-
-            visuals = {
-                "Free": (
-                    "🌱",
-                    "Start your AI operations journey",
-                ),
-                "Professional": (
-                    "🚀",
-                    "Advanced intelligence & automation",
-                ),
-                "Business": (
-                    "🏢",
-                    "Scale AI operations across teams",
-                ),
+            plan_visuals = {
+                "Free": ("🌱", "Start your AI operations journey"),
+                "Professional": ("🚀", "Advanced intelligence & automation"),
+                "Business": ("🏢", "Scale AI operations across teams"),
             }
-
-            icon, description = visuals[
-                name
-            ]
-
-            features_html = "".join(
-                [
-                    (
-                        f'<div class="plan-feature">'
-                        f'✓ {feature}'
-                        f'</div>'
-                    )
-                    for feature in features
-                ]
-            )
+            icon, description = plan_visuals.get(name, ("✨", "Operational intelligence"))
 
             st.markdown(
-                f"""
+                f'''
                 <div class="plan-card">
-
-                    <div
-                        style="
-                        font-size:2.6rem;
-                        line-height:1;
-                        margin-bottom:.7rem;
-                        "
-                    >
-                        {icon}
-                    </div>
-
-                    <div class="plan-name">
-                        {name}
-                    </div>
-
-                    <div class="plan-price">
-                        {price}
-                    </div>
-
-                    <div class="plan-description">
-                        {description}
-                    </div>
-
-                    <div style="margin-top:12px;">
-                        {features_html}
-                    </div>
-
+                    <div style="font-size:2.6rem; line-height:1; margin-bottom:.7rem;">{icon}</div>
+                    <div class="plan-name" style="font-size:1.15rem; font-weight:800;">{name}</div>
+                    <div class="plan-price" style="font-size:1.65rem; font-weight:850; margin:.35rem 0;">{price}</div>
+                    <div class="plan-description" style="font-size:.86rem; margin-bottom:.8rem;">{description}</div>
+                    {''.join(f'<div class="plan-feature" style="margin:.35rem 0;">✓ {feature}</div>' for feature in features)}
                 </div>
-                """,
-                unsafe_allow_html=True,
+                '''
+                , unsafe_allow_html=True,
             )
 
-            # ==================================================
-            # PROFESSIONAL
-            # ==================================================
-
+            # Professional uses the Razorpay subscription API.
+            # Free/Business retain the existing checkout-link behavior.
             if name == "Professional":
-
-                if (
-                    st.session_state.user_plan
-                    == "Professional"
-                ):
-
+                if st.session_state.user_plan == "Professional":
                     st.button(
                         "Current plan",
                         use_container_width=True,
                         disabled=True,
-                        key=(
-                            f"professional_current_"
-                            f"{section_id}"
-                        ),
+                        key=f"professional_current_{section_id}",
                     )
-
                 elif not razorpay_is_configured():
-
                     st.button(
-                        "💳 Upgrade to Professional",
+                        "Upgrade",
                         use_container_width=True,
                         disabled=True,
-                        key=(
-                            f"professional_disabled_"
-                            f"{section_id}"
-                        ),
+                        key=f"professional_disabled_{section_id}",
                     )
-
                     st.caption(
-                        "Razorpay checkout is not configured."
+                        "Razorpay checkout is not configured yet."
                     )
-
                 else:
-
+                    # Keep the payment option visible in every environment.
+                    # Secure activation still requires an authenticated Supabase user.
                     if st.button(
                         "💳 Upgrade to Professional",
                         type="primary",
                         use_container_width=True,
-                        key=(
-                            f"razorpay_upgrade_"
-                            f"{section_id}"
-                        ),
+                        key=f"razorpay_upgrade_{section_id}",
                     ):
-
-                        ready, message = (
-                            razorpay_activation_ready()
-                        )
-
+                        ready, message = razorpay_activation_ready()
                         if not ready:
-
-                            st.error(
-                                f"❌ {message}"
-                            )
-
+                            st.error(f"❌ {message}")
                         else:
-
                             try:
-
-                                with st.spinner(
-                                    "Creating secure Razorpay subscription..."
-                                ):
-
-                                    subscription = (
-                                        create_razorpay_subscription(
-                                            customer_email=(
-                                                st.session_state.get(
-                                                    "user_email",
-                                                    "",
-                                                )
-                                            ),
-                                            customer_name=(
-                                                st.session_state.get(
-                                                    "user_name",
-                                                    "",
-                                                )
-                                            ),
-                                        )
+                                with st.spinner("Creating secure Razorpay subscription..."):
+                                    subscription = create_razorpay_subscription(
+                                        customer_email=st.session_state.get("user_email", ""),
+                                        customer_name=st.session_state.get("user_name", ""),
                                     )
 
-                                # Save subscription tracking.
+                                # Save tracking first. Checkout URL is exposed only after
+                                # Supabase tracking succeeds, eliminating the previous
+                                # "checkout created but subscription tracking could not be saved" state.
                                 update_user_plan(
                                     "Free",
                                     subscription["id"],
-                                    subscription.get(
-                                        "status",
-                                        "created",
-                                    ),
+                                    subscription.get("status", "created"),
                                 )
-
-                                st.session_state.razorpay_checkout_url = (
-                                    subscription["short_url"]
-                                )
-
-                                st.session_state.razorpay_subscription_id = (
-                                    subscription["id"]
-                                )
-
-                                st.success(
-                                    "Subscription created. "
-                                    "Continue to Razorpay checkout."
-                                )
-
+                                st.session_state.razorpay_checkout_url = subscription["short_url"]
+                                st.session_state.razorpay_subscription_id = subscription["id"]
+                                st.success("Subscription created. Continue to secure Razorpay checkout.")
                             except Exception as exc:
-
                                 st.session_state.razorpay_checkout_url = ""
+                                st.error(f"❌ {exc}")
 
-                                st.error(
-                                    f"❌ {exc}"
-                                )
-
-                # ==================================================
-                # CHECKOUT LINK
-                # ==================================================
-
-                if st.session_state.get(
-                    "razorpay_checkout_url"
-                ):
-
+                if st.session_state.get("razorpay_checkout_url"):
                     st.link_button(
                         "💳 Continue to Razorpay Checkout",
                         st.session_state.razorpay_checkout_url,
                         use_container_width=True,
                     )
-
-                    subscription_id = (
-                        st.session_state.get(
-                            "razorpay_subscription_id",
-                            "",
-                        )
+                    subscription_id = st.session_state.get(
+                        "razorpay_subscription_id", ""
                     )
-
                     if subscription_id:
-
-                        st.caption(
-                            f"Subscription ID: "
-                            f"{subscription_id}"
-                        )
-
-                        if st.button(
-                            "🔄 Verify Professional Payment",
-                            use_container_width=True,
-                            key=(
-                                f"verify_razorpay_"
-                                f"{section_id}"
-                            ),
-                        ):
-
+                        st.caption(f"Subscription ID: {subscription_id}")
+                        if st.button("🔄 Verify Professional Payment", use_container_width=True, key=f"verify_razorpay_{section_id}"):
                             try:
-
-                                with st.spinner(
-                                    "Verifying Razorpay subscription..."
-                                ):
-
-                                    active, status = (
-                                        verify_professional_subscription()
-                                    )
-
+                                with st.spinner("Verifying your Razorpay subscription..."):
+                                    active, status = verify_professional_subscription()
                                 if active:
-
-                                    st.success(
-                                        "✅ Payment verified. "
-                                        "Professional plan activated."
-                                    )
-
+                                    st.success("✅ Payment verified. Professional plan activated.")
                                     st.session_state.razorpay_checkout_url = ""
-
                                     st.rerun()
-
                                 else:
-
-                                    st.info(
-                                        "Payment is not active yet. "
-                                        f"Razorpay status: "
-                                        f"{status or 'unknown'}. "
-                                        "Complete checkout and try again."
-                                    )
-
+                                    st.info(f"Payment is not active yet. Razorpay status: {status or 'unknown'}. Complete checkout and try again.")
                             except Exception as exc:
-
-                                st.error(
-                                    f"❌ Verification failed: {exc}"
-                                )
-
-            # ==================================================
-            # OTHER PLANS
-            # ==================================================
-
+                                st.error(f"❌ Verification failed: {exc}")
             else:
-
-                checkout_key = (
-                    f"{name.upper()}_CHECKOUT_URL"
-                )
-
-                checkout_url = secret(
-                    checkout_key
-                )
-
+                checkout_key = f"{name.upper()}_CHECKOUT_URL"
+                checkout_url = secret(checkout_key)
                 if checkout_url:
-
                     st.link_button(
                         button,
                         checkout_url,
                         use_container_width=True,
                     )
-
                 else:
-
                     st.button(
                         button,
                         use_container_width=True,
                         disabled=True,
-                        key=(
-                            f"disabled_"
-                            f"{section_id}_"
-                            f"{name}"
-                        ),
+                        key=f"disabled_{section_id}_{name}",
                     )
 
 
 # ============================================================
-# AUTH PAGE
+# AUTHENTICATION PAGE
 # ============================================================
 
 if not st.session_state.authenticated:
 
     show_brand_header()
 
+    # NOTE: fixed — this block previously opened with a blank line
+    # followed by 4-space-indented HTML. That leading indentation made
+    # Streamlit's markdown renderer treat the whole block as a
+    # preformatted code block (the black box with raw HTML tags visible
+    # in the screenshot) instead of rendering it as styled HTML. Writing
+    # the HTML flush-left inside the string fixes it.
     st.markdown(
-        """
-        <div class="gi-hero">
-
-            <div class="gi-hero-title">
-                AI-powered operational intelligence
-            </div>
-
-            <div class="gi-hero-text">
-                Turn operational data into management decisions.
-                Create your account, upload Excel/CSV operational
-                data, identify KPI risks, investigate team and
-                employee performance, ask the AI Operations Copilot
-                questions, and generate management-ready reports.
-            </div>
-
-        </div>
-        """,
+        """<div class="hero">
+<div class="main-title">AI-powered operational intelligence</div>
+<div class="brand-subtitle">Turn operational data into management decisions.</div>
+<p>Create your account, upload Excel/CSV operational data, identify KPI risks, investigate team and employee performance, ask the AI Operations Copilot questions, and generate management-ready reports.</p>
+</div>""",
         unsafe_allow_html=True,
     )
 
@@ -2503,28 +1419,24 @@ if not st.session_state.authenticated:
         not secret("SUPABASE_URL")
         or not secret("SUPABASE_ANON_KEY")
     ):
-
         st.error(
-            "🔐 Authentication is not configured. "
-            "Add SUPABASE_URL and SUPABASE_ANON_KEY "
-            "to Streamlit Secrets."
+            "🔐 Authentication is not configured yet. "
+            "Add SUPABASE_URL and SUPABASE_ANON_KEY in "
+            "Streamlit → App Settings → Secrets."
         )
-
         st.stop()
 
-    signup_tab, login_tab, pricing_tab = (
-        st.tabs(
-            [
-                "🆕 Create Account",
-                "🔐 Sign In",
-                "💳 Plans",
-            ]
-        )
+    signup_tab, login_tab, pricing_tab = st.tabs(
+        [
+            "🆕 Create Account",
+            "🔐 Sign In",
+            "💳 Plans",
+        ]
     )
 
-    # ========================================================
+    # --------------------------------------------------------
     # SIGN UP
-    # ========================================================
+    # --------------------------------------------------------
 
     with signup_tab:
 
@@ -2533,8 +1445,7 @@ if not st.session_state.authenticated:
         )
 
         st.caption(
-            "Start with the Free plan. "
-            "You can upgrade later."
+            "Start with the Free plan. You can upgrade later."
         )
 
         with st.form(
@@ -2560,6 +1471,10 @@ if not st.session_state.authenticated:
             signup_password = st.text_input(
                 "Password",
                 type="password",
+                help=(
+                    "Use a strong password. Supabase enforces "
+                    "the configured password policy."
+                ),
             )
 
             signup_confirm = st.text_input(
@@ -2567,24 +1482,20 @@ if not st.session_state.authenticated:
                 type="password",
             )
 
-            signup_submitted = (
-                st.form_submit_button(
-                    "🚀 Create Free Account",
-                    type="primary",
-                    use_container_width=True,
-                )
+            signup_submitted = st.form_submit_button(
+                "🚀 Create Free Account",
+                type="primary",
+                use_container_width=True,
             )
 
         if signup_submitted:
 
             if not signup_name.strip():
-
                 st.warning(
                     "Please enter your full name."
                 )
 
             elif not signup_company.strip():
-
                 st.warning(
                     "Please enter your company or organization."
                 )
@@ -2593,23 +1504,16 @@ if not st.session_state.authenticated:
                 not signup_email.strip()
                 or "@" not in signup_email
             ):
-
                 st.warning(
                     "Please enter a valid email address."
                 )
 
             elif len(signup_password) < 6:
-
                 st.warning(
-                    "Please use a password with at least "
-                    "6 characters."
+                    "Please use a password with at least 6 characters."
                 )
 
-            elif (
-                signup_password
-                != signup_confirm
-            ):
-
+            elif signup_password != signup_confirm:
                 st.warning(
                     "Passwords do not match."
                 )
@@ -2622,13 +1526,11 @@ if not st.session_state.authenticated:
                         "Creating your account..."
                     ):
 
-                        signup_response = (
-                            sign_up_user(
-                                signup_name,
-                                signup_company,
-                                signup_email,
-                                signup_password,
-                            )
+                        signup_response = sign_up_user(
+                            signup_name,
+                            signup_company,
+                            signup_email,
+                            signup_password,
                         )
 
                     signup_user = getattr(
@@ -2661,44 +1563,40 @@ if not st.session_state.authenticated:
                     elif signup_user is not None:
 
                         st.success(
-                            "✅ Account created. "
-                            "Please check your email and "
-                            "verify your account before signing in."
+                            "✅ Account created. Please check your "
+                            "email and click the verification link "
+                            "before signing in."
                         )
 
                     else:
 
                         st.info(
-                            "Check your email for the "
-                            "verification link."
+                            "If the email is valid, check your inbox "
+                            "for the verification email."
                         )
 
-                except Exception as exc:
+                except Exception as e:
 
                     st.error(
                         "❌ Could not create account: "
-                        + friendly_auth_error(exc)
+                        + friendly_auth_error(e)
                     )
 
         st.caption(
-            "By creating an account, you agree to use the "
-            "platform responsibly and validate AI recommendations "
-            "before taking material business action."
+            "By creating an account, you agree to use the platform "
+            "responsibly and validate AI recommendations before "
+            "taking material business action."
         )
 
-    # ========================================================
+    # --------------------------------------------------------
     # LOGIN
-    # ========================================================
+    # --------------------------------------------------------
 
     with login_tab:
 
-        st.markdown(
-            "### Welcome back"
-        )
+        st.markdown("### Welcome back")
 
-        with st.form(
-            "login_form"
-        ):
+        with st.form("login_form"):
 
             login_email = st.text_input(
                 "Email",
@@ -2710,12 +1608,10 @@ if not st.session_state.authenticated:
                 type="password",
             )
 
-            login_submitted = (
-                st.form_submit_button(
-                    "🔐 Sign In",
-                    type="primary",
-                    use_container_width=True,
-                )
+            login_submitted = st.form_submit_button(
+                "🔐 Sign In",
+                type="primary",
+                use_container_width=True,
             )
 
         if login_submitted:
@@ -2737,11 +1633,9 @@ if not st.session_state.authenticated:
                         "Signing you in..."
                     ):
 
-                        login_response = (
-                            sign_in_user(
-                                login_email,
-                                login_password,
-                            )
+                        login_response = sign_in_user(
+                            login_email,
+                            login_password,
                         )
 
                     set_authenticated_user(
@@ -2754,11 +1648,11 @@ if not st.session_state.authenticated:
 
                     st.rerun()
 
-                except Exception as exc:
+                except Exception as e:
 
                     st.error(
                         "❌ Sign in failed: "
-                        + friendly_auth_error(exc)
+                        + friendly_auth_error(e)
                     )
 
         st.info(
@@ -2766,29 +1660,23 @@ if not st.session_state.authenticated:
             "verify your email before signing in."
         )
 
-    # ========================================================
-    # LOGIN PRICING
-    # ========================================================
+    # --------------------------------------------------------
+    # PRICING ON LOGIN PAGE
+    # --------------------------------------------------------
 
     with pricing_tab:
-
         show_pricing("login")
 
     st.stop()
 
 
 # ============================================================
-# PLAN CONFIG
+# SIDEBAR
 # ============================================================
 
 plan_config = get_plan_config(
     st.session_state.user_plan
 )
-
-
-# ============================================================
-# SIDEBAR
-# ============================================================
 
 with st.sidebar:
 
@@ -2802,42 +1690,24 @@ with st.sidebar:
     else:
 
         st.markdown(
-            """
-            <div class="gi-brand">
-                Generative <span>Insight</span>
-            </div>
-            """,
+            """<div class="gi-brand">Generative <span>Insight</span></div>""",
             unsafe_allow_html=True,
         )
 
-    st.caption(
-        "AI Operations Copilot"
-    )
+    st.caption("AI Operations Copilot")
 
     st.markdown(
-        f"""
-        <a
-            class="website-link"
-            href="{WEBSITE_URL}"
-            target="_blank"
-            rel="noopener noreferrer"
-        >
-            🌐 Visit Generative Insight
-        </a>
-        """,
+        f"""<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">🌐 Visit Generative Insight</a>""",
         unsafe_allow_html=True,
     )
 
     st.divider()
 
     st.success(
-        f"Plan: {st.session_state.user_plan}"
+        f"Plan: **{st.session_state.user_plan}**"
     )
 
-    if st.session_state.get(
-        "user_name"
-    ):
-
+    if st.session_state.get("user_name"):
         st.caption(
             st.session_state.user_name
         )
@@ -2848,9 +1718,7 @@ with st.sidebar:
 
     st.divider()
 
-    st.header(
-        "⚙️ KPI Controls"
-    )
+    st.header("⚙️ KPI Controls")
 
     productivity_target = st.number_input(
         "Productivity target %",
@@ -2887,7 +1755,6 @@ with st.sidebar:
         use_container_width=True,
         key="sidebar_view_plans",
     ):
-
         st.session_state.show_plans = True
 
     if st.button(
@@ -2895,9 +1762,7 @@ with st.sidebar:
         use_container_width=True,
         key="sidebar_reset_analysis",
     ):
-
         clear_analysis()
-
         st.rerun()
 
     if st.button(
@@ -2905,55 +1770,32 @@ with st.sidebar:
         use_container_width=True,
         key="sidebar_sign_out",
     ):
-
         clear_authentication()
-
         st.rerun()
 
 
-# ============================================================
-# SIDEBAR PLANS
-# ============================================================
-
-if st.session_state.get(
-    "show_plans"
-):
+if st.session_state.get("show_plans"):
 
     st.divider()
 
-    show_pricing(
-        "sidebar"
-    )
+    show_pricing("sidebar")
 
     st.divider()
 
 
 # ============================================================
-# MAIN HEADER
+# HEADER
 # ============================================================
 
-show_brand_header(
-    compact=True
+show_brand_header(compact=True)
+
+st.markdown(
+    '<div class="main-title">AI Operations Manager</div>',
+    unsafe_allow_html=True,
 )
 
 st.markdown(
-    """
-    <div class="gi-hero">
-
-        <div class="gi-hero-title">
-            AI Operations Manager
-        </div>
-
-        <div class="gi-hero-text">
-            Executive operational intelligence →
-            risk detection →
-            AI decisions →
-            action plans →
-            management reports
-        </div>
-
-    </div>
-    """,
+    """<div class="brand-subtitle" style="color:#52637A !important; -webkit-text-fill-color:#52637A !important;">Executive operational intelligence → risk detection → AI decisions → action plans → management reports</div>""",
     unsafe_allow_html=True,
 )
 
@@ -2962,9 +1804,7 @@ st.markdown(
 # CUSTOMER INFORMATION
 # ============================================================
 
-st.subheader(
-    "🏢 Report Setup"
-)
+st.subheader("🏢 Report Setup")
 
 col1, col2, col3 = st.columns(3)
 
@@ -3007,13 +1847,8 @@ uploaded = st.file_uploader(
         "📁 Upload Excel or CSV operational data — "
         f"max {plan_config['max_mb']} MB"
     ),
-    type=[
-        "xlsx",
-        "xls",
-        "csv",
-    ],
+    type=["xlsx", "xls", "csv"],
 )
-
 
 if not uploaded:
 
@@ -3022,9 +1857,7 @@ if not uploaded:
         "executive dashboard."
     )
 
-    st.markdown(
-        "### Required columns"
-    )
+    st.markdown("### Required columns")
 
     st.code(
         "Date, Employee_ID, Employee_Name, Team, Target, "
@@ -3032,31 +1865,14 @@ if not uploaded:
         "SLA_%, Attendance, Error_Count, Error_Category"
     )
 
-    st.markdown(
-        "### What you get"
-    )
+    st.markdown("### What you get")
 
     a, b, c, d = st.columns(4)
 
-    a.metric(
-        "Risk Detection",
-        "✓",
-    )
-
-    b.metric(
-        "Employee Risk",
-        "✓",
-    )
-
-    c.metric(
-        "AI Copilot",
-        "✓",
-    )
-
-    d.metric(
-        "Management Report",
-        "✓",
-    )
+    a.metric("Risk Detection", "✓")
+    b.metric("Employee Risk", "✓")
+    c.metric("AI Copilot", "✓")
+    d.metric("Management Report", "✓")
 
     st.stop()
 
@@ -3065,47 +1881,32 @@ if not uploaded:
 # FILE SIZE
 # ============================================================
 
-file_mb = (
-    uploaded.size
-    / (1024 * 1024)
-)
+file_mb = uploaded.size / (1024 * 1024)
 
-if file_mb > plan_config[
-    "max_mb"
-]:
+if file_mb > plan_config["max_mb"]:
 
     st.error(
         f"File is {file_mb:.2f} MB. "
-        f"Your {st.session_state.user_plan} "
-        f"plan supports files up to "
-        f"{plan_config['max_mb']} MB."
+        f"Your {st.session_state.user_plan} plan supports "
+        f"files up to {plan_config['max_mb']} MB."
     )
 
     st.stop()
 
 
 # ============================================================
-# RESET NEW FILE
+# RESET WHEN NEW FILE
 # ============================================================
 
-if (
-    st.session_state.file_name
-    != uploaded.name
-):
+if st.session_state.file_name != uploaded.name:
 
-    st.session_state.file_name = (
-        uploaded.name
-    )
-
+    st.session_state.file_name = uploaded.name
     st.session_state.n8n_sent = False
     st.session_state.n8n_result = None
-
     st.session_state.copilot_answer = None
     st.session_state.last_question = ""
-
     st.session_state.analysis_result = None
     st.session_state.analysis_df = None
-
     st.session_state.report_pdf = None
 
 
@@ -3121,17 +1922,13 @@ copilot_url = secret(
     "N8N_COPILOT_WEBHOOK_URL"
 )
 
-
-if (
-    n8n_url
-    and "/webhook-test/" in n8n_url
-):
+if n8n_url and "/webhook-test/" in n8n_url:
 
     st.warning(
-        "⚠️ n8n is using a TEST webhook. "
-        "Use the production webhook for deployment."
+        "⚠️ n8n is configured with a TEST webhook. "
+        "For production use, activate the workflow and use "
+        "/webhook/operations-upload in Streamlit Secrets."
     )
-
 
 if (
     copilot_url
@@ -3139,8 +1936,9 @@ if (
 ):
 
     st.warning(
-        "⚠️ Management Copilot is using an "
-        "n8n TEST webhook."
+        "⚠️ Management Copilot is using an n8n TEST webhook. "
+        "Use the production /webhook/management-copilot URL "
+        "after activating the workflow."
     )
 
 
@@ -3152,53 +1950,36 @@ try:
 
     uploaded.seek(0)
 
-    if uploaded.name.lower().endswith(
-        ".csv"
-    ):
+    if uploaded.name.lower().endswith(".csv"):
 
-        df = pd.read_csv(
-            uploaded
-        )
+        df = pd.read_csv(uploaded)
 
     else:
 
-        xls = pd.ExcelFile(
-            uploaded
-        )
+        xls = pd.ExcelFile(uploaded)
 
-        if (
+        sheet = (
             "Operational_Data"
-            in xls.sheet_names
-        ):
-
-            sheet = (
-                "Operational_Data"
-            )
-
-        else:
-
-            sheet = (
-                xls.sheet_names[0]
-            )
-
-        uploaded.seek(0)
+            if "Operational_Data" in xls.sheet_names
+            else xls.sheet_names[0]
+        )
 
         df = pd.read_excel(
             uploaded,
             sheet_name=sheet,
         )
 
-except Exception as exc:
+except Exception as e:
 
     st.error(
-        f"❌ Could not read the uploaded file: {exc}"
+        f"❌ Could not read the uploaded file: {e}"
     )
 
     st.stop()
 
 
 # ============================================================
-# VALIDATE
+# VALIDATE DATA
 # ============================================================
 
 required_columns = [
@@ -3212,13 +1993,11 @@ required_columns = [
     "SLA_%",
 ]
 
-
 missing_columns = [
     col
     for col in required_columns
     if col not in df.columns
 ]
-
 
 if missing_columns:
 
@@ -3226,9 +2005,7 @@ if missing_columns:
         "❌ Required columns are missing."
     )
 
-    st.write(
-        missing_columns
-    )
+    st.write(missing_columns)
 
     st.stop()
 
@@ -3247,22 +2024,20 @@ try:
         aht_target=aht_target,
     )
 
-except Exception as exc:
+except Exception as e:
 
     st.error(
-        f"❌ Analysis failed: {exc}"
+        f"❌ Analysis failed: {e}"
     )
 
     st.stop()
 
-
 st.session_state.analysis_result = result
-
 st.session_state.analysis_df = df
 
 
 # ============================================================
-# KPI VALUES
+# KPI CALCULATIONS
 # ============================================================
 
 overall = result["overall"]
@@ -3283,48 +2058,30 @@ aht = float(
     overall["aht"]
 )
 
-
 productivity_gap = (
-    productivity
-    - productivity_target
+    productivity - productivity_target
 )
 
 quality_gap = (
-    quality
-    - quality_target
+    quality - quality_target
 )
 
 sla_gap = (
-    sla
-    - sla_target
+    sla - sla_target
 )
 
 aht_gap = (
-    aht
-    - aht_target
+    aht - aht_target
 )
-
-
-# ============================================================
-# RISK
-# ============================================================
 
 breaches = sum(
     [
-        productivity
-        < productivity_target,
-
-        quality
-        < quality_target,
-
-        sla
-        < sla_target,
-
-        aht
-        > aht_target,
+        productivity < productivity_target,
+        quality < quality_target,
+        sla < sla_target,
+        aht > aht_target,
     ]
 )
-
 
 if breaches == 0:
 
@@ -3343,34 +2100,21 @@ else:
     risk_level = "🔴 CRITICAL RISK"
 
 
-# ============================================================
-# ACTIONS
-# ============================================================
-
 actions_df = result.get(
     "actions",
     pd.DataFrame(),
 )
 
-
 action_count = (
     len(actions_df)
-    if isinstance(
-        actions_df,
-        pd.DataFrame,
-    )
+    if isinstance(actions_df, pd.DataFrame)
     else 0
 )
 
-
 high_priority_count = 0
 
-
 if (
-    isinstance(
-        actions_df,
-        pd.DataFrame,
-    )
+    isinstance(actions_df, pd.DataFrame)
     and not actions_df.empty
 ):
 
@@ -3401,92 +2145,20 @@ if (
 
 
 # ============================================================
-# EXECUTIVE SUMMARY
+# EXECUTIVE HERO
 # ============================================================
 
-summary_points = []
-
-summary_points.append(
-    (
-        "🔴"
-        if productivity
-        < productivity_target
-        else "🟢"
-    )
-    + " Productivity: "
-    + f"{productivity:.1f}% vs "
-    + f"{productivity_target}% target."
-)
-
-summary_points.append(
-    (
-        "🔴"
-        if quality
-        < quality_target
-        else "🟢"
-    )
-    + " Quality: "
-    + f"{quality:.1f}% vs "
-    + f"{quality_target}% target."
-)
-
-summary_points.append(
-    (
-        "🔴"
-        if sla
-        < sla_target
-        else "🟢"
-    )
-    + " SLA: "
-    + f"{sla:.1f}% vs "
-    + f"{sla_target}% target."
-)
-
-summary_points.append(
-    (
-        "🟠"
-        if aht
-        > aht_target
-        else "🟢"
-    )
-    + " AHT: "
-    + f"{aht:.1f} vs "
-    + f"{aht_target} target."
+st.markdown(
+    f"""<div class="hero">
+<h3>Executive Health: {risk_level}</h3>
+<p class="small-muted">{company_name or "Your organization"} · {report_name}</p>
+</div>""",
+    unsafe_allow_html=True,
 )
 
 
 # ============================================================
-# RECOMMENDATION
-# ============================================================
-
-if breaches >= 3:
-
-    recommendation = (
-        "Immediate management attention is recommended. "
-        "Multiple KPI thresholds are breached. Prioritize "
-        "root-cause analysis, targeted corrective actions, "
-        "and close monitoring."
-    )
-
-elif breaches >= 1:
-
-    recommendation = (
-        "Management should review the affected KPIs, "
-        "validate contributing factors, and initiate "
-        "targeted corrective actions."
-    )
-
-else:
-
-    recommendation = (
-        "Operations are within defined KPI thresholds. "
-        "Continue monitoring performance and maintain "
-        "current processes."
-    )
-
-
-# ============================================================
-# EXECUTIVE METRICS
+# TOP EXECUTIVE METRICS
 # ============================================================
 
 r1, r2, r3, r4 = st.columns(4)
@@ -3576,17 +2248,63 @@ with k4:
 # EXECUTIVE SUMMARY
 # ============================================================
 
-st.subheader(
-    "🧠 Executive Summary"
+summary_points = []
+
+summary_points.append(
+    f"{'🔴' if productivity < productivity_target else '🟢'} "
+    f"Productivity: {productivity:.1f}% vs "
+    f"{productivity_target}% target."
 )
 
-for point in summary_points:
+summary_points.append(
+    f"{'🔴' if quality < quality_target else '🟢'} "
+    f"Quality: {quality:.1f}% vs "
+    f"{quality_target}% target."
+)
 
+summary_points.append(
+    f"{'🔴' if sla < sla_target else '🟢'} "
+    f"SLA: {sla:.1f}% vs "
+    f"{sla_target}% target."
+)
+
+summary_points.append(
+    f"{'🟠' if aht > aht_target else '🟢'} "
+    f"AHT: {aht:.1f} vs "
+    f"{aht_target} target."
+)
+
+if breaches >= 3:
+
+    recommendation = (
+        "Immediate management attention is recommended. "
+        "Multiple KPI thresholds are breached. Prioritize "
+        "root-cause analysis, targeted corrective actions, "
+        "and close monitoring."
+    )
+
+elif breaches >= 1:
+
+    recommendation = (
+        "Management should review the affected KPIs, validate "
+        "contributing factors, and initiate targeted corrective actions."
+    )
+
+else:
+
+    recommendation = (
+        "Operations are within defined KPI thresholds. Continue "
+        "monitoring performance and maintain current processes."
+    )
+
+
+st.subheader("🧠 Executive Summary")
+
+for point in summary_points:
     st.write(point)
 
 st.info(
-    f"💡 **Management Recommendation:** "
-    f"{recommendation}"
+    f"💡 **Management Recommendation:** {recommendation}"
 )
 
 
@@ -3594,10 +2312,7 @@ st.info(
 # N8N OPERATIONAL AUTOMATION
 # ============================================================
 
-if (
-    n8n_url
-    and not st.session_state.n8n_sent
-):
+if n8n_url and not st.session_state.n8n_sent:
 
     if (
         not company_name.strip()
@@ -3605,8 +2320,8 @@ if (
     ):
 
         st.warning(
-            "Enter Company Name and Manager Email "
-            "to run the configured n8n automation."
+            "Enter Company Name and Manager Email to run "
+            "the configured n8n operational automation."
         )
 
     else:
@@ -3615,7 +2330,7 @@ if (
 
             uploaded.seek(0)
 
-            files_payload = {
+            files = {
                 "file": (
                     uploaded.name,
                     uploaded.getvalue(),
@@ -3624,22 +2339,12 @@ if (
                 )
             }
 
-            data_payload = {
-                "company_name": (
-                    company_name.strip()
-                ),
-                "manager_email": (
-                    manager_email.strip()
-                ),
-                "report_name": (
-                    report_name.strip()
-                ),
-                "user_id": (
-                    st.session_state.user_id
-                ),
-                "user_email": (
-                    st.session_state.user_email
-                ),
+            data = {
+                "company_name": company_name.strip(),
+                "manager_email": manager_email.strip(),
+                "report_name": report_name.strip(),
+                "user_id": st.session_state.user_id,
+                "user_email": st.session_state.user_email,
             }
 
             with st.spinner(
@@ -3648,17 +2353,15 @@ if (
 
                 response = requests.post(
                     n8n_url,
-                    files=files_payload,
-                    data=data_payload,
+                    files=files,
+                    data=data,
                     timeout=120,
                 )
 
             if response.status_code < 300:
 
                 st.session_state.n8n_result = (
-                    normalize_n8n_response(
-                        response
-                    )
+                    normalize_n8n_response(response)
                 )
 
                 st.session_state.n8n_sent = True
@@ -3670,7 +2373,7 @@ if (
             else:
 
                 st.error(
-                    "❌ n8n workflow failed: "
+                    f"❌ n8n workflow failed: "
                     f"HTTP {response.status_code}"
                 )
 
@@ -3682,14 +2385,13 @@ if (
         except requests.exceptions.Timeout:
 
             st.warning(
-                "⏱️ n8n timed out. "
-                "The workflow may still be running."
+                "⏱️ n8n timed out. The workflow may still be running."
             )
 
-        except requests.exceptions.RequestException as exc:
+        except requests.exceptions.RequestException as e:
 
             st.error(
-                f"❌ Could not connect to n8n: {exc}"
+                f"❌ Could not connect to n8n: {e}"
             )
 
 
@@ -3716,15 +2418,11 @@ tabs = st.tabs(
 
 with tabs[0]:
 
-    left, right = st.columns(
-        [1.4, 1]
-    )
+    left, right = st.columns([1.4, 1])
 
     with left:
 
-        st.subheader(
-            "Team Performance"
-        )
+        st.subheader("Team Performance")
 
         team_df = result.get(
             "team",
@@ -3732,10 +2430,7 @@ with tabs[0]:
         )
 
         if (
-            isinstance(
-                team_df,
-                pd.DataFrame,
-            )
+            isinstance(team_df, pd.DataFrame)
             and not team_df.empty
         ):
 
@@ -3746,11 +2441,8 @@ with tabs[0]:
             )
 
             if (
-                "Team"
-                in team_df.columns
-                and
-                "Productivity_%"
-                in team_df.columns
+                "Team" in team_df.columns
+                and "Productivity_%" in team_df.columns
             ):
 
                 st.subheader(
@@ -3758,9 +2450,7 @@ with tabs[0]:
                 )
 
                 st.bar_chart(
-                    team_df.set_index(
-                        "Team"
-                    )[
+                    team_df.set_index("Team")[
                         "Productivity_%"
                     ]
                 )
@@ -3783,10 +2473,7 @@ with tabs[0]:
         )
 
         if (
-            isinstance(
-                employees,
-                pd.DataFrame,
-            )
+            isinstance(employees, pd.DataFrame)
             and not employees.empty
         ):
 
@@ -3795,10 +2482,7 @@ with tabs[0]:
                 len(employees),
             )
 
-            if (
-                "Risk_Score"
-                in employees.columns
-            ):
+            if "Risk_Score" in employees.columns:
 
                 st.metric(
                     "Highest employee risk score",
@@ -3810,7 +2494,6 @@ with tabs[0]:
         )
 
         for item in summary_points:
-
             st.write(item)
 
 
@@ -3830,10 +2513,7 @@ with tabs[1]:
     )
 
     if (
-        isinstance(
-            findings_df,
-            pd.DataFrame,
-        )
+        isinstance(findings_df, pd.DataFrame)
         and not findings_df.empty
     ):
 
@@ -3871,10 +2551,7 @@ with tabs[2]:
     )
 
     if (
-        isinstance(
-            employee_data,
-            pd.DataFrame,
-        )
+        isinstance(employee_data, pd.DataFrame)
         and not employee_data.empty
     ):
 
@@ -3889,14 +2566,11 @@ with tabs[2]:
 
         if sort_cols:
 
-            employee_data = (
-                employee_data.sort_values(
-                    sort_cols,
-                    ascending=[
-                        False
-                    ]
-                    * len(sort_cols),
-                )
+            employee_data = employee_data.sort_values(
+                sort_cols,
+                ascending=[
+                    False
+                ] * len(sort_cols),
             )
 
         st.dataframe(
@@ -3923,10 +2597,7 @@ with tabs[3]:
     )
 
     if (
-        isinstance(
-            actions_df,
-            pd.DataFrame,
-        )
+        isinstance(actions_df, pd.DataFrame)
         and not actions_df.empty
     ):
 
@@ -3954,9 +2625,9 @@ with tabs[4]:
     )
 
     st.caption(
-        "Ask questions about the uploaded operational "
-        "data. The Copilot is instructed to use only "
-        "the supplied operational context."
+        "Ask questions about the uploaded operational data. "
+        "The Copilot is instructed to use only the supplied "
+        "operational context."
     )
 
     question = st.text_input(
@@ -4011,22 +2682,12 @@ with tabs[4]:
             )
 
             payload = {
-                "question": (
-                    question.strip()
-                ),
-                "company_name": (
-                    company_name.strip()
-                ),
-                "report_name": (
-                    report_name.strip()
-                ),
+                "question": question.strip(),
+                "company_name": company_name.strip(),
+                "report_name": report_name.strip(),
                 "context": context,
-                "user_id": (
-                    st.session_state.user_id
-                ),
-                "user_email": (
-                    st.session_state.user_email
-                ),
+                "user_id": st.session_state.user_id,
+                "user_email": st.session_state.user_email,
             }
 
             try:
@@ -4035,33 +2696,23 @@ with tabs[4]:
                     "🤖 Management Copilot is analyzing..."
                 ):
 
-                    copilot_response = (
-                        requests.post(
-                            copilot_url,
-                            json=payload,
-                            headers={
-                                "Content-Type":
-                                    "application/json"
-                            },
-                            timeout=120,
-                        )
+                    copilot_response = requests.post(
+                        copilot_url,
+                        json=payload,
+                        headers={
+                            "Content-Type": "application/json"
+                        },
+                        timeout=120,
                     )
 
-                if (
-                    copilot_response.status_code
-                    < 300
-                ):
+                if copilot_response.status_code < 300:
 
-                    raw = (
-                        normalize_n8n_response(
-                            copilot_response
-                        )
+                    raw = normalize_n8n_response(
+                        copilot_response
                     )
 
-                    answer_data = (
-                        parse_ai_answer(
-                            raw
-                        )
+                    answer_data = parse_ai_answer(
+                        raw
                     )
 
                     st.session_state.copilot_answer = (
@@ -4078,8 +2729,7 @@ with tabs[4]:
 
                     st.error(
                         "❌ Copilot workflow failed: "
-                        f"HTTP "
-                        f"{copilot_response.status_code}"
+                        f"HTTP {copilot_response.status_code}"
                     )
 
                     st.code(
@@ -4092,7 +2742,8 @@ with tabs[4]:
                 st.session_state.copilot_answer = None
 
                 st.error(
-                    "⏱️ Management Copilot timed out."
+                    "⏱️ Management Copilot timed out. "
+                    "Please try again."
                 )
 
             except requests.exceptions.ConnectionError:
@@ -4100,24 +2751,24 @@ with tabs[4]:
                 st.session_state.copilot_answer = None
 
                 st.error(
-                    "🔌 Could not connect to the "
-                    "n8n Copilot webhook."
+                    "🔌 Could not connect to the n8n "
+                    "Copilot webhook."
                 )
 
-            except requests.exceptions.RequestException as exc:
+            except requests.exceptions.RequestException as e:
 
                 st.session_state.copilot_answer = None
 
                 st.error(
-                    f"❌ Copilot request failed: {exc}"
+                    f"❌ Copilot request failed: {e}"
                 )
 
-            except Exception as exc:
+            except Exception as e:
 
                 st.session_state.copilot_answer = None
 
                 st.error(
-                    f"❌ Unexpected Copilot error: {exc}"
+                    f"❌ Unexpected Copilot error: {e}"
                 )
 
     if st.session_state.copilot_answer:
@@ -4133,14 +2784,9 @@ with tabs[4]:
             + st.session_state.last_question
         )
 
-        answer = (
-            st.session_state.copilot_answer
-        )
+        answer = st.session_state.copilot_answer
 
-        if isinstance(
-            answer,
-            dict,
-        ):
+        if isinstance(answer, dict):
 
             what = answer.get(
                 "what_is_happening"
@@ -4190,7 +2836,6 @@ with tabs[4]:
                 )
 
                 for factor in factors:
-
                     st.write(
                         f"• {factor}"
                     )
@@ -4217,21 +2862,18 @@ with tabs[4]:
             d1, d2, d3 = st.columns(3)
 
             with d1:
-
                 st.metric(
                     "Priority",
                     priority or "N/A",
                 )
 
             with d2:
-
                 st.metric(
                     "Owner",
                     owner or "N/A",
                 )
 
             with d3:
-
                 st.metric(
                     "Timeline",
                     timeline or "N/A",
@@ -4247,10 +2889,7 @@ with tabs[4]:
                     sufficiency
                 )
 
-        elif isinstance(
-            answer,
-            str,
-        ):
+        elif isinstance(answer, str):
 
             st.markdown(answer)
 
@@ -4275,28 +2914,18 @@ with tabs[5]:
     if not plan_config["pdf"]:
 
         st.warning(
-            "PDF reporting is not available "
-            "on your current plan."
+            "PDF reporting is not available on your current plan."
         )
 
     else:
 
-        report_result = dict(
-            result
-        )
+        report_result = dict(result)
 
         report_result["_targets"] = {
-            "productivity":
-                productivity_target,
-
-            "quality":
-                quality_target,
-
-            "sla":
-                sla_target,
-
-            "aht":
-                aht_target,
+            "productivity": productivity_target,
+            "quality": quality_target,
+            "sla": sla_target,
+            "aht": aht_target,
         }
 
         if st.button(
@@ -4315,16 +2944,11 @@ with tabs[5]:
                     pdf = create_pdf_report(
                         company_name
                         or "Organization",
-
                         report_name
                         or "Operations Report",
-
                         report_result,
-
                         risk_level,
-
                         summary_points,
-
                         recommendation,
                     )
 
@@ -4334,44 +2958,33 @@ with tabs[5]:
                     datetime.now()
                 )
 
-                st.success(
-                    "✅ Executive PDF generated."
-                )
-
-            except Exception as exc:
+            except Exception as e:
 
                 st.error(
-                    f"❌ Could not generate PDF: {exc}"
+                    f"❌ Could not generate PDF: {e}"
                 )
 
         if st.session_state.report_pdf:
 
             filename = (
-                f"{company_name or 'operations'}"
-                f"_report_"
-                f"{datetime.now().strftime('%Y%m%d_%H%M')}"
-                f".pdf"
+                f"{company_name or 'operations'}_report_"
+                f"{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
             )
 
             st.download_button(
                 "⬇️ Download Executive PDF",
-                data=(
-                    st.session_state.report_pdf
-                ),
+                data=st.session_state.report_pdf,
                 file_name=filename,
                 mime="application/pdf",
                 use_container_width=True,
                 key="download_executive_pdf",
             )
 
-            if (
-                st.session_state.report_generated_at
-            ):
+            if st.session_state.report_generated_at:
 
                 st.caption(
                     "Generated "
-                    +
-                    st.session_state.report_generated_at.strftime(
+                    + st.session_state.report_generated_at.strftime(
                         "%d %b %Y, %H:%M"
                     )
                 )
@@ -4421,22 +3034,14 @@ with tabs[5]:
 
                         send_email_report(
                             recipient.strip(),
-
+                            f"{company_name} - {report_name}",
                             (
-                                f"{company_name} - "
-                                f"{report_name}"
+                                "Please find attached the management "
+                                f"report for {company_name or 'your organization'}.\n\n"
+                                "Generated by Generative Insight AI "
+                                "Operations Copilot."
                             ),
-
-                            (
-                                "Please find attached "
-                                "the management report "
-                                f"for {company_name or 'your organization'}.\n\n"
-                                "Generated by Generative Insight "
-                                "AI Operations Copilot."
-                            ),
-
                             st.session_state.report_pdf,
-
                             "operations_report.pdf",
                         )
 
@@ -4444,10 +3049,10 @@ with tabs[5]:
                             "✅ Report emailed successfully."
                         )
 
-                    except Exception as exc:
+                    except Exception as e:
 
                         st.error(
-                            f"❌ Email failed: {exc}"
+                            f"❌ Email failed: {e}"
                         )
 
         st.divider()
@@ -4472,17 +3077,12 @@ with tabs[5]:
 
                 st.download_button(
                     "⬇️ Team Analysis CSV",
-
                     team_df.to_csv(
                         index=False
                     ).encode("utf-8"),
-
                     "team_analysis.csv",
-
                     "text/csv",
-
                     use_container_width=True,
-
                     key="download_team_analysis",
                 )
 
@@ -4495,17 +3095,12 @@ with tabs[5]:
 
                 st.download_button(
                     "⬇️ Action Plan CSV",
-
                     actions_df.to_csv(
                         index=False
                     ).encode("utf-8"),
-
                     "action_plan.csv",
-
                     "text/csv",
-
                     use_container_width=True,
-
                     key="download_action_plan",
                 )
 
@@ -4521,23 +3116,17 @@ with tabs[6]:
     )
 
     st.info(
-        "You are currently using the "
+        f"You are currently using the "
         f"**{st.session_state.user_plan}** plan."
     )
 
-    show_pricing(
-        "billing"
-    )
+    show_pricing("billing")
 
-    st.caption(
-        "Professional subscriptions are processed "
-        "through Razorpay. Complete checkout and "
-        "verify payment to activate access."
-    )
+    st.caption("Professional subscriptions are processed through Razorpay. Complete checkout and verify payment to activate access.")
 
 
 # ============================================================
-# AI PROMPT
+# AI PROMPT / DEBUG AREA
 # ============================================================
 
 with st.expander(
@@ -4545,18 +3134,10 @@ with st.expander(
     expanded=False,
 ):
 
-    try:
-
-        st.code(
-            make_ai_prompt(result),
-            language="text",
-        )
-
-    except Exception as exc:
-
-        st.warning(
-            f"Could not generate AI prompt: {exc}"
-        )
+    st.code(
+        make_ai_prompt(result),
+        language="text",
+    )
 
 
 # ============================================================
@@ -4566,35 +3147,14 @@ with st.expander(
 st.divider()
 
 st.markdown(
-    f"""
-    <div class="gi-footer">
-
-        <strong>
-            Generative Insight
-        </strong>
-
-        · AI Operations Copilot · v{APP_VERSION}
-
-        <br/>
-
-        Insights today. Intelligence tomorrow.
-
-        <br/>
-
-        <a
-            class="website-link"
-            href="{WEBSITE_URL}"
-            target="_blank"
-            rel="noopener noreferrer"
-        >
-            generativeinsight.in
-        </a>
-
-        &nbsp; · &nbsp;
-
-        © {datetime.now().year}
-
-    </div>
-    """,
+    f"""<div class="gi-footer">
+<strong>Generative Insight</strong> · AI Operations Copilot v{APP_VERSION}
+<br>
+Insights today. Intelligence tomorrow.
+<br>
+<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">generativeinsight.in</a>
+&nbsp;·&nbsp;
+© {datetime.now().year}
+</div>""",
     unsafe_allow_html=True,
 )
