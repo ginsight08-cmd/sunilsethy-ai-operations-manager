@@ -1231,23 +1231,21 @@ if not st.session_state.authenticated:
     st.markdown(
         """
         <div class="hero">
-            <div class="main-title">
-                AI-powered operational intelligence
-            </div>
-
-            <div class="brand-subtitle">
-                Turn operational data into management decisions.
-            </div>
-
-            <p>
-                Create your account, upload Excel/CSV operational data,
-                identify KPI risks, investigate team and employee
-                performance, ask the AI Operations Copilot questions,
-                and generate management-ready reports.
-            </p>
+            <div class="main-title">AI-powered operational intelligence</div>
         </div>
         """,
         unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        "**Turn operational data into management decisions.**"
+    )
+
+    st.markdown(
+        "Create your account, upload Excel/CSV operational data, "
+        "identify KPI risks, investigate team and employee performance, "
+        "ask the AI Operations Copilot questions, and generate "
+        "management-ready reports."
     )
 
     if (
@@ -1638,11 +1636,8 @@ st.markdown(
 )
 
 st.markdown(
-    '<div class="brand-subtitle">'
     "Executive operational intelligence → risk detection → "
     "AI decisions → action plans → management reports"
-    "</div>",
-    unsafe_allow_html=True,
 )
 
 
