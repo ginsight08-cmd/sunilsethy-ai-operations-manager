@@ -68,6 +68,8 @@ DEFAULT_STATE = {
     "report_pdf": None,
     "report_generated_at": None,
     "show_plans": False,
+    "razorpay_checkout_url": "",
+    "razorpay_subscription_id": "",
 }
 
 for key, value in DEFAULT_STATE.items():
@@ -110,9 +112,13 @@ st.markdown(
     }}
 
     .brand-subtitle {{
-        color: #667085;
+        color: #0757B8 !important;
+        -webkit-text-fill-color: #0757B8 !important;
         font-size: 1.02rem;
+        font-weight: 700;
         margin-bottom: 1rem;
+        opacity: 1 !important;
+        visibility: visible !important;
     }}
 
     .gi-brand {{
@@ -170,13 +176,16 @@ st.markdown(
         border-radius: 18px;
         border: 1px solid #DDE7F5;
         background: #FFFFFF;
-        min-height: 220px;
+        min-height: 260px;
         box-shadow: 0 8px 24px rgba(7,87,184,0.06);
+        color: #172033 !important;
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }}
 
     .plan-card:hover {{
         border-color: {BRAND_CYAN};
         box-shadow: 0 10px 30px rgba(0,174,239,0.12);
+        transform: translateY(-3px);
     }}
 
     section[data-testid="stSidebar"] {{
@@ -233,6 +242,187 @@ st.markdown(
         padding: 1.5rem 0;
     }}
 
+
+    /* EMBED-SAFE TYPOGRAPHY: explicit dark text prevents host-page CSS
+       from making Streamlit content white/invisible inside an iframe. */
+    .stApp .stMarkdown, .stApp .stMarkdown p, .stApp .stMarkdown li,
+    .stApp .stMarkdown span, .stApp label,
+    .stApp [data-testid="stWidgetLabel"], .stApp [data-testid="stWidgetLabel"] * {{
+        color: #172033 !important;
+    }}
+    .stApp .stCaption, .stApp [data-testid="stCaptionContainer"],
+    .stApp [data-testid="stCaptionContainer"] * {{
+        color: #52637A !important;
+    }}
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{
+        color: #071A3D !important;
+    }}
+    .stApp input, .stApp textarea, .stApp select,
+    .stApp input::placeholder, .stApp textarea::placeholder {{
+        color: #172033 !important;
+        -webkit-text-fill-color: #172033 !important;
+        opacity: 1 !important;
+    }}
+    .stApp [data-baseweb="select"] * {{
+        color: #172033 !important;
+    }}
+    .stApp button[data-baseweb="tab"] {{
+        color: #334155 !important;
+    }}
+    .stApp button[data-baseweb="tab"][aria-selected="true"] {{
+        color: #0757B8 !important;
+    }}
+    .stApp [data-testid="stDataFrame"] *,
+    .stApp [data-testid="stTable"] * {{
+        color: #172033 !important;
+    }}
+    .plan-card, .plan-card * {{
+        color: #172033 !important;
+    }}
+    .plan-card .plan-name, .plan-card .plan-price {{
+        color: #071A3D !important;
+    }}
+    .plan-card .plan-description, .plan-card .plan-feature {{
+        color: #52637A !important;
+    }}
+    .plan-card .plan-feature {{
+        font-weight: 600 !important;
+    }}
+    .stApp a {{
+        color: #0757B8 !important;
+        text-decoration: none;
+    }}
+    .stApp a:hover {{
+        color: #003F8F !important;
+        text-decoration: underline;
+    }}
+
+    /* ========================================================
+       HARD EMBED CONTRAST FIX
+       Explicitly style Streamlit-generated content and the
+       custom HTML blocks. This prevents invisible text when
+       the app is embedded inside a website/iframe.
+       ======================================================== */
+    .stApp [data-testid="stMarkdownContainer"],
+    .stApp [data-testid="stMarkdownContainer"] p,
+    .stApp [data-testid="stMarkdownContainer"] div,
+    .stApp [data-testid="stMarkdownContainer"] span,
+    .stApp [data-testid="stMarkdownContainer"] li,
+    .stApp [data-testid="stMarkdownContainer"] strong,
+    .stApp [data-testid="stMarkdownContainer"] em {{
+        color: #172033 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: #172033 !important;
+    }}
+
+    .stApp [data-testid="stMarkdownContainer"] h1,
+    .stApp [data-testid="stMarkdownContainer"] h2,
+    .stApp [data-testid="stMarkdownContainer"] h3,
+    .stApp [data-testid="stMarkdownContainer"] h4,
+    .stApp [data-testid="stMarkdownContainer"] h5,
+    .stApp [data-testid="stMarkdownContainer"] h6 {{
+        color: #071A3D !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: #071A3D !important;
+    }}
+
+    .stApp .hero p {{
+        color: #475569 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: #475569 !important;
+        font-size: 0.98rem !important;
+        line-height: 1.65 !important;
+    }}
+
+    .stApp .hero .brand-subtitle {{
+        color: #0757B8 !important;
+        opacity: 1 !important;
+        -webkit-text-fill-color: #0757B8 !important;
+    }}
+
+    /* Tabs: force both selected and unselected labels to remain visible. */
+    .stApp [data-baseweb="tab-list"] {{
+        background: transparent !important;
+    }}
+    .stApp button[data-baseweb="tab"],
+    .stApp button[data-baseweb="tab"] span,
+    .stApp button[data-baseweb="tab"] div {{
+        color: #334155 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: #334155 !important;
+        font-weight: 700 !important;
+    }}
+    .stApp button[data-baseweb="tab"][aria-selected="true"],
+    .stApp button[data-baseweb="tab"][aria-selected="true"] span,
+    .stApp button[data-baseweb="tab"][aria-selected="true"] div {{
+        color: #0757B8 !important;
+        -webkit-text-fill-color: #0757B8 !important;
+    }}
+
+    /* Streamlit headings/captions outside markdown containers. */
+    .stApp [data-testid="stHeader"] *,
+    .stApp [data-testid="stText"],
+    .stApp [data-testid="stCaptionContainer"] *,
+    .stApp [data-testid="stWidgetLabel"] *,
+    .stApp [data-testid="stForm"] label,
+    .stApp [data-testid="stForm"] p {{
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+
+    .stApp [data-testid="stCaptionContainer"] *,
+    .stApp .stCaption {{
+        color: #52637A !important;
+        -webkit-text-fill-color: #52637A !important;
+    }}
+
+    /* Inputs and buttons in an embedded page. */
+    .stApp input,
+    .stApp textarea,
+    .stApp [role="textbox"],
+    .stApp [data-baseweb="input"] input,
+    .stApp [data-baseweb="textarea"] textarea {{
+        background-color: #FFFFFF !important;
+        color: #172033 !important;
+        -webkit-text-fill-color: #172033 !important;
+        opacity: 1 !important;
+    }}
+
+    .stApp input::placeholder,
+    .stApp textarea::placeholder {{
+        color: #64748B !important;
+        -webkit-text-fill-color: #64748B !important;
+        opacity: 1 !important;
+    }}
+
+    .stApp .stButton button,
+    .stApp [data-testid="stFormSubmitButton"] button,
+    .stApp [data-testid="stLinkButton"] a {{
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+
+    /* FINAL EMBED / WIX CONTRAST + MOBILE SAFETY */
+    .stApp .gi-brand, .stApp .gi-brand * {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; opacity:1 !important; visibility:visible !important; }}
+    .stApp .gi-brand span {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; }}
+    .stApp .gi-tagline {{ color:#52637A !important; -webkit-text-fill-color:#52637A !important; opacity:1 !important; }}
+    .stApp .hero .main-title {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; }}
+    .stApp .hero .brand-subtitle {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; opacity:1 !important; visibility:visible !important; }}
+    .stApp .hero p, .stApp .hero .hero-description {{ color:#334155 !important; -webkit-text-fill-color:#334155 !important; opacity:1 !important; visibility:visible !important; }}
+    .stApp .website-link {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; font-weight:700 !important; text-decoration:none !important; }}
+    .stApp .plan-card, .stApp .plan-card * {{ opacity:1 !important; visibility:visible !important; }}
+    .stApp .plan-card .plan-name, .stApp .plan-card .plan-price {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; }}
+    .stApp .plan-card .plan-description, .stApp .plan-card .plan-feature {{ color:#52637A !important; -webkit-text-fill-color:#52637A !important; }}
+    @media (max-width:768px) {{
+        .main-title {{ font-size:1.8rem !important; }}
+        .hero {{ padding:1.1rem 1rem !important; border-radius:16px !important; }}
+        .plan-card {{ min-height:auto !important; margin-bottom:.75rem !important; }}
+        .stApp .stButton > button, .stApp [data-testid="stLinkButton"] a, .stApp [data-testid="stFormSubmitButton"] button {{ width:100% !important; min-height:44px !important; }}
+    }}
 </style>
 """,
     unsafe_allow_html=True,
@@ -283,7 +473,7 @@ def show_brand_header(compact=False):
             Annotation &nbsp; | &nbsp;
             Web & App Development
             &nbsp;&nbsp;·&nbsp;&nbsp;
-            <a href="{WEBSITE_URL}" target="_blank">
+            <a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">
                 Visit Website
             </a>
         </div>
@@ -304,6 +494,88 @@ def get_supabase_client() -> Client:
         )
 
     return create_client(url, anon_key)
+
+
+def get_supabase_admin_client() -> Client:
+    url = secret("SUPABASE_URL")
+    service_role_key = secret("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not service_role_key:
+        raise RuntimeError("Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets for secure plan activation.")
+    return create_client(url, service_role_key)
+
+
+def update_user_plan(plan, subscription_id="", razorpay_status=""):
+    if not st.session_state.get("user_id"):
+        raise RuntimeError("No authenticated user is available.")
+    admin = get_supabase_admin_client()
+    current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
+    user = getattr(current, "user", None)
+    metadata = dict(getattr(user, "user_metadata", {}) or {}) if user else {}
+    metadata.update({
+        "plan": plan,
+        "razorpay_subscription_id": subscription_id or metadata.get("razorpay_subscription_id", ""),
+        "razorpay_subscription_status": razorpay_status or metadata.get("razorpay_subscription_status", ""),
+        "plan_updated_at": datetime.utcnow().isoformat() + "Z",
+    })
+    admin.auth.admin.update_user_by_id(st.session_state.user_id, {"user_metadata": metadata})
+    st.session_state.user_plan = plan
+    st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
+
+
+def get_razorpay_subscription(subscription_id):
+    key_id, key_secret = secret("RAZORPAY_KEY_ID"), secret("RAZORPAY_KEY_SECRET")
+    if not key_id or not key_secret:
+        raise RuntimeError("Razorpay credentials are not configured.")
+    if not subscription_id:
+        raise RuntimeError("No Razorpay subscription ID is available.")
+    try:
+        response = requests.get(f"{RAZORPAY_API_BASE}/subscriptions/{subscription_id}", auth=(key_id, key_secret), timeout=30)
+    except requests.exceptions.Timeout as exc:
+        raise RuntimeError("Razorpay verification timed out. Please try again.") from exc
+    except requests.exceptions.RequestException as exc:
+        raise RuntimeError(f"Could not connect to Razorpay: {exc}") from exc
+    try:
+        data = response.json()
+    except ValueError:
+        data = {"error": response.text}
+    if response.status_code >= 300:
+        error = data.get("error", data) if isinstance(data, dict) else data
+        if isinstance(error, dict):
+            error = error.get("description") or error.get("reason") or str(error)
+        raise RuntimeError(f"Razorpay verification failed (HTTP {response.status_code}): {error}")
+    return data
+
+
+def razorpay_activation_ready():
+    if not st.session_state.get("authenticated") or not st.session_state.get("user_id"):
+        return False, "Please create an account or sign in before starting a Professional subscription."
+    if not secret("SUPABASE_SERVICE_ROLE_KEY"):
+        return False, "Secure plan activation is not configured. Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets."
+    if not razorpay_is_configured():
+        return False, "Razorpay is not fully configured. Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_PROFESSIONAL_PLAN_ID to Streamlit Secrets."
+    return True, ""
+
+
+def verify_professional_subscription():
+    ready, message = razorpay_activation_ready()
+    if not ready:
+        raise RuntimeError(message)
+    subscription_id = st.session_state.get("razorpay_subscription_id", "")
+    if not subscription_id:
+        admin = get_supabase_admin_client()
+        current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
+        user = getattr(current, "user", None)
+        metadata = getattr(user, "user_metadata", {}) or {} if user else {}
+        subscription_id = metadata.get("razorpay_subscription_id", "")
+    if not subscription_id:
+        raise RuntimeError("No Razorpay subscription ID is available. Create the Professional checkout first.")
+    data = get_razorpay_subscription(subscription_id)
+    status = str(data.get("status", "")).lower()
+    if status == "active":
+        update_user_plan("Professional", subscription_id, status)
+        return True, status
+    update_user_plan("Free", subscription_id, status)
+    return False, status
 
 
 def friendly_auth_error(error) -> str:
@@ -387,6 +659,7 @@ def set_authenticated_user(response):
     st.session_state.user_name = metadata.get("full_name", "")
     st.session_state.company_name = metadata.get("company_name", "")
     st.session_state.user_plan = metadata.get("plan", "Free") or "Free"
+    st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
 
 
 def clear_authentication():
@@ -399,6 +672,8 @@ def clear_authentication():
     st.session_state.company_name = ""
     st.session_state.user_plan = "Free"
     st.session_state.show_plans = False
+    st.session_state.razorpay_checkout_url = ""
+    st.session_state.razorpay_subscription_id = ""
 
     clear_analysis()
 
@@ -474,11 +749,11 @@ def parse_ai_answer(data):
         text = answer.strip()
 
         if text.startswith("```"):
-            text = (
-                text.replace("```json", "", 1)
-                .replace("```", "", 1)
-                .strip()
-            )
+            text = text[3:].strip()
+            if text.lower().startswith("json"):
+                text = text[4:].strip()
+            if text.endswith("```"):
+                text = text[:-3].strip()
 
         try:
             return json.loads(text)
@@ -860,16 +1135,112 @@ def send_email_report(
 
 
 # ============================================================
+# RAZORPAY SUBSCRIPTIONS
+# ============================================================
+
+RAZORPAY_API_BASE = "https://api.razorpay.com/v1"
+
+
+def razorpay_is_configured():
+    return all(
+        [
+            secret("RAZORPAY_KEY_ID"),
+            secret("RAZORPAY_KEY_SECRET"),
+            secret("RAZORPAY_PROFESSIONAL_PLAN_ID"),
+        ]
+    )
+
+
+def create_razorpay_subscription(customer_email="", customer_name=""):
+    key_id = secret("RAZORPAY_KEY_ID")
+    key_secret = secret("RAZORPAY_KEY_SECRET")
+    plan_id = secret("RAZORPAY_PROFESSIONAL_PLAN_ID")
+
+    if not key_id or not key_secret or not plan_id:
+        raise RuntimeError(
+            "Razorpay is not configured. Add RAZORPAY_KEY_ID, "
+            "RAZORPAY_KEY_SECRET and RAZORPAY_PROFESSIONAL_PLAN_ID "
+            "to Streamlit Secrets."
+        )
+
+    raw_total_count = secret("RAZORPAY_PROFESSIONAL_TOTAL_COUNT", "12")
+    try:
+        total_count = int(raw_total_count)
+    except (TypeError, ValueError):
+        total_count = 12
+
+    if total_count < 1:
+        total_count = 12
+
+    payload = {
+        "plan_id": plan_id,
+        "total_count": total_count,
+        "customer_notify": 1,
+        "notes": {
+            "application": APP_NAME,
+            "plan": "Professional",
+            "customer_email": str(customer_email or "")[:255],
+            "customer_name": str(customer_name or "")[:255],
+        },
+    }
+
+    try:
+        response = requests.post(
+            f"{RAZORPAY_API_BASE}/subscriptions",
+            auth=(key_id, key_secret),
+            json=payload,
+            timeout=30,
+        )
+    except requests.exceptions.Timeout as exc:
+        raise RuntimeError(
+            "Razorpay request timed out. Please try again."
+        ) from exc
+    except requests.exceptions.RequestException as exc:
+        raise RuntimeError(
+            f"Could not connect to Razorpay: {exc}"
+        ) from exc
+
+    try:
+        data = response.json()
+    except ValueError:
+        data = {"error": response.text}
+
+    if response.status_code >= 300:
+        error_message = data.get("error", data) if isinstance(data, dict) else data
+        if isinstance(error_message, dict):
+            error_message = (
+                error_message.get("description")
+                or error_message.get("reason")
+                or str(error_message)
+            )
+        raise RuntimeError(
+            f"Razorpay subscription creation failed (HTTP {response.status_code}): "
+            f"{error_message}"
+        )
+
+    checkout_url = data.get("short_url")
+    subscription_id = data.get("id")
+
+    if not checkout_url or not subscription_id:
+        raise RuntimeError(
+            "Razorpay created the subscription but did not return a valid "
+            "subscription checkout URL."
+        )
+
+    return {
+        "id": subscription_id,
+        "status": data.get("status", "created"),
+        "short_url": checkout_url,
+        "plan_id": data.get("plan_id", plan_id),
+    }
+
+
+# ============================================================
 # PRICING
 # ============================================================
 
 def show_pricing(section_id="default"):
-    """
-    Display pricing plans.
-
-    section_id is deliberately used in widget keys because
-    this function can appear multiple times on the same page.
-    """
+    """Display the existing pricing UI with Razorpay Professional checkout."""
 
     st.markdown("### 💳 Plans")
 
@@ -902,7 +1273,9 @@ def show_pricing(section_id="default"):
                 "PDF + email reports",
                 "n8n automation",
             ],
-            "Upgrade",
+            "Current plan"
+            if st.session_state.user_plan == "Professional"
+            else "Upgrade",
         ),
         (
             c3,
@@ -919,47 +1292,121 @@ def show_pricing(section_id="default"):
     ]
 
     for col, name, price, features, button in plans:
-
         with col:
+            plan_visuals = {
+                "Free": ("🌱", "Start your AI operations journey"),
+                "Professional": ("🚀", "Advanced intelligence & automation"),
+                "Business": ("🏢", "Scale AI operations across teams"),
+            }
+            icon, description = plan_visuals.get(name, ("✨", "Operational intelligence"))
 
             st.markdown(
-                '<div class="plan-card">',
-                unsafe_allow_html=True,
+                f'''
+                <div class="plan-card">
+                    <div style="font-size:2.6rem; line-height:1; margin-bottom:.7rem;">{icon}</div>
+                    <div class="plan-name" style="font-size:1.15rem; font-weight:800;">{name}</div>
+                    <div class="plan-price" style="font-size:1.65rem; font-weight:850; margin:.35rem 0;">{price}</div>
+                    <div class="plan-description" style="font-size:.86rem; margin-bottom:.8rem;">{description}</div>
+                    {''.join(f'<div class="plan-feature" style="margin:.35rem 0;">✓ {feature}</div>' for feature in features)}
+                </div>
+                '''
+                , unsafe_allow_html=True,
             )
 
-            st.markdown(f"#### {name}")
-            st.markdown(f"### {price}")
+            # Professional uses the Razorpay subscription API.
+            # Free/Business retain the existing checkout-link behavior.
+            if name == "Professional":
+                if st.session_state.user_plan == "Professional":
+                    st.button(
+                        "Current plan",
+                        use_container_width=True,
+                        disabled=True,
+                        key=f"professional_current_{section_id}",
+                    )
+                elif not razorpay_is_configured():
+                    st.button(
+                        "Upgrade",
+                        use_container_width=True,
+                        disabled=True,
+                        key=f"professional_disabled_{section_id}",
+                    )
+                    st.caption(
+                        "Razorpay checkout is not configured yet."
+                    )
+                else:
+                    # Keep the payment option visible in every environment.
+                    # Secure activation still requires an authenticated Supabase user.
+                    if st.button(
+                        "💳 Upgrade to Professional",
+                        type="primary",
+                        use_container_width=True,
+                        key=f"razorpay_upgrade_{section_id}",
+                    ):
+                        ready, message = razorpay_activation_ready()
+                        if not ready:
+                            st.error(f"❌ {message}")
+                        else:
+                            try:
+                                with st.spinner("Creating secure Razorpay subscription..."):
+                                    subscription = create_razorpay_subscription(
+                                        customer_email=st.session_state.get("user_email", ""),
+                                        customer_name=st.session_state.get("user_name", ""),
+                                    )
 
-            for feature in features:
-                st.write(f"✓ {feature}")
+                                # Save tracking first. Checkout URL is exposed only after
+                                # Supabase tracking succeeds, eliminating the previous
+                                # "checkout created but subscription tracking could not be saved" state.
+                                update_user_plan(
+                                    "Free",
+                                    subscription["id"],
+                                    subscription.get("status", "created"),
+                                )
+                                st.session_state.razorpay_checkout_url = subscription["short_url"]
+                                st.session_state.razorpay_subscription_id = subscription["id"]
+                                st.success("Subscription created. Continue to secure Razorpay checkout.")
+                            except Exception as exc:
+                                st.session_state.razorpay_checkout_url = ""
+                                st.error(f"❌ {exc}")
 
-            checkout_key = (
-                f"{name.upper()}_CHECKOUT_URL"
-            )
-
-            checkout_url = secret(checkout_key)
-
-            if checkout_url:
-                st.link_button(
-                    button,
-                    checkout_url,
-                    use_container_width=True,
-                )
+                if st.session_state.get("razorpay_checkout_url"):
+                    st.link_button(
+                        "💳 Continue to Razorpay Checkout",
+                        st.session_state.razorpay_checkout_url,
+                        use_container_width=True,
+                    )
+                    subscription_id = st.session_state.get(
+                        "razorpay_subscription_id", ""
+                    )
+                    if subscription_id:
+                        st.caption(f"Subscription ID: {subscription_id}")
+                        if st.button("🔄 Verify Professional Payment", use_container_width=True, key=f"verify_razorpay_{section_id}"):
+                            try:
+                                with st.spinner("Verifying your Razorpay subscription..."):
+                                    active, status = verify_professional_subscription()
+                                if active:
+                                    st.success("✅ Payment verified. Professional plan activated.")
+                                    st.session_state.razorpay_checkout_url = ""
+                                    st.rerun()
+                                else:
+                                    st.info(f"Payment is not active yet. Razorpay status: {status or 'unknown'}. Complete checkout and try again.")
+                            except Exception as exc:
+                                st.error(f"❌ Verification failed: {exc}")
             else:
-                # IMPORTANT:
-                # section_id prevents duplicate Streamlit keys
-                # when show_pricing() is rendered more than once.
-                st.button(
-                    button,
-                    use_container_width=True,
-                    disabled=True,
-                    key=f"disabled_{section_id}_{name}",
-                )
-
-            st.markdown(
-                "</div>",
-                unsafe_allow_html=True,
-            )
+                checkout_key = f"{name.upper()}_CHECKOUT_URL"
+                checkout_url = secret(checkout_key)
+                if checkout_url:
+                    st.link_button(
+                        button,
+                        checkout_url,
+                        use_container_width=True,
+                    )
+                else:
+                    st.button(
+                        button,
+                        use_container_width=True,
+                        disabled=True,
+                        key=f"disabled_{section_id}_{name}",
+                    )
 
 
 # ============================================================
@@ -1279,7 +1726,7 @@ with st.sidebar:
 
     st.markdown(
         f"""
-        <a href="{WEBSITE_URL}" target="_blank">
+        <a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">
             🌐 Visit Generative Insight
         </a>
         """,
@@ -1380,10 +1827,12 @@ st.markdown(
 )
 
 st.markdown(
-    '<div class="brand-subtitle">'
-    "Executive operational intelligence → risk detection → "
-    "AI decisions → action plans → management reports"
-    "</div>",
+    """
+    <div class="brand-subtitle" style="color:#52637A !important; -webkit-text-fill-color:#52637A !important;">
+        Executive operational intelligence → risk detection →
+        AI decisions → action plans → management reports
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
@@ -2714,11 +3163,7 @@ with tabs[6]:
 
     show_pricing("billing")
 
-    st.caption(
-        "To activate real paid checkout, configure the "
-        "plan checkout URLs in Streamlit Secrets using "
-        "your payment provider."
-    )
+    st.caption("Professional subscriptions are processed through Razorpay. Complete checkout and verify payment to activate access.")
 
 
 # ============================================================
@@ -2750,7 +3195,7 @@ st.markdown(
         <br>
         Insights today. Intelligence tomorrow.
         <br>
-        <a href="{WEBSITE_URL}" target="_blank">
+        <a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">
             generativeinsight.in
         </a>
         &nbsp;·&nbsp;
