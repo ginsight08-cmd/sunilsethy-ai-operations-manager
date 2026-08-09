@@ -3,6 +3,7 @@ import json
 import smtplib
 from datetime import datetime
 from pathlib import Path
+from textwrap import dedent
 from email.message import EmailMessage
 
 import pandas as pd
@@ -19,7 +20,7 @@ from engine import analyze_data, make_ai_prompt
 # ============================================================
 
 APP_NAME = "Generative Insight"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.2.0"
 
 st.set_page_config(
     page_title="Generative Insight | AI Operations Copilot",
@@ -68,8 +69,6 @@ DEFAULT_STATE = {
     "report_pdf": None,
     "report_generated_at": None,
     "show_plans": False,
-    "razorpay_checkout_url": "",
-    "razorpay_subscription_id": "",
 }
 
 for key, value in DEFAULT_STATE.items():
@@ -262,14 +261,8 @@ def show_brand_header(compact=False):
         )
     else:
         st.markdown(
-            """
-            <div class="gi-brand">
-                Generative <span>Insight</span>
-            </div>
-            <div class="gi-tagline">
-                Insights today. Intelligence tomorrow.
-            </div>
-            """,
+            '<div class="gi-brand">Generative <span>Insight</span></div>'
+            '<div class="gi-tagline">Insights today. Intelligence tomorrow.</div>',
             unsafe_allow_html=True,
         )
 
@@ -306,73 +299,6 @@ def get_supabase_client() -> Client:
         )
 
     return create_client(url, anon_key)
-
-
-def get_supabase_admin_client() -> Client:
-    url = secret("SUPABASE_URL")
-    service_role_key = secret("SUPABASE_SERVICE_ROLE_KEY")
-    if not url or not service_role_key:
-        raise RuntimeError("Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets for secure plan activation.")
-    return create_client(url, service_role_key)
-
-
-def update_user_plan(plan, subscription_id="", razorpay_status=""):
-    if not st.session_state.get("user_id"):
-        raise RuntimeError("No authenticated user is available.")
-    admin = get_supabase_admin_client()
-    current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
-    user = getattr(current, "user", None)
-    metadata = dict(getattr(user, "user_metadata", {}) or {}) if user else {}
-    metadata.update({
-        "plan": plan,
-        "razorpay_subscription_id": subscription_id or metadata.get("razorpay_subscription_id", ""),
-        "razorpay_subscription_status": razorpay_status or metadata.get("razorpay_subscription_status", ""),
-        "plan_updated_at": datetime.utcnow().isoformat() + "Z",
-    })
-    admin.auth.admin.update_user_by_id(st.session_state.user_id, {"user_metadata": metadata})
-    st.session_state.user_plan = plan
-    st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
-
-
-def get_razorpay_subscription(subscription_id):
-    key_id, key_secret = secret("RAZORPAY_KEY_ID"), secret("RAZORPAY_KEY_SECRET")
-    if not key_id or not key_secret:
-        raise RuntimeError("Razorpay credentials are not configured.")
-    if not subscription_id:
-        raise RuntimeError("No Razorpay subscription ID is available.")
-    try:
-        response = requests.get(f"{RAZORPAY_API_BASE}/subscriptions/{subscription_id}", auth=(key_id, key_secret), timeout=30)
-    except requests.exceptions.Timeout as exc:
-        raise RuntimeError("Razorpay verification timed out. Please try again.") from exc
-    except requests.exceptions.RequestException as exc:
-        raise RuntimeError(f"Could not connect to Razorpay: {exc}") from exc
-    try:
-        data = response.json()
-    except ValueError:
-        data = {"error": response.text}
-    if response.status_code >= 300:
-        error = data.get("error", data) if isinstance(data, dict) else data
-        if isinstance(error, dict):
-            error = error.get("description") or error.get("reason") or str(error)
-        raise RuntimeError(f"Razorpay verification failed (HTTP {response.status_code}): {error}")
-    return data
-
-
-def verify_professional_subscription():
-    subscription_id = st.session_state.get("razorpay_subscription_id", "")
-    if not subscription_id:
-        admin = get_supabase_admin_client()
-        current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
-        user = getattr(current, "user", None)
-        metadata = getattr(user, "user_metadata", {}) or {} if user else {}
-        subscription_id = metadata.get("razorpay_subscription_id", "")
-    data = get_razorpay_subscription(subscription_id)
-    status = str(data.get("status", "")).lower()
-    if status == "active":
-        update_user_plan("Professional", subscription_id, status)
-        return True, status
-    update_user_plan("Free", subscription_id, status)
-    return False, status
 
 
 def friendly_auth_error(error) -> str:
@@ -456,7 +382,6 @@ def set_authenticated_user(response):
     st.session_state.user_name = metadata.get("full_name", "")
     st.session_state.company_name = metadata.get("company_name", "")
     st.session_state.user_plan = metadata.get("plan", "Free") or "Free"
-    st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
 
 
 def clear_authentication():
@@ -469,8 +394,6 @@ def clear_authentication():
     st.session_state.company_name = ""
     st.session_state.user_plan = "Free"
     st.session_state.show_plans = False
-    st.session_state.razorpay_checkout_url = ""
-    st.session_state.razorpay_subscription_id = ""
 
     clear_analysis()
 
@@ -546,11 +469,11 @@ def parse_ai_answer(data):
         text = answer.strip()
 
         if text.startswith("```"):
-            text = text[3:].strip()
-            if text.lower().startswith("json"):
-                text = text[4:].strip()
-            if text.endswith("```"):
-                text = text[:-3].strip()
+            text = (
+                text.replace("```json", "", 1)
+                .replace("```", "", 1)
+                .strip()
+            )
 
         try:
             return json.loads(text)
@@ -932,112 +855,16 @@ def send_email_report(
 
 
 # ============================================================
-# RAZORPAY SUBSCRIPTIONS
-# ============================================================
-
-RAZORPAY_API_BASE = "https://api.razorpay.com/v1"
-
-
-def razorpay_is_configured():
-    return all(
-        [
-            secret("RAZORPAY_KEY_ID"),
-            secret("RAZORPAY_KEY_SECRET"),
-            secret("RAZORPAY_PROFESSIONAL_PLAN_ID"),
-        ]
-    )
-
-
-def create_razorpay_subscription(customer_email="", customer_name=""):
-    key_id = secret("RAZORPAY_KEY_ID")
-    key_secret = secret("RAZORPAY_KEY_SECRET")
-    plan_id = secret("RAZORPAY_PROFESSIONAL_PLAN_ID")
-
-    if not key_id or not key_secret or not plan_id:
-        raise RuntimeError(
-            "Razorpay is not configured. Add RAZORPAY_KEY_ID, "
-            "RAZORPAY_KEY_SECRET and RAZORPAY_PROFESSIONAL_PLAN_ID "
-            "to Streamlit Secrets."
-        )
-
-    raw_total_count = secret("RAZORPAY_PROFESSIONAL_TOTAL_COUNT", "12")
-    try:
-        total_count = int(raw_total_count)
-    except (TypeError, ValueError):
-        total_count = 12
-
-    if total_count < 1:
-        total_count = 12
-
-    payload = {
-        "plan_id": plan_id,
-        "total_count": total_count,
-        "customer_notify": 1,
-        "notes": {
-            "application": APP_NAME,
-            "plan": "Professional",
-            "customer_email": str(customer_email or "")[:255],
-            "customer_name": str(customer_name or "")[:255],
-        },
-    }
-
-    try:
-        response = requests.post(
-            f"{RAZORPAY_API_BASE}/subscriptions",
-            auth=(key_id, key_secret),
-            json=payload,
-            timeout=30,
-        )
-    except requests.exceptions.Timeout as exc:
-        raise RuntimeError(
-            "Razorpay request timed out. Please try again."
-        ) from exc
-    except requests.exceptions.RequestException as exc:
-        raise RuntimeError(
-            f"Could not connect to Razorpay: {exc}"
-        ) from exc
-
-    try:
-        data = response.json()
-    except ValueError:
-        data = {"error": response.text}
-
-    if response.status_code >= 300:
-        error_message = data.get("error", data) if isinstance(data, dict) else data
-        if isinstance(error_message, dict):
-            error_message = (
-                error_message.get("description")
-                or error_message.get("reason")
-                or str(error_message)
-            )
-        raise RuntimeError(
-            f"Razorpay subscription creation failed (HTTP {response.status_code}): "
-            f"{error_message}"
-        )
-
-    checkout_url = data.get("short_url")
-    subscription_id = data.get("id")
-
-    if not checkout_url or not subscription_id:
-        raise RuntimeError(
-            "Razorpay created the subscription but did not return a valid "
-            "subscription checkout URL."
-        )
-
-    return {
-        "id": subscription_id,
-        "status": data.get("status", "created"),
-        "short_url": checkout_url,
-        "plan_id": data.get("plan_id", plan_id),
-    }
-
-
-# ============================================================
 # PRICING
 # ============================================================
 
 def show_pricing(section_id="default"):
-    """Display the existing pricing UI with Razorpay Professional checkout."""
+    """
+    Display pricing plans.
+
+    section_id is deliberately used in widget keys because
+    this function can appear multiple times on the same page.
+    """
 
     st.markdown("### 💳 Plans")
 
@@ -1070,9 +897,7 @@ def show_pricing(section_id="default"):
                 "PDF + email reports",
                 "n8n automation",
             ],
-            "Current plan"
-            if st.session_state.user_plan == "Professional"
-            else "Upgrade",
+            "Upgrade",
         ),
         (
             c3,
@@ -1089,7 +914,9 @@ def show_pricing(section_id="default"):
     ]
 
     for col, name, price, features, button in plans:
+
         with col:
+
             st.markdown(
                 '<div class="plan-card">',
                 unsafe_allow_html=True,
@@ -1101,119 +928,29 @@ def show_pricing(section_id="default"):
             for feature in features:
                 st.write(f"✓ {feature}")
 
-            # Professional uses the Razorpay subscription API.
-            # Free/Business retain the existing checkout-link behavior.
-            if name == "Professional":
-                if st.session_state.user_plan == "Professional":
-                    st.button(
-                        "Current plan",
-                        use_container_width=True,
-                        disabled=True,
-                        key=f"professional_current_{section_id}",
-                    )
-                elif not razorpay_is_configured():
-                    st.button(
-                        "Upgrade",
-                        use_container_width=True,
-                        disabled=True,
-                        key=f"professional_disabled_{section_id}",
-                    )
-                    st.caption(
-                        "Razorpay checkout is not configured yet."
-                    )
-                else:
-                    if not st.session_state.get("authenticated"):
-                        st.button(
-                            "Sign in to Upgrade",
-                            use_container_width=True,
-                            disabled=True,
-                            key=f"professional_auth_required_{section_id}",
-                        )
-                        st.caption("Create an account or sign in before starting a Professional subscription.")
-                    elif st.button(
-                        "Upgrade",
-                        type="primary",
-                        use_container_width=True,
-                        key=f"razorpay_upgrade_{section_id}",
-                    ):
-                        try:
-                            with st.spinner(
-                                "Creating secure Razorpay subscription..."
-                            ):
-                                subscription = create_razorpay_subscription(
-                                    customer_email=st.session_state.get(
-                                        "user_email", ""
-                                    ),
-                                    customer_name=st.session_state.get(
-                                        "user_name", ""
-                                    ),
-                                )
+            checkout_key = (
+                f"{name.upper()}_CHECKOUT_URL"
+            )
 
-                            st.session_state.razorpay_checkout_url = subscription[
-                                "short_url"
-                            ]
-                            st.session_state.razorpay_subscription_id = subscription["id"]
-                            # Only persist the Razorpay subscription against a user
-                            # when the customer is authenticated. The public Plans tab
-                            # must never attempt an authenticated-user update.
-                            if st.session_state.get("authenticated") and st.session_state.get("user_id"):
-                                try:
-                                    update_user_plan(
-                                        st.session_state.get("user_plan", "Free"),
-                                        subscription["id"],
-                                        subscription.get("status", "created"),
-                                    )
-                                except Exception as exc:
-                                    st.warning(
-                                        "Checkout was created, but subscription tracking "
-                                        f"could not be saved: {exc}"
-                                    )
+            checkout_url = secret(checkout_key)
 
-                            st.success(
-                                "Subscription created. Continue to secure Razorpay checkout."
-                            )
-                        except Exception as exc:
-                            st.error(f"❌ {exc}")
-
-                if st.session_state.get("razorpay_checkout_url"):
-                    st.link_button(
-                        "💳 Continue to Razorpay Checkout",
-                        st.session_state.razorpay_checkout_url,
-                        use_container_width=True,
-                    )
-                    subscription_id = st.session_state.get(
-                        "razorpay_subscription_id", ""
-                    )
-                    if subscription_id:
-                        st.caption(f"Subscription ID: {subscription_id}")
-                        if st.button("🔄 Verify Professional Payment", use_container_width=True, key=f"verify_razorpay_{section_id}"):
-                            try:
-                                with st.spinner("Verifying your Razorpay subscription..."):
-                                    active, status = verify_professional_subscription()
-                                if active:
-                                    st.success("✅ Payment verified. Professional plan activated.")
-                                    st.session_state.razorpay_checkout_url = ""
-                                    st.rerun()
-                                else:
-                                    st.info(f"Payment is not active yet. Razorpay status: {status or 'unknown'}. Complete checkout and try again.")
-                            except Exception as exc:
-                                st.error(f"❌ Verification failed: {exc}")
+            if checkout_url:
+                st.link_button(
+                    button,
+                    checkout_url,
+                    use_container_width=True,
+                )
             else:
-                checkout_key = f"{name.upper()}_CHECKOUT_URL"
-                checkout_url = secret(checkout_key)
-                if checkout_url:
-                    st.link_button(
-                        button,
-                        checkout_url,
-                        use_container_width=True,
-                    )
-                else:
-                    st.button(
-                        button,
-                        use_container_width=True,
-                        disabled=True,
-                        key=f"disabled_{section_id}_{name}",
-                    )
+                # IMPORTANT:
+                # section_id prevents duplicate Streamlit keys
+                # when show_pricing() is rendered more than once.
+                st.button(
+                    button,
+                    use_container_width=True,
+                    disabled=True,
+                    key=f"disabled_{section_id}_{name}",
+                )
+
             st.markdown(
                 "</div>",
                 unsafe_allow_html=True,
@@ -1228,25 +965,21 @@ if not st.session_state.authenticated:
 
     show_brand_header()
 
-    st.markdown(
-        """
-        <div class="hero">
-            <div class="main-title">AI-powered operational intelligence</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        "**Turn operational data into management decisions.**"
-    )
-
-    st.markdown(
-        "Create your account, upload Excel/CSV operational data, "
-        "identify KPI risks, investigate team and employee performance, "
-        "ask the AI Operations Copilot questions, and generate "
-        "management-ready reports."
-    )
+    # Native Streamlit components prevent source HTML/Python from appearing as text.
+    with st.container(border=True):
+        st.markdown(
+            '<div class="main-title">AI-powered operational intelligence</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="brand-subtitle">Turn operational data into management decisions.</div>',
+            unsafe_allow_html=True,
+        )
+        st.write(
+            "Create your account, upload Excel/CSV operational data, identify KPI risks, "
+            "investigate team and employee performance, ask the AI Operations Copilot questions, "
+            "and generate management-ready reports."
+        )
 
     if (
         not secret("SUPABASE_URL")
@@ -1523,22 +1256,26 @@ with st.sidebar:
     else:
 
         st.markdown(
-            """
-            <div class="gi-brand">
-                Generative <span>Insight</span>
-            </div>
-            """,
+            dedent(
+                """
+                <div class="gi-brand">
+                    Generative <span>Insight</span>
+                </div>
+                """
+            ).strip(),
             unsafe_allow_html=True,
         )
 
     st.caption("AI Operations Copilot")
 
     st.markdown(
-        f"""
-        <a href="{WEBSITE_URL}" target="_blank">
-            🌐 Visit Generative Insight
-        </a>
-        """,
+        dedent(
+            f"""
+            <a href="{WEBSITE_URL}" target="_blank">
+                🌐 Visit Generative Insight
+            </a>
+            """
+        ).strip(),
         unsafe_allow_html=True,
     )
 
@@ -1636,8 +1373,11 @@ st.markdown(
 )
 
 st.markdown(
+    '<div class="brand-subtitle">'
     "Executive operational intelligence → risk detection → "
     "AI decisions → action plans → management reports"
+    "</div>",
+    unsafe_allow_html=True,
 )
 
 
@@ -1689,6 +1429,8 @@ uploaded = st.file_uploader(
         f"max {plan_config['max_mb']} MB"
     ),
     type=["xlsx", "xls", "csv"],
+    key="operations_data_uploader",
+    help="For mobile uploads, select a real .xlsx, .xls, or .csv file. Avoid renamed files or empty Excel workbooks.",
 )
 
 if not uploaded:
@@ -1784,40 +1526,134 @@ if (
 
 
 # ============================================================
-# READ FILE
+# ROBUST FILE READER
 # ============================================================
+def read_uploaded_data(uploaded_file):
+    """Safely read CSV/XLSX/XLS, including mobile uploads."""
+    if uploaded_file is None:
+        raise ValueError("No file was selected.")
 
-try:
+    raw = uploaded_file.getvalue()
+    if not raw:
+        raise ValueError("The uploaded file is empty (0 bytes).")
 
-    uploaded.seek(0)
+    filename = (uploaded_file.name or "").strip()
+    suffix = Path(filename).suffix.lower()
 
-    if uploaded.name.lower().endswith(".csv"):
+    if suffix == ".csv":
+        last_error = None
+        for encoding in ("utf-8-sig", "utf-8", "cp1252", "latin1"):
+            try:
+                data = pd.read_csv(io.BytesIO(raw), encoding=encoding, low_memory=False)
+                if data is None or (data.empty and len(data.columns) == 0):
+                    raise ValueError("The CSV contains no readable columns.")
+                return data, "CSV"
+            except Exception as exc:
+                last_error = exc
+        raise ValueError(f"Could not read the CSV file: {last_error}")
 
-        df = pd.read_csv(uploaded)
+    if suffix == ".xlsx":
+        try:
+            from openpyxl import load_workbook
+            workbook = load_workbook(
+                filename=io.BytesIO(raw),
+                read_only=True,
+                data_only=True,
+            )
+            sheet_names = list(workbook.sheetnames)
+            workbook.close()
+        except Exception as exc:
+            raise ValueError(
+                "This .xlsx file could not be opened. It may be damaged, incomplete, "
+                "or not a real XLSX file. Re-save/export it as .xlsx and try again. "
+                f"Details: {exc}"
+            ) from exc
 
-    else:
+        if not sheet_names:
+            raise ValueError(
+                "The Excel workbook contains no worksheets. Open it in Excel/Google Sheets "
+                "and save it again as .xlsx."
+            )
 
-        xls = pd.ExcelFile(uploaded)
+        preferred = next(
+            (name for name in sheet_names if name.strip().lower() == "operational_data"),
+            None,
+        )
+        candidates = ([preferred] if preferred else []) + [
+            name for name in sheet_names if name != preferred
+        ]
 
-        sheet = (
-            "Operational_Data"
-            if "Operational_Data" in xls.sheet_names
-            else xls.sheet_names[0]
+        for sheet_name in candidates:
+            try:
+                data = pd.read_excel(
+                    io.BytesIO(raw),
+                    sheet_name=sheet_name,
+                    engine="openpyxl",
+                )
+                if data is not None and len(data.columns) > 0:
+                    data = data.dropna(axis=0, how="all").dropna(axis=1, how="all")
+                    if len(data.columns) > 0:
+                        return data, sheet_name
+            except Exception:
+                continue
+
+        raise ValueError(
+            "The XLSX workbook was opened, but none of its worksheets contains readable "
+            "tabular data. Put the operational data on a worksheet and save the workbook "
+            "again as .xlsx."
         )
 
-        df = pd.read_excel(
-            uploaded,
-            sheet_name=sheet,
-        )
+    if suffix == ".xls":
+        try:
+            data = pd.read_excel(io.BytesIO(raw), sheet_name=0, engine="xlrd")
+        except ImportError as exc:
+            raise ValueError(
+                "Reading .xls files requires the xlrd package. Add xlrd to requirements.txt, "
+                "or save the file as .xlsx."
+            ) from exc
+        except Exception as exc:
+            raise ValueError(
+                "This .xls file could not be read. Re-save it as .xlsx and try again. "
+                f"Details: {exc}"
+            ) from exc
+        if data is None or len(data.columns) == 0:
+            raise ValueError("The .xls workbook contains no readable data.")
+        return data, "XLS"
 
-except Exception as e:
-
-    st.error(
-        f"❌ Could not read the uploaded file: {e}"
+    raise ValueError(
+        f"Unsupported file type '{suffix or 'unknown'}'. Please upload a real .csv, .xlsx, or .xls file."
     )
 
+
+# ============================================================
+# READ FILE
+# ============================================================
+try:
+    df, source_sheet = read_uploaded_data(uploaded)
+except Exception as e:
+    st.error("❌ Could not read the uploaded file.")
+    st.warning(str(e))
+    with st.expander("🔧 Upload troubleshooting", expanded=False):
+        st.write(
+            "1. On your phone, open the file in Excel or Google Sheets and save/export it again as a real .xlsx or .csv file.\n"
+            "2. Make sure the workbook has at least one worksheet containing the operational data.\n"
+            "3. Do not simply rename .xls/.ods/.numbers to .xlsx.\n"
+            "4. Try CSV if the Excel workbook still fails.\n"
+            "5. The file must be within your plan's upload-size limit."
+        )
     st.stop()
 
+st.caption(
+    f"✅ File loaded: {uploaded.name}"
+    + (f" · Sheet: {source_sheet}" if source_sheet not in ("CSV", "XLS") else "")
+    + f" · {len(df):,} rows × {len(df.columns):,} columns"
+)
+
+
+# ============================================================
+# NORMALIZE COLUMN NAMES
+# ============================================================
+df.columns = [str(col).replace("\ufeff", "").strip() for col in df.columns]
 
 # ============================================================
 # VALIDATE DATA
@@ -1990,14 +1826,8 @@ if (
 # ============================================================
 
 st.markdown(
-    f"""
-    <div class="hero">
-        <h3>Executive Health: {risk_level}</h3>
-        <p class="small-muted">
-        {company_name or "Your organization"} · {report_name}
-        </p>
-    </div>
-    """,
+    f'<div class="hero"><h3>Executive Health: {risk_level}</h3>'
+    f'<p class="small-muted">{company_name or "Your organization"} · {report_name}</p></div>',
     unsafe_allow_html=True,
 )
 
@@ -2967,7 +2797,11 @@ with tabs[6]:
 
     show_pricing("billing")
 
-    st.caption("Professional subscriptions are processed through Razorpay. Complete checkout and verify payment to activate access.")
+    st.caption(
+        "To activate real paid checkout, configure the "
+        "plan checkout URLs in Streamlit Secrets using "
+        "your payment provider."
+    )
 
 
 # ============================================================
@@ -2992,19 +2826,21 @@ with st.expander(
 st.divider()
 
 st.markdown(
-    f"""
-    <div class="gi-footer">
-        <strong>Generative Insight</strong>
-        · AI Operations Copilot v{APP_VERSION}
-        <br>
-        Insights today. Intelligence tomorrow.
-        <br>
-        <a href="{WEBSITE_URL}" target="_blank">
-            generativeinsight.in
-        </a>
-        &nbsp;·&nbsp;
-        © {datetime.now().year}
-    </div>
-    """,
+    dedent(
+        f"""
+        <div class="gi-footer">
+            <strong>Generative Insight</strong>
+            · AI Operations Copilot v{APP_VERSION}
+            <br>
+            Insights today. Intelligence tomorrow.
+            <br>
+            <a href="{WEBSITE_URL}" target="_blank">
+                generativeinsight.in
+            </a>
+            &nbsp;·&nbsp;
+            © {datetime.now().year}
+        </div>
+        """
+    ).strip(),
     unsafe_allow_html=True,
 )
