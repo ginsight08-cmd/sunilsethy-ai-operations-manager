@@ -3,6 +3,7 @@ import json
 import smtplib
 from datetime import datetime
 from pathlib import Path
+from textwrap import dedent
 from email.message import EmailMessage
 
 import pandas as pd
@@ -19,7 +20,7 @@ from engine import analyze_data, make_ai_prompt
 # ============================================================
 
 APP_NAME = "Generative Insight"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.1"
 
 st.set_page_config(
     page_title="Generative Insight | AI Operations Copilot",
@@ -971,24 +972,26 @@ if not st.session_state.authenticated:
     show_brand_header()
 
     st.markdown(
-        """
-        <div class="hero">
-            <div class="main-title">
-                AI-powered operational intelligence
-            </div>
+        dedent(
+            """
+            <div class="hero">
+                <div class="main-title">
+                    AI-powered operational intelligence
+                </div>
 
-            <div class="brand-subtitle">
-                Turn operational data into management decisions.
-            </div>
+                <div class="brand-subtitle">
+                    Turn operational data into management decisions.
+                </div>
 
-            <p>
-                Create your account, upload Excel/CSV operational data,
-                identify KPI risks, investigate team and employee
-                performance, ask the AI Operations Copilot questions,
-                and generate management-ready reports.
-            </p>
-        </div>
-        """,
+                <p>
+                    Create your account, upload Excel/CSV operational data,
+                    identify KPI risks, investigate team and employee
+                    performance, ask the AI Operations Copilot questions,
+                    and generate management-ready reports.
+                </p>
+            </div>
+            """
+        ).strip(),
         unsafe_allow_html=True,
     )
 
@@ -1267,22 +1270,26 @@ with st.sidebar:
     else:
 
         st.markdown(
-            """
-            <div class="gi-brand">
-                Generative <span>Insight</span>
-            </div>
-            """,
+            dedent(
+                """
+                <div class="gi-brand">
+                    Generative <span>Insight</span>
+                </div>
+                """
+            ).strip(),
             unsafe_allow_html=True,
         )
 
     st.caption("AI Operations Copilot")
 
     st.markdown(
-        f"""
-        <a href="{WEBSITE_URL}" target="_blank">
-            🌐 Visit Generative Insight
-        </a>
-        """,
+        dedent(
+            f"""
+            <a href="{WEBSITE_URL}" target="_blank">
+                🌐 Visit Generative Insight
+            </a>
+            """
+        ).strip(),
         unsafe_allow_html=True,
     )
 
@@ -2743,19 +2750,21 @@ with st.expander(
 st.divider()
 
 st.markdown(
-    f"""
-    <div class="gi-footer">
-        <strong>Generative Insight</strong>
-        · AI Operations Copilot v{APP_VERSION}
-        <br>
-        Insights today. Intelligence tomorrow.
-        <br>
-        <a href="{WEBSITE_URL}" target="_blank">
-            generativeinsight.in
-        </a>
-        &nbsp;·&nbsp;
-        © {datetime.now().year}
-    </div>
-    """,
+    dedent(
+        f"""
+        <div class="gi-footer">
+            <strong>Generative Insight</strong>
+            · AI Operations Copilot v{APP_VERSION}
+            <br>
+            Insights today. Intelligence tomorrow.
+            <br>
+            <a href="{WEBSITE_URL}" target="_blank">
+                generativeinsight.in
+            </a>
+            &nbsp;·&nbsp;
+            © {datetime.now().year}
+        </div>
+        """
+    ).strip(),
     unsafe_allow_html=True,
 )
