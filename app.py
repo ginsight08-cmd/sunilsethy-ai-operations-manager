@@ -1,7 +1,7 @@
 import io
 import json
 import smtplib
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from email.message import EmailMessage
 
@@ -68,14 +68,7 @@ DEFAULT_STATE = {
     "report_pdf": None,
     "report_generated_at": None,
     "show_plans": False,
-    "razorpay_checkout_url": "",
-    "razorpay_subscription_id": "",
-    "account_created_at": "",
 }
-
-# Free plan trial length. After this many days on the Free plan,
-# the dashboard is locked and the user is shown an upgrade-only screen.
-FREE_TRIAL_DAYS = 15
 
 for key, value in DEFAULT_STATE.items():
     if key not in st.session_state:
@@ -117,13 +110,9 @@ st.markdown(
     }}
 
     .brand-subtitle {{
-        color: #0757B8 !important;
-        -webkit-text-fill-color: #0757B8 !important;
+        color: #667085;
         font-size: 1.02rem;
-        font-weight: 700;
         margin-bottom: 1rem;
-        opacity: 1 !important;
-        visibility: visible !important;
     }}
 
     .gi-brand {{
@@ -181,16 +170,13 @@ st.markdown(
         border-radius: 18px;
         border: 1px solid #DDE7F5;
         background: #FFFFFF;
-        min-height: 260px;
+        min-height: 220px;
         box-shadow: 0 8px 24px rgba(7,87,184,0.06);
-        color: #172033 !important;
-        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }}
 
     .plan-card:hover {{
         border-color: {BRAND_CYAN};
         box-shadow: 0 10px 30px rgba(0,174,239,0.12);
-        transform: translateY(-3px);
     }}
 
     section[data-testid="stSidebar"] {{
@@ -247,187 +233,6 @@ st.markdown(
         padding: 1.5rem 0;
     }}
 
-
-    /* EMBED-SAFE TYPOGRAPHY: explicit dark text prevents host-page CSS
-       from making Streamlit content white/invisible inside an iframe. */
-    .stApp .stMarkdown, .stApp .stMarkdown p, .stApp .stMarkdown li,
-    .stApp .stMarkdown span, .stApp label,
-    .stApp [data-testid="stWidgetLabel"], .stApp [data-testid="stWidgetLabel"] * {{
-        color: #172033 !important;
-    }}
-    .stApp .stCaption, .stApp [data-testid="stCaptionContainer"],
-    .stApp [data-testid="stCaptionContainer"] * {{
-        color: #52637A !important;
-    }}
-    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{
-        color: #071A3D !important;
-    }}
-    .stApp input, .stApp textarea, .stApp select,
-    .stApp input::placeholder, .stApp textarea::placeholder {{
-        color: #172033 !important;
-        -webkit-text-fill-color: #172033 !important;
-        opacity: 1 !important;
-    }}
-    .stApp [data-baseweb="select"] * {{
-        color: #172033 !important;
-    }}
-    .stApp button[data-baseweb="tab"] {{
-        color: #334155 !important;
-    }}
-    .stApp button[data-baseweb="tab"][aria-selected="true"] {{
-        color: #0757B8 !important;
-    }}
-    .stApp [data-testid="stDataFrame"] *,
-    .stApp [data-testid="stTable"] * {{
-        color: #172033 !important;
-    }}
-    .plan-card, .plan-card * {{
-        color: #172033 !important;
-    }}
-    .plan-card .plan-name, .plan-card .plan-price {{
-        color: #071A3D !important;
-    }}
-    .plan-card .plan-description, .plan-card .plan-feature {{
-        color: #52637A !important;
-    }}
-    .plan-card .plan-feature {{
-        font-weight: 600 !important;
-    }}
-    .stApp a {{
-        color: #0757B8 !important;
-        text-decoration: none;
-    }}
-    .stApp a:hover {{
-        color: #003F8F !important;
-        text-decoration: underline;
-    }}
-
-    /* ========================================================
-       HARD EMBED CONTRAST FIX
-       Explicitly style Streamlit-generated content and the
-       custom HTML blocks. This prevents invisible text when
-       the app is embedded inside a website/iframe.
-       ======================================================== */
-    .stApp [data-testid="stMarkdownContainer"],
-    .stApp [data-testid="stMarkdownContainer"] p,
-    .stApp [data-testid="stMarkdownContainer"] div,
-    .stApp [data-testid="stMarkdownContainer"] span,
-    .stApp [data-testid="stMarkdownContainer"] li,
-    .stApp [data-testid="stMarkdownContainer"] strong,
-    .stApp [data-testid="stMarkdownContainer"] em {{
-        color: #172033 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        -webkit-text-fill-color: #172033 !important;
-    }}
-
-    .stApp [data-testid="stMarkdownContainer"] h1,
-    .stApp [data-testid="stMarkdownContainer"] h2,
-    .stApp [data-testid="stMarkdownContainer"] h3,
-    .stApp [data-testid="stMarkdownContainer"] h4,
-    .stApp [data-testid="stMarkdownContainer"] h5,
-    .stApp [data-testid="stMarkdownContainer"] h6 {{
-        color: #071A3D !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        -webkit-text-fill-color: #071A3D !important;
-    }}
-
-    .stApp .hero p {{
-        color: #475569 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        -webkit-text-fill-color: #475569 !important;
-        font-size: 0.98rem !important;
-        line-height: 1.65 !important;
-    }}
-
-    .stApp .hero .brand-subtitle {{
-        color: #0757B8 !important;
-        opacity: 1 !important;
-        -webkit-text-fill-color: #0757B8 !important;
-    }}
-
-    /* Tabs: force both selected and unselected labels to remain visible. */
-    .stApp [data-baseweb="tab-list"] {{
-        background: transparent !important;
-    }}
-    .stApp button[data-baseweb="tab"],
-    .stApp button[data-baseweb="tab"] span,
-    .stApp button[data-baseweb="tab"] div {{
-        color: #334155 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        -webkit-text-fill-color: #334155 !important;
-        font-weight: 700 !important;
-    }}
-    .stApp button[data-baseweb="tab"][aria-selected="true"],
-    .stApp button[data-baseweb="tab"][aria-selected="true"] span,
-    .stApp button[data-baseweb="tab"][aria-selected="true"] div {{
-        color: #0757B8 !important;
-        -webkit-text-fill-color: #0757B8 !important;
-    }}
-
-    /* Streamlit headings/captions outside markdown containers. */
-    .stApp [data-testid="stHeader"] *,
-    .stApp [data-testid="stText"],
-    .stApp [data-testid="stCaptionContainer"] *,
-    .stApp [data-testid="stWidgetLabel"] *,
-    .stApp [data-testid="stForm"] label,
-    .stApp [data-testid="stForm"] p {{
-        opacity: 1 !important;
-        visibility: visible !important;
-    }}
-
-    .stApp [data-testid="stCaptionContainer"] *,
-    .stApp .stCaption {{
-        color: #52637A !important;
-        -webkit-text-fill-color: #52637A !important;
-    }}
-
-    /* Inputs and buttons in an embedded page. */
-    .stApp input,
-    .stApp textarea,
-    .stApp [role="textbox"],
-    .stApp [data-baseweb="input"] input,
-    .stApp [data-baseweb="textarea"] textarea {{
-        background-color: #FFFFFF !important;
-        color: #172033 !important;
-        -webkit-text-fill-color: #172033 !important;
-        opacity: 1 !important;
-    }}
-
-    .stApp input::placeholder,
-    .stApp textarea::placeholder {{
-        color: #64748B !important;
-        -webkit-text-fill-color: #64748B !important;
-        opacity: 1 !important;
-    }}
-
-    .stApp .stButton button,
-    .stApp [data-testid="stFormSubmitButton"] button,
-    .stApp [data-testid="stLinkButton"] a {{
-        opacity: 1 !important;
-        visibility: visible !important;
-    }}
-
-    /* FINAL EMBED / WIX CONTRAST + MOBILE SAFETY */
-    .stApp .gi-brand, .stApp .gi-brand * {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; opacity:1 !important; visibility:visible !important; }}
-    .stApp .gi-brand span {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; }}
-    .stApp .gi-tagline {{ color:#52637A !important; -webkit-text-fill-color:#52637A !important; opacity:1 !important; }}
-    .stApp .hero .main-title {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; }}
-    .stApp .hero .brand-subtitle {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; opacity:1 !important; visibility:visible !important; }}
-    .stApp .hero p, .stApp .hero .hero-description {{ color:#334155 !important; -webkit-text-fill-color:#334155 !important; opacity:1 !important; visibility:visible !important; }}
-    .stApp .website-link {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; font-weight:700 !important; text-decoration:none !important; }}
-    .stApp .plan-card, .stApp .plan-card * {{ opacity:1 !important; visibility:visible !important; }}
-    .stApp .plan-card .plan-name, .stApp .plan-card .plan-price {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; }}
-    .stApp .plan-card .plan-description, .stApp .plan-card .plan-feature {{ color:#52637A !important; -webkit-text-fill-color:#52637A !important; }}
-    @media (max-width:768px) {{
-        .main-title {{ font-size:1.8rem !important; }}
-        .hero {{ padding:1.1rem 1rem !important; border-radius:16px !important; }}
-        .plan-card {{ min-height:auto !important; margin-bottom:.75rem !important; }}
-        .stApp .stButton > button, .stApp [data-testid="stLinkButton"] a, .stApp [data-testid="stFormSubmitButton"] button {{ width:100% !important; min-height:44px !important; }}
-    }}
 </style>
 """,
     unsafe_allow_html=True,
@@ -455,17 +260,34 @@ def show_brand_header(compact=False):
         )
     else:
         st.markdown(
-            """<div class="gi-brand">Generative <span>Insight</span></div>
-<div class="gi-tagline">Insights today. Intelligence tomorrow.</div>""",
+            """
+            <div class="gi-brand">
+                Generative <span>Insight</span>
+            </div>
+            <div class="gi-tagline">
+                Insights today. Intelligence tomorrow.
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
     st.markdown(
-        f"""<div style="margin-top:-8px; margin-bottom:18px; color:#667085; font-size:0.85rem;">
-AI / ML &nbsp; | &nbsp; Annotation &nbsp; | &nbsp; Web & App Development
-&nbsp;&nbsp;·&nbsp;&nbsp;
-<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">Visit Website</a>
-</div>""",
+        f"""
+        <div style="
+            margin-top:-8px;
+            margin-bottom:18px;
+            color:#667085;
+            font-size:0.85rem;
+        ">
+            AI / ML &nbsp; | &nbsp;
+            Annotation &nbsp; | &nbsp;
+            Web & App Development
+            &nbsp;&nbsp;·&nbsp;&nbsp;
+            <a href="{WEBSITE_URL}" target="_blank">
+                Visit Website
+            </a>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
@@ -482,88 +304,6 @@ def get_supabase_client() -> Client:
         )
 
     return create_client(url, anon_key)
-
-
-def get_supabase_admin_client() -> Client:
-    url = secret("SUPABASE_URL")
-    service_role_key = secret("SUPABASE_SERVICE_ROLE_KEY")
-    if not url or not service_role_key:
-        raise RuntimeError("Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets for secure plan activation.")
-    return create_client(url, service_role_key)
-
-
-def update_user_plan(plan, subscription_id="", razorpay_status=""):
-    if not st.session_state.get("user_id"):
-        raise RuntimeError("No authenticated user is available.")
-    admin = get_supabase_admin_client()
-    current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
-    user = getattr(current, "user", None)
-    metadata = dict(getattr(user, "user_metadata", {}) or {}) if user else {}
-    metadata.update({
-        "plan": plan,
-        "razorpay_subscription_id": subscription_id or metadata.get("razorpay_subscription_id", ""),
-        "razorpay_subscription_status": razorpay_status or metadata.get("razorpay_subscription_status", ""),
-        "plan_updated_at": datetime.utcnow().isoformat() + "Z",
-    })
-    admin.auth.admin.update_user_by_id(st.session_state.user_id, {"user_metadata": metadata})
-    st.session_state.user_plan = plan
-    st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
-
-
-def get_razorpay_subscription(subscription_id):
-    key_id, key_secret = secret("RAZORPAY_KEY_ID"), secret("RAZORPAY_KEY_SECRET")
-    if not key_id or not key_secret:
-        raise RuntimeError("Razorpay credentials are not configured.")
-    if not subscription_id:
-        raise RuntimeError("No Razorpay subscription ID is available.")
-    try:
-        response = requests.get(f"{RAZORPAY_API_BASE}/subscriptions/{subscription_id}", auth=(key_id, key_secret), timeout=30)
-    except requests.exceptions.Timeout as exc:
-        raise RuntimeError("Razorpay verification timed out. Please try again.") from exc
-    except requests.exceptions.RequestException as exc:
-        raise RuntimeError(f"Could not connect to Razorpay: {exc}") from exc
-    try:
-        data = response.json()
-    except ValueError:
-        data = {"error": response.text}
-    if response.status_code >= 300:
-        error = data.get("error", data) if isinstance(data, dict) else data
-        if isinstance(error, dict):
-            error = error.get("description") or error.get("reason") or str(error)
-        raise RuntimeError(f"Razorpay verification failed (HTTP {response.status_code}): {error}")
-    return data
-
-
-def razorpay_activation_ready():
-    if not st.session_state.get("authenticated") or not st.session_state.get("user_id"):
-        return False, "Please create an account or sign in before starting a Professional subscription."
-    if not secret("SUPABASE_SERVICE_ROLE_KEY"):
-        return False, "Secure plan activation is not configured. Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets."
-    if not razorpay_is_configured():
-        return False, "Razorpay is not fully configured. Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_PROFESSIONAL_PLAN_ID to Streamlit Secrets."
-    return True, ""
-
-
-def verify_professional_subscription():
-    ready, message = razorpay_activation_ready()
-    if not ready:
-        raise RuntimeError(message)
-    subscription_id = st.session_state.get("razorpay_subscription_id", "")
-    if not subscription_id:
-        admin = get_supabase_admin_client()
-        current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
-        user = getattr(current, "user", None)
-        metadata = getattr(user, "user_metadata", {}) or {} if user else {}
-        subscription_id = metadata.get("razorpay_subscription_id", "")
-    if not subscription_id:
-        raise RuntimeError("No Razorpay subscription ID is available. Create the Professional checkout first.")
-    data = get_razorpay_subscription(subscription_id)
-    status = str(data.get("status", "")).lower()
-    if status == "active":
-        update_user_plan("Professional", subscription_id, status)
-        return True, status
-    update_user_plan("Free", subscription_id, status)
-    return False, status
 
 
 def friendly_auth_error(error) -> str:
@@ -647,12 +387,6 @@ def set_authenticated_user(response):
     st.session_state.user_name = metadata.get("full_name", "")
     st.session_state.company_name = metadata.get("company_name", "")
     st.session_state.user_plan = metadata.get("plan", "Free") or "Free"
-    st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
-
-    # Supabase sets this automatically when the account is created — used
-    # to work out how many days are left in the Free trial.
-    created_at = getattr(user, "created_at", None)
-    st.session_state.account_created_at = str(created_at) if created_at else ""
 
 
 def clear_authentication():
@@ -665,25 +399,8 @@ def clear_authentication():
     st.session_state.company_name = ""
     st.session_state.user_plan = "Free"
     st.session_state.show_plans = False
-    st.session_state.razorpay_checkout_url = ""
-    st.session_state.razorpay_subscription_id = ""
-    st.session_state.account_created_at = ""
 
     clear_analysis()
-
-
-def trial_days_remaining():
-    """Days left in the Free trial, or None if unknown (e.g. not signed in)."""
-    raw = st.session_state.get("account_created_at", "")
-    if not raw:
-        return None
-    try:
-        created = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    now = datetime.now(created.tzinfo) if created.tzinfo else datetime.now()
-    elapsed_days = (now - created).days
-    return FREE_TRIAL_DAYS - elapsed_days
 
 
 def get_plan_config(plan):
@@ -757,11 +474,11 @@ def parse_ai_answer(data):
         text = answer.strip()
 
         if text.startswith("```"):
-            text = text[3:].strip()
-            if text.lower().startswith("json"):
-                text = text[4:].strip()
-            if text.endswith("```"):
-                text = text[:-3].strip()
+            text = (
+                text.replace("```json", "", 1)
+                .replace("```", "", 1)
+                .strip()
+            )
 
         try:
             return json.loads(text)
@@ -769,172 +486,6 @@ def parse_ai_answer(data):
             return text
 
     return answer
-
-
-def build_data_template_bytes():
-    """Build the operational-data upload template as an in-memory .xlsx file."""
-
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from openpyxl.utils import get_column_letter
-
-    wb = openpyxl.Workbook()
-
-    NAVY = "071A3D"
-    BLUE = "0757B8"
-    LIGHT_BLUE = "EAF2FD"
-    SAMPLE_FILL = "FFF6E5"
-    GREY = "667085"
-
-    ws = wb.active
-    ws.title = "Operational_Data"
-
-    headers = [
-        ("Date", "Date", 14),
-        ("Employee_ID", "Text", 14),
-        ("Employee_Name", "Text", 18),
-        ("Team", "Text", 14),
-        ("Target", "Number", 10),
-        ("Production", "Number", 12),
-        ("AHT_Actual", "Number", 12),
-        ("AHT_Target", "Number", 12),
-        ("Quality_%", "Number (0-100)", 12),
-        ("SLA_%", "Number (0-100)", 10),
-        ("Attendance", "Number (0-100)", 12),
-        ("Error_Count", "Number", 12),
-        ("Error_Category", "Text", 18),
-    ]
-
-    header_font = Font(name="Arial", bold=True, color="FFFFFF", size=10)
-    header_fill = PatternFill("solid", fgColor=NAVY)
-    thin = Side(style="thin", color="D9DEE7")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
-
-    for col_idx, (name, _, width) in enumerate(headers, start=1):
-        cell = ws.cell(row=1, column=col_idx, value=name)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = border
-        ws.column_dimensions[get_column_letter(col_idx)].width = width
-
-    hint_font = Font(name="Arial", italic=True, color=GREY, size=9)
-    hint_fill = PatternFill("solid", fgColor=LIGHT_BLUE)
-    for col_idx, (name, hint, _) in enumerate(headers, start=1):
-        cell = ws.cell(row=2, column=col_idx, value=hint)
-        cell.font = hint_font
-        cell.fill = hint_fill
-        cell.alignment = Alignment(horizontal="center")
-        cell.border = border
-
-    base_date = datetime(2026, 8, 3).date()
-    sample_rows = [
-        [base_date, "EMP-1001", "Aditi Sharma", "Collections", 50, 47, 6.4, 6.0, 96.5, 98.1, 97, 1, "Documentation"],
-        [base_date, "EMP-1002", "Rahul Verma", "Collections", 50, 41, 7.8, 6.0, 91.2, 93.4, 92, 4, "Process error"],
-        [base_date, "EMP-1003", "Meera Iyer", "Customer Care", 45, 46, 5.9, 6.0, 98.0, 99.0, 100, 0, ""],
-        [base_date + timedelta(days=1), "EMP-1001", "Aditi Sharma", "Collections", 50, 44, 6.7, 6.0, 95.0, 97.2, 95, 2, "Documentation"],
-        [base_date + timedelta(days=1), "EMP-1004", "Karan Malhotra", "Customer Care", 45, 38, 8.2, 6.0, 88.5, 90.0, 89, 6, "Escalation delay"],
-    ]
-
-    sample_font = Font(name="Arial", size=10)
-    for r_offset, row_data in enumerate(sample_rows, start=3):
-        for col_idx, value in enumerate(row_data, start=1):
-            cell = ws.cell(row=r_offset, column=col_idx, value=value)
-            cell.font = sample_font
-            cell.fill = PatternFill("solid", fgColor=SAMPLE_FILL)
-            cell.border = border
-            if headers[col_idx - 1][0] == "Date":
-                cell.number_format = "DD-MMM-YYYY"
-
-    ws.freeze_panes = "A3"
-
-    note_row = len(sample_rows) + 4
-    note = ws.cell(
-        row=note_row,
-        column=1,
-        value=(
-            "↑ Rows 3–7 are SAMPLE data showing the expected format. "
-            "Delete them and paste your own operational data starting at row 3."
-        ),
-    )
-    note.font = Font(name="Arial", italic=True, size=9, color=GREY)
-    ws.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=len(headers))
-
-    ins = wb.create_sheet("Instructions")
-    ins.column_dimensions["A"].width = 20
-    ins.column_dimensions["B"].width = 70
-    ins.column_dimensions["C"].width = 14
-
-    title = ins.cell(row=1, column=1, value="AI Operations Manager — Data Upload Template")
-    title.font = Font(name="Arial", bold=True, size=14, color=NAVY)
-    ins.merge_cells("A1:C1")
-
-    sub = ins.cell(
-        row=2,
-        column=1,
-        value="Fill in the 'Operational_Data' sheet with your own rows, then upload the file (.xlsx or .csv).",
-    )
-    sub.font = Font(name="Arial", italic=True, size=10, color=GREY)
-    ins.merge_cells("A2:C2")
-
-    col_head_font = Font(name="Arial", bold=True, color="FFFFFF", size=10)
-    col_head_fill = PatternFill("solid", fgColor=BLUE)
-    for i, h in enumerate(["Column", "What to enter", "Required?"], start=1):
-        c = ins.cell(row=4, column=i, value=h)
-        c.font = col_head_font
-        c.fill = col_head_fill
-        c.alignment = Alignment(horizontal="left", vertical="center")
-
-    field_docs = [
-        ("Date", "The date the record applies to (one row per employee per day).", "Optional"),
-        ("Employee_ID", "A unique ID for the employee (e.g. EMP-1001). Used to track the same person across days.", "Required"),
-        ("Employee_Name", "The employee's full name, as it should appear in reports.", "Required"),
-        ("Team", "The team or department the employee belongs to (e.g. Collections, Customer Care).", "Required"),
-        ("Target", "The expected production/output target for that day (a number).", "Required"),
-        ("Production", "The actual production/output achieved that day (a number).", "Required"),
-        ("AHT_Actual", "Actual Average Handling Time for that day (in minutes, or your standard unit).", "Required"),
-        ("AHT_Target", "The target Average Handling Time to compare against.", "Optional"),
-        ("Quality_%", "Quality score for the day, as a percentage (0–100, not a decimal fraction).", "Required"),
-        ("SLA_%", "SLA adherence for the day, as a percentage (0–100).", "Required"),
-        ("Attendance", "Attendance percentage or indicator for that day.", "Optional"),
-        ("Error_Count", "Number of errors recorded that day.", "Optional"),
-        ("Error_Category", "A short label for the main error type, if any (e.g. Documentation, Process error).", "Optional"),
-    ]
-
-    row_font = Font(name="Arial", size=10)
-    req_font = Font(name="Arial", size=10, bold=True, color="B42318")
-    opt_font = Font(name="Arial", size=10, color=GREY)
-
-    r = 5
-    for name, desc, required in field_docs:
-        ins.cell(row=r, column=1, value=name).font = Font(name="Arial", bold=True, size=10, color=NAVY)
-        ins.cell(row=r, column=2, value=desc).font = row_font
-        ins.cell(row=r, column=2).alignment = Alignment(wrap_text=True, vertical="top")
-        req_cell = ins.cell(row=r, column=3, value=required)
-        req_cell.font = req_font if required == "Required" else opt_font
-        ins.row_dimensions[r].height = 30
-        r += 1
-
-    r += 1
-    notes_title = ins.cell(row=r, column=1, value="Notes")
-    notes_title.font = Font(name="Arial", bold=True, size=12, color=NAVY)
-    r += 1
-    notes = [
-        "• Keep the header row (row 1) exactly as provided — column names must match for the upload to work.",
-        "• One row = one employee's record for one day. Add as many rows as you need.",
-        "• Quality_%, SLA_%, and Attendance should be plain numbers like 96.5, not '96.5%' as text.",
-        "• Keep the sheet named 'Operational_Data' if using an Excel file with multiple sheets.",
-        "• Free plan supports files up to 5 MB; Professional up to 25 MB; Business up to 100 MB.",
-    ]
-    for note_line in notes:
-        ins.cell(row=r, column=1, value=note_line).font = Font(name="Arial", size=10)
-        ins.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
-        r += 1
-
-    buffer = io.BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
-    return buffer.getvalue()
 
 
 def dataframe_to_text(df):
@@ -1309,112 +860,16 @@ def send_email_report(
 
 
 # ============================================================
-# RAZORPAY SUBSCRIPTIONS
-# ============================================================
-
-RAZORPAY_API_BASE = "https://api.razorpay.com/v1"
-
-
-def razorpay_is_configured():
-    return all(
-        [
-            secret("RAZORPAY_KEY_ID"),
-            secret("RAZORPAY_KEY_SECRET"),
-            secret("RAZORPAY_PROFESSIONAL_PLAN_ID"),
-        ]
-    )
-
-
-def create_razorpay_subscription(customer_email="", customer_name=""):
-    key_id = secret("RAZORPAY_KEY_ID")
-    key_secret = secret("RAZORPAY_KEY_SECRET")
-    plan_id = secret("RAZORPAY_PROFESSIONAL_PLAN_ID")
-
-    if not key_id or not key_secret or not plan_id:
-        raise RuntimeError(
-            "Razorpay is not configured. Add RAZORPAY_KEY_ID, "
-            "RAZORPAY_KEY_SECRET and RAZORPAY_PROFESSIONAL_PLAN_ID "
-            "to Streamlit Secrets."
-        )
-
-    raw_total_count = secret("RAZORPAY_PROFESSIONAL_TOTAL_COUNT", "12")
-    try:
-        total_count = int(raw_total_count)
-    except (TypeError, ValueError):
-        total_count = 12
-
-    if total_count < 1:
-        total_count = 12
-
-    payload = {
-        "plan_id": plan_id,
-        "total_count": total_count,
-        "customer_notify": 1,
-        "notes": {
-            "application": APP_NAME,
-            "plan": "Professional",
-            "customer_email": str(customer_email or "")[:255],
-            "customer_name": str(customer_name or "")[:255],
-        },
-    }
-
-    try:
-        response = requests.post(
-            f"{RAZORPAY_API_BASE}/subscriptions",
-            auth=(key_id, key_secret),
-            json=payload,
-            timeout=30,
-        )
-    except requests.exceptions.Timeout as exc:
-        raise RuntimeError(
-            "Razorpay request timed out. Please try again."
-        ) from exc
-    except requests.exceptions.RequestException as exc:
-        raise RuntimeError(
-            f"Could not connect to Razorpay: {exc}"
-        ) from exc
-
-    try:
-        data = response.json()
-    except ValueError:
-        data = {"error": response.text}
-
-    if response.status_code >= 300:
-        error_message = data.get("error", data) if isinstance(data, dict) else data
-        if isinstance(error_message, dict):
-            error_message = (
-                error_message.get("description")
-                or error_message.get("reason")
-                or str(error_message)
-            )
-        raise RuntimeError(
-            f"Razorpay subscription creation failed (HTTP {response.status_code}): "
-            f"{error_message}"
-        )
-
-    checkout_url = data.get("short_url")
-    subscription_id = data.get("id")
-
-    if not checkout_url or not subscription_id:
-        raise RuntimeError(
-            "Razorpay created the subscription but did not return a valid "
-            "subscription checkout URL."
-        )
-
-    return {
-        "id": subscription_id,
-        "status": data.get("status", "created"),
-        "short_url": checkout_url,
-        "plan_id": data.get("plan_id", plan_id),
-    }
-
-
-# ============================================================
 # PRICING
 # ============================================================
 
 def show_pricing(section_id="default"):
-    """Display the existing pricing UI with Razorpay Professional checkout."""
+    """
+    Display pricing plans.
+
+    section_id is deliberately used in widget keys because
+    this function can appear multiple times on the same page.
+    """
 
     st.markdown("### 💳 Plans")
 
@@ -1447,9 +902,7 @@ def show_pricing(section_id="default"):
                 "PDF + email reports",
                 "n8n automation",
             ],
-            "Current plan"
-            if st.session_state.user_plan == "Professional"
-            else "Upgrade",
+            "Upgrade",
         ),
         (
             c3,
@@ -1466,121 +919,47 @@ def show_pricing(section_id="default"):
     ]
 
     for col, name, price, features, button in plans:
+
         with col:
-            plan_visuals = {
-                "Free": ("🌱", "Start your AI operations journey"),
-                "Professional": ("🚀", "Advanced intelligence & automation"),
-                "Business": ("🏢", "Scale AI operations across teams"),
-            }
-            icon, description = plan_visuals.get(name, ("✨", "Operational intelligence"))
 
             st.markdown(
-                f'''
-                <div class="plan-card">
-                    <div style="font-size:2.6rem; line-height:1; margin-bottom:.7rem;">{icon}</div>
-                    <div class="plan-name" style="font-size:1.15rem; font-weight:800;">{name}</div>
-                    <div class="plan-price" style="font-size:1.65rem; font-weight:850; margin:.35rem 0;">{price}</div>
-                    <div class="plan-description" style="font-size:.86rem; margin-bottom:.8rem;">{description}</div>
-                    {''.join(f'<div class="plan-feature" style="margin:.35rem 0;">✓ {feature}</div>' for feature in features)}
-                </div>
-                '''
-                , unsafe_allow_html=True,
+                '<div class="plan-card">',
+                unsafe_allow_html=True,
             )
 
-            # Professional uses the Razorpay subscription API.
-            # Free/Business retain the existing checkout-link behavior.
-            if name == "Professional":
-                if st.session_state.user_plan == "Professional":
-                    st.button(
-                        "Current plan",
-                        use_container_width=True,
-                        disabled=True,
-                        key=f"professional_current_{section_id}",
-                    )
-                elif not razorpay_is_configured():
-                    st.button(
-                        "Upgrade",
-                        use_container_width=True,
-                        disabled=True,
-                        key=f"professional_disabled_{section_id}",
-                    )
-                    st.caption(
-                        "Razorpay checkout is not configured yet."
-                    )
-                else:
-                    # Keep the payment option visible in every environment.
-                    # Secure activation still requires an authenticated Supabase user.
-                    if st.button(
-                        "💳 Upgrade to Professional",
-                        type="primary",
-                        use_container_width=True,
-                        key=f"razorpay_upgrade_{section_id}",
-                    ):
-                        ready, message = razorpay_activation_ready()
-                        if not ready:
-                            st.error(f"❌ {message}")
-                        else:
-                            try:
-                                with st.spinner("Creating secure Razorpay subscription..."):
-                                    subscription = create_razorpay_subscription(
-                                        customer_email=st.session_state.get("user_email", ""),
-                                        customer_name=st.session_state.get("user_name", ""),
-                                    )
+            st.markdown(f"#### {name}")
+            st.markdown(f"### {price}")
 
-                                # Save tracking first. Checkout URL is exposed only after
-                                # Supabase tracking succeeds, eliminating the previous
-                                # "checkout created but subscription tracking could not be saved" state.
-                                update_user_plan(
-                                    "Free",
-                                    subscription["id"],
-                                    subscription.get("status", "created"),
-                                )
-                                st.session_state.razorpay_checkout_url = subscription["short_url"]
-                                st.session_state.razorpay_subscription_id = subscription["id"]
-                                st.success("Subscription created. Continue to secure Razorpay checkout.")
-                            except Exception as exc:
-                                st.session_state.razorpay_checkout_url = ""
-                                st.error(f"❌ {exc}")
+            for feature in features:
+                st.write(f"✓ {feature}")
 
-                if st.session_state.get("razorpay_checkout_url"):
-                    st.link_button(
-                        "💳 Continue to Razorpay Checkout",
-                        st.session_state.razorpay_checkout_url,
-                        use_container_width=True,
-                    )
-                    subscription_id = st.session_state.get(
-                        "razorpay_subscription_id", ""
-                    )
-                    if subscription_id:
-                        st.caption(f"Subscription ID: {subscription_id}")
-                        if st.button("🔄 Verify Professional Payment", use_container_width=True, key=f"verify_razorpay_{section_id}"):
-                            try:
-                                with st.spinner("Verifying your Razorpay subscription..."):
-                                    active, status = verify_professional_subscription()
-                                if active:
-                                    st.success("✅ Payment verified. Professional plan activated.")
-                                    st.session_state.razorpay_checkout_url = ""
-                                    st.rerun()
-                                else:
-                                    st.info(f"Payment is not active yet. Razorpay status: {status or 'unknown'}. Complete checkout and try again.")
-                            except Exception as exc:
-                                st.error(f"❌ Verification failed: {exc}")
+            checkout_key = (
+                f"{name.upper()}_CHECKOUT_URL"
+            )
+
+            checkout_url = secret(checkout_key)
+
+            if checkout_url:
+                st.link_button(
+                    button,
+                    checkout_url,
+                    use_container_width=True,
+                )
             else:
-                checkout_key = f"{name.upper()}_CHECKOUT_URL"
-                checkout_url = secret(checkout_key)
-                if checkout_url:
-                    st.link_button(
-                        button,
-                        checkout_url,
-                        use_container_width=True,
-                    )
-                else:
-                    st.button(
-                        button,
-                        use_container_width=True,
-                        disabled=True,
-                        key=f"disabled_{section_id}_{name}",
-                    )
+                # IMPORTANT:
+                # section_id prevents duplicate Streamlit keys
+                # when show_pricing() is rendered more than once.
+                st.button(
+                    button,
+                    use_container_width=True,
+                    disabled=True,
+                    key=f"disabled_{section_id}_{name}",
+                )
+
+            st.markdown(
+                "</div>",
+                unsafe_allow_html=True,
+            )
 
 
 # ============================================================
@@ -1591,18 +970,25 @@ if not st.session_state.authenticated:
 
     show_brand_header()
 
-    # NOTE: fixed — this block previously opened with a blank line
-    # followed by 4-space-indented HTML. That leading indentation made
-    # Streamlit's markdown renderer treat the whole block as a
-    # preformatted code block (the black box with raw HTML tags visible
-    # in the screenshot) instead of rendering it as styled HTML. Writing
-    # the HTML flush-left inside the string fixes it.
     st.markdown(
-        """<div class="hero">
-<div class="main-title">AI-powered operational intelligence</div>
-<div class="brand-subtitle">Turn operational data into management decisions.</div>
-<p>Create your account, upload Excel/CSV operational data, identify KPI risks, investigate team and employee performance, ask the AI Operations Copilot questions, and generate management-ready reports.</p>
-</div>""",
+        """
+        <div class="hero">
+            <div class="main-title">
+                AI-powered operational intelligence
+            </div>
+
+            <div class="brand-subtitle">
+                Turn operational data into management decisions.
+            </div>
+
+            <p>
+                Create your account, upload Excel/CSV operational data,
+                identify KPI risks, investigate team and employee
+                performance, ask the AI Operations Copilot questions,
+                and generate management-ready reports.
+            </p>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
@@ -1881,14 +1267,22 @@ with st.sidebar:
     else:
 
         st.markdown(
-            """<div class="gi-brand">Generative <span>Insight</span></div>""",
+            """
+            <div class="gi-brand">
+                Generative <span>Insight</span>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
     st.caption("AI Operations Copilot")
 
     st.markdown(
-        f"""<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">🌐 Visit Generative Insight</a>""",
+        f"""
+        <a href="{WEBSITE_URL}" target="_blank">
+            🌐 Visit Generative Insight
+        </a>
+        """,
         unsafe_allow_html=True,
     )
 
@@ -1897,23 +1291,6 @@ with st.sidebar:
     st.success(
         f"Plan: **{st.session_state.user_plan}**"
     )
-
-    if st.session_state.user_plan == "Free":
-        remaining = trial_days_remaining()
-        if remaining is not None:
-            if remaining <= 0:
-                st.error(
-                    f"Your {FREE_TRIAL_DAYS}-day Free trial has ended. "
-                    "Upgrade to keep using AI Operations Manager."
-                )
-            elif remaining <= 3:
-                st.warning(
-                    f"⏳ {remaining} day(s) left in your Free trial."
-                )
-            else:
-                st.caption(
-                    f"{remaining} days left in your Free trial."
-                )
 
     if st.session_state.get("user_name"):
         st.caption(
@@ -1992,36 +1369,6 @@ if st.session_state.get("show_plans"):
 
 
 # ============================================================
-# FREE TRIAL GATE
-# 15 days of Free access, then the dashboard is locked until
-# the user upgrades to a paid plan.
-# ============================================================
-
-if st.session_state.user_plan == "Free":
-
-    _trial_remaining = trial_days_remaining()
-
-    if _trial_remaining is not None and _trial_remaining <= 0:
-
-        show_brand_header(compact=True)
-
-        st.markdown(
-            '<div class="main-title">Your Free trial has ended</div>',
-            unsafe_allow_html=True,
-        )
-
-        st.warning(
-            f"Your {FREE_TRIAL_DAYS}-day Free trial ended "
-            f"{abs(_trial_remaining)} day(s) ago. Upgrade to Professional "
-            "or Business to keep analyzing operational data."
-        )
-
-        show_pricing("trial_expired")
-
-        st.stop()
-
-
-# ============================================================
 # HEADER
 # ============================================================
 
@@ -2033,7 +1380,10 @@ st.markdown(
 )
 
 st.markdown(
-    """<div class="brand-subtitle" style="color:#52637A !important; -webkit-text-fill-color:#52637A !important;">Executive operational intelligence → risk detection → AI decisions → action plans → management reports</div>""",
+    '<div class="brand-subtitle">'
+    "Executive operational intelligence → risk detection → "
+    "AI decisions → action plans → management reports"
+    "</div>",
     unsafe_allow_html=True,
 )
 
@@ -2101,20 +1451,6 @@ if not uploaded:
         "Date, Employee_ID, Employee_Name, Team, Target, "
         "Production, AHT_Actual, AHT_Target, Quality_%, "
         "SLA_%, Attendance, Error_Count, Error_Category"
-    )
-
-    st.download_button(
-        "⬇️ Download Data Template (.xlsx)",
-        data=build_data_template_bytes(),
-        file_name="AI_Operations_Manager_Data_Template.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True,
-        key="download_data_template",
-    )
-
-    st.caption(
-        "Includes example rows and a column-by-column guide — "
-        "delete the sample rows and paste in your own data."
     )
 
     st.markdown("### What you get")
@@ -2401,10 +1737,14 @@ if (
 # ============================================================
 
 st.markdown(
-    f"""<div class="hero">
-<h3>Executive Health: {risk_level}</h3>
-<p class="small-muted">{company_name or "Your organization"} · {report_name}</p>
-</div>""",
+    f"""
+    <div class="hero">
+        <h3>Executive Health: {risk_level}</h3>
+        <p class="small-muted">
+        {company_name or "Your organization"} · {report_name}
+        </p>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
@@ -3374,7 +2714,11 @@ with tabs[6]:
 
     show_pricing("billing")
 
-    st.caption("Professional subscriptions are processed through Razorpay. Complete checkout and verify payment to activate access.")
+    st.caption(
+        "To activate real paid checkout, configure the "
+        "plan checkout URLs in Streamlit Secrets using "
+        "your payment provider."
+    )
 
 
 # ============================================================
@@ -3399,14 +2743,19 @@ with st.expander(
 st.divider()
 
 st.markdown(
-    f"""<div class="gi-footer">
-<strong>Generative Insight</strong> · AI Operations Copilot v{APP_VERSION}
-<br>
-Insights today. Intelligence tomorrow.
-<br>
-<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">generativeinsight.in</a>
-&nbsp;·&nbsp;
-© {datetime.now().year}
-</div>""",
+    f"""
+    <div class="gi-footer">
+        <strong>Generative Insight</strong>
+        · AI Operations Copilot v{APP_VERSION}
+        <br>
+        Insights today. Intelligence tomorrow.
+        <br>
+        <a href="{WEBSITE_URL}" target="_blank">
+            generativeinsight.in
+        </a>
+        &nbsp;·&nbsp;
+        © {datetime.now().year}
+    </div>
+    """,
     unsafe_allow_html=True,
 )
