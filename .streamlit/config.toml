@@ -1,1 +1,2 @@
-[client] [Enter] toolbarMode = "minimal" [Enter] showErrorDetails = false
+[client] toolbarMode = "minimal" 
+showErrorDetails = false
