@@ -1,7 +1,7 @@
 import io
 import json
 import smtplib
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from email.message import EmailMessage
 
@@ -70,7 +70,12 @@ DEFAULT_STATE = {
     "show_plans": False,
     "razorpay_checkout_url": "",
     "razorpay_subscription_id": "",
+    "account_created_at": "",
 }
+
+# Free plan trial length. After this many days on the Free plan,
+# the dashboard is locked and the user is shown an upgrade-only screen.
+FREE_TRIAL_DAYS = 15
 
 for key, value in DEFAULT_STATE.items():
     if key not in st.session_state:
@@ -644,6 +649,11 @@ def set_authenticated_user(response):
     st.session_state.user_plan = metadata.get("plan", "Free") or "Free"
     st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
 
+    # Supabase sets this automatically when the account is created — used
+    # to work out how many days are left in the Free trial.
+    created_at = getattr(user, "created_at", None)
+    st.session_state.account_created_at = str(created_at) if created_at else ""
+
 
 def clear_authentication():
     sign_out_user()
@@ -657,8 +667,23 @@ def clear_authentication():
     st.session_state.show_plans = False
     st.session_state.razorpay_checkout_url = ""
     st.session_state.razorpay_subscription_id = ""
+    st.session_state.account_created_at = ""
 
     clear_analysis()
+
+
+def trial_days_remaining():
+    """Days left in the Free trial, or None if unknown (e.g. not signed in)."""
+    raw = st.session_state.get("account_created_at", "")
+    if not raw:
+        return None
+    try:
+        created = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    now = datetime.now(created.tzinfo) if created.tzinfo else datetime.now()
+    elapsed_days = (now - created).days
+    return FREE_TRIAL_DAYS - elapsed_days
 
 
 def get_plan_config(plan):
@@ -744,6 +769,172 @@ def parse_ai_answer(data):
             return text
 
     return answer
+
+
+def build_data_template_bytes():
+    """Build the operational-data upload template as an in-memory .xlsx file."""
+
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+
+    NAVY = "071A3D"
+    BLUE = "0757B8"
+    LIGHT_BLUE = "EAF2FD"
+    SAMPLE_FILL = "FFF6E5"
+    GREY = "667085"
+
+    ws = wb.active
+    ws.title = "Operational_Data"
+
+    headers = [
+        ("Date", "Date", 14),
+        ("Employee_ID", "Text", 14),
+        ("Employee_Name", "Text", 18),
+        ("Team", "Text", 14),
+        ("Target", "Number", 10),
+        ("Production", "Number", 12),
+        ("AHT_Actual", "Number", 12),
+        ("AHT_Target", "Number", 12),
+        ("Quality_%", "Number (0-100)", 12),
+        ("SLA_%", "Number (0-100)", 10),
+        ("Attendance", "Number (0-100)", 12),
+        ("Error_Count", "Number", 12),
+        ("Error_Category", "Text", 18),
+    ]
+
+    header_font = Font(name="Arial", bold=True, color="FFFFFF", size=10)
+    header_fill = PatternFill("solid", fgColor=NAVY)
+    thin = Side(style="thin", color="D9DEE7")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    for col_idx, (name, _, width) in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col_idx, value=name)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = border
+        ws.column_dimensions[get_column_letter(col_idx)].width = width
+
+    hint_font = Font(name="Arial", italic=True, color=GREY, size=9)
+    hint_fill = PatternFill("solid", fgColor=LIGHT_BLUE)
+    for col_idx, (name, hint, _) in enumerate(headers, start=1):
+        cell = ws.cell(row=2, column=col_idx, value=hint)
+        cell.font = hint_font
+        cell.fill = hint_fill
+        cell.alignment = Alignment(horizontal="center")
+        cell.border = border
+
+    base_date = datetime(2026, 8, 3).date()
+    sample_rows = [
+        [base_date, "EMP-1001", "Aditi Sharma", "Collections", 50, 47, 6.4, 6.0, 96.5, 98.1, 97, 1, "Documentation"],
+        [base_date, "EMP-1002", "Rahul Verma", "Collections", 50, 41, 7.8, 6.0, 91.2, 93.4, 92, 4, "Process error"],
+        [base_date, "EMP-1003", "Meera Iyer", "Customer Care", 45, 46, 5.9, 6.0, 98.0, 99.0, 100, 0, ""],
+        [base_date + timedelta(days=1), "EMP-1001", "Aditi Sharma", "Collections", 50, 44, 6.7, 6.0, 95.0, 97.2, 95, 2, "Documentation"],
+        [base_date + timedelta(days=1), "EMP-1004", "Karan Malhotra", "Customer Care", 45, 38, 8.2, 6.0, 88.5, 90.0, 89, 6, "Escalation delay"],
+    ]
+
+    sample_font = Font(name="Arial", size=10)
+    for r_offset, row_data in enumerate(sample_rows, start=3):
+        for col_idx, value in enumerate(row_data, start=1):
+            cell = ws.cell(row=r_offset, column=col_idx, value=value)
+            cell.font = sample_font
+            cell.fill = PatternFill("solid", fgColor=SAMPLE_FILL)
+            cell.border = border
+            if headers[col_idx - 1][0] == "Date":
+                cell.number_format = "DD-MMM-YYYY"
+
+    ws.freeze_panes = "A3"
+
+    note_row = len(sample_rows) + 4
+    note = ws.cell(
+        row=note_row,
+        column=1,
+        value=(
+            "↑ Rows 3–7 are SAMPLE data showing the expected format. "
+            "Delete them and paste your own operational data starting at row 3."
+        ),
+    )
+    note.font = Font(name="Arial", italic=True, size=9, color=GREY)
+    ws.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=len(headers))
+
+    ins = wb.create_sheet("Instructions")
+    ins.column_dimensions["A"].width = 20
+    ins.column_dimensions["B"].width = 70
+    ins.column_dimensions["C"].width = 14
+
+    title = ins.cell(row=1, column=1, value="AI Operations Manager — Data Upload Template")
+    title.font = Font(name="Arial", bold=True, size=14, color=NAVY)
+    ins.merge_cells("A1:C1")
+
+    sub = ins.cell(
+        row=2,
+        column=1,
+        value="Fill in the 'Operational_Data' sheet with your own rows, then upload the file (.xlsx or .csv).",
+    )
+    sub.font = Font(name="Arial", italic=True, size=10, color=GREY)
+    ins.merge_cells("A2:C2")
+
+    col_head_font = Font(name="Arial", bold=True, color="FFFFFF", size=10)
+    col_head_fill = PatternFill("solid", fgColor=BLUE)
+    for i, h in enumerate(["Column", "What to enter", "Required?"], start=1):
+        c = ins.cell(row=4, column=i, value=h)
+        c.font = col_head_font
+        c.fill = col_head_fill
+        c.alignment = Alignment(horizontal="left", vertical="center")
+
+    field_docs = [
+        ("Date", "The date the record applies to (one row per employee per day).", "Optional"),
+        ("Employee_ID", "A unique ID for the employee (e.g. EMP-1001). Used to track the same person across days.", "Required"),
+        ("Employee_Name", "The employee's full name, as it should appear in reports.", "Required"),
+        ("Team", "The team or department the employee belongs to (e.g. Collections, Customer Care).", "Required"),
+        ("Target", "The expected production/output target for that day (a number).", "Required"),
+        ("Production", "The actual production/output achieved that day (a number).", "Required"),
+        ("AHT_Actual", "Actual Average Handling Time for that day (in minutes, or your standard unit).", "Required"),
+        ("AHT_Target", "The target Average Handling Time to compare against.", "Optional"),
+        ("Quality_%", "Quality score for the day, as a percentage (0–100, not a decimal fraction).", "Required"),
+        ("SLA_%", "SLA adherence for the day, as a percentage (0–100).", "Required"),
+        ("Attendance", "Attendance percentage or indicator for that day.", "Optional"),
+        ("Error_Count", "Number of errors recorded that day.", "Optional"),
+        ("Error_Category", "A short label for the main error type, if any (e.g. Documentation, Process error).", "Optional"),
+    ]
+
+    row_font = Font(name="Arial", size=10)
+    req_font = Font(name="Arial", size=10, bold=True, color="B42318")
+    opt_font = Font(name="Arial", size=10, color=GREY)
+
+    r = 5
+    for name, desc, required in field_docs:
+        ins.cell(row=r, column=1, value=name).font = Font(name="Arial", bold=True, size=10, color=NAVY)
+        ins.cell(row=r, column=2, value=desc).font = row_font
+        ins.cell(row=r, column=2).alignment = Alignment(wrap_text=True, vertical="top")
+        req_cell = ins.cell(row=r, column=3, value=required)
+        req_cell.font = req_font if required == "Required" else opt_font
+        ins.row_dimensions[r].height = 30
+        r += 1
+
+    r += 1
+    notes_title = ins.cell(row=r, column=1, value="Notes")
+    notes_title.font = Font(name="Arial", bold=True, size=12, color=NAVY)
+    r += 1
+    notes = [
+        "• Keep the header row (row 1) exactly as provided — column names must match for the upload to work.",
+        "• One row = one employee's record for one day. Add as many rows as you need.",
+        "• Quality_%, SLA_%, and Attendance should be plain numbers like 96.5, not '96.5%' as text.",
+        "• Keep the sheet named 'Operational_Data' if using an Excel file with multiple sheets.",
+        "• Free plan supports files up to 5 MB; Professional up to 25 MB; Business up to 100 MB.",
+    ]
+    for note_line in notes:
+        ins.cell(row=r, column=1, value=note_line).font = Font(name="Arial", size=10)
+        ins.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
+        r += 1
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
 
 
 def dataframe_to_text(df):
@@ -1707,6 +1898,23 @@ with st.sidebar:
         f"Plan: **{st.session_state.user_plan}**"
     )
 
+    if st.session_state.user_plan == "Free":
+        remaining = trial_days_remaining()
+        if remaining is not None:
+            if remaining <= 0:
+                st.error(
+                    f"Your {FREE_TRIAL_DAYS}-day Free trial has ended. "
+                    "Upgrade to keep using AI Operations Manager."
+                )
+            elif remaining <= 3:
+                st.warning(
+                    f"⏳ {remaining} day(s) left in your Free trial."
+                )
+            else:
+                st.caption(
+                    f"{remaining} days left in your Free trial."
+                )
+
     if st.session_state.get("user_name"):
         st.caption(
             st.session_state.user_name
@@ -1781,6 +1989,36 @@ if st.session_state.get("show_plans"):
     show_pricing("sidebar")
 
     st.divider()
+
+
+# ============================================================
+# FREE TRIAL GATE
+# 15 days of Free access, then the dashboard is locked until
+# the user upgrades to a paid plan.
+# ============================================================
+
+if st.session_state.user_plan == "Free":
+
+    _trial_remaining = trial_days_remaining()
+
+    if _trial_remaining is not None and _trial_remaining <= 0:
+
+        show_brand_header(compact=True)
+
+        st.markdown(
+            '<div class="main-title">Your Free trial has ended</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.warning(
+            f"Your {FREE_TRIAL_DAYS}-day Free trial ended "
+            f"{abs(_trial_remaining)} day(s) ago. Upgrade to Professional "
+            "or Business to keep analyzing operational data."
+        )
+
+        show_pricing("trial_expired")
+
+        st.stop()
 
 
 # ============================================================
@@ -1863,6 +2101,20 @@ if not uploaded:
         "Date, Employee_ID, Employee_Name, Team, Target, "
         "Production, AHT_Actual, AHT_Target, Quality_%, "
         "SLA_%, Attendance, Error_Count, Error_Category"
+    )
+
+    st.download_button(
+        "⬇️ Download Data Template (.xlsx)",
+        data=build_data_template_bytes(),
+        file_name="AI_Operations_Manager_Data_Template.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True,
+        key="download_data_template",
+    )
+
+    st.caption(
+        "Includes example rows and a column-by-column guide — "
+        "delete the sample rows and paste in your own data."
     )
 
     st.markdown("### What you get")
