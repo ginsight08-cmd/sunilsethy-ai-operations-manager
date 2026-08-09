@@ -450,34 +450,17 @@ def show_brand_header(compact=False):
         )
     else:
         st.markdown(
-            """
-            <div class="gi-brand">
-                Generative <span>Insight</span>
-            </div>
-            <div class="gi-tagline">
-                Insights today. Intelligence tomorrow.
-            </div>
-            """,
+            """<div class="gi-brand">Generative <span>Insight</span></div>
+<div class="gi-tagline">Insights today. Intelligence tomorrow.</div>""",
             unsafe_allow_html=True,
         )
 
     st.markdown(
-        f"""
-        <div style="
-            margin-top:-8px;
-            margin-bottom:18px;
-            color:#667085;
-            font-size:0.85rem;
-        ">
-            AI / ML &nbsp; | &nbsp;
-            Annotation &nbsp; | &nbsp;
-            Web & App Development
-            &nbsp;&nbsp;·&nbsp;&nbsp;
-            <a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">
-                Visit Website
-            </a>
-        </div>
-        """,
+        f"""<div style="margin-top:-8px; margin-bottom:18px; color:#667085; font-size:0.85rem;">
+AI / ML &nbsp; | &nbsp; Annotation &nbsp; | &nbsp; Web & App Development
+&nbsp;&nbsp;·&nbsp;&nbsp;
+<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">Visit Website</a>
+</div>""",
         unsafe_allow_html=True,
     )
 
@@ -1417,25 +1400,18 @@ if not st.session_state.authenticated:
 
     show_brand_header()
 
+    # NOTE: fixed — this block previously opened with a blank line
+    # followed by 4-space-indented HTML. That leading indentation made
+    # Streamlit's markdown renderer treat the whole block as a
+    # preformatted code block (the black box with raw HTML tags visible
+    # in the screenshot) instead of rendering it as styled HTML. Writing
+    # the HTML flush-left inside the string fixes it.
     st.markdown(
-        """
-        <div class="hero">
-            <div class="main-title">
-                AI-powered operational intelligence
-            </div>
-
-            <div class="brand-subtitle">
-                Turn operational data into management decisions.
-            </div>
-
-            <p>
-                Create your account, upload Excel/CSV operational data,
-                identify KPI risks, investigate team and employee
-                performance, ask the AI Operations Copilot questions,
-                and generate management-ready reports.
-            </p>
-        </div>
-        """,
+        """<div class="hero">
+<div class="main-title">AI-powered operational intelligence</div>
+<div class="brand-subtitle">Turn operational data into management decisions.</div>
+<p>Create your account, upload Excel/CSV operational data, identify KPI risks, investigate team and employee performance, ask the AI Operations Copilot questions, and generate management-ready reports.</p>
+</div>""",
         unsafe_allow_html=True,
     )
 
@@ -1714,22 +1690,14 @@ with st.sidebar:
     else:
 
         st.markdown(
-            """
-            <div class="gi-brand">
-                Generative <span>Insight</span>
-            </div>
-            """,
+            """<div class="gi-brand">Generative <span>Insight</span></div>""",
             unsafe_allow_html=True,
         )
 
     st.caption("AI Operations Copilot")
 
     st.markdown(
-        f"""
-        <a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">
-            🌐 Visit Generative Insight
-        </a>
-        """,
+        f"""<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">🌐 Visit Generative Insight</a>""",
         unsafe_allow_html=True,
     )
 
@@ -1827,12 +1795,7 @@ st.markdown(
 )
 
 st.markdown(
-    """
-    <div class="brand-subtitle" style="color:#52637A !important; -webkit-text-fill-color:#52637A !important;">
-        Executive operational intelligence → risk detection →
-        AI decisions → action plans → management reports
-    </div>
-    """,
+    """<div class="brand-subtitle" style="color:#52637A !important; -webkit-text-fill-color:#52637A !important;">Executive operational intelligence → risk detection → AI decisions → action plans → management reports</div>""",
     unsafe_allow_html=True,
 )
 
@@ -2186,14 +2149,10 @@ if (
 # ============================================================
 
 st.markdown(
-    f"""
-    <div class="hero">
-        <h3>Executive Health: {risk_level}</h3>
-        <p class="small-muted">
-        {company_name or "Your organization"} · {report_name}
-        </p>
-    </div>
-    """,
+    f"""<div class="hero">
+<h3>Executive Health: {risk_level}</h3>
+<p class="small-muted">{company_name or "Your organization"} · {report_name}</p>
+</div>""",
     unsafe_allow_html=True,
 )
 
@@ -3188,19 +3147,14 @@ with st.expander(
 st.divider()
 
 st.markdown(
-    f"""
-    <div class="gi-footer">
-        <strong>Generative Insight</strong>
-        · AI Operations Copilot v{APP_VERSION}
-        <br>
-        Insights today. Intelligence tomorrow.
-        <br>
-        <a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">
-            generativeinsight.in
-        </a>
-        &nbsp;·&nbsp;
-        © {datetime.now().year}
-    </div>
-    """,
+    f"""<div class="gi-footer">
+<strong>Generative Insight</strong> · AI Operations Copilot v{APP_VERSION}
+<br>
+Insights today. Intelligence tomorrow.
+<br>
+<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">generativeinsight.in</a>
+&nbsp;·&nbsp;
+© {datetime.now().year}
+</div>""",
     unsafe_allow_html=True,
 )
