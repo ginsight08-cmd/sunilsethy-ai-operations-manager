@@ -1350,6 +1350,9 @@ def razorpay_debug_shape():
     key_id = secret("RAZORPAY_KEY_ID")
     key_secret = secret("RAZORPAY_KEY_SECRET")
     plan_id = secret("RAZORPAY_PROFESSIONAL_PLAN_ID")
+    supabase_url = secret("SUPABASE_URL")
+    supabase_anon_key = secret("SUPABASE_ANON_KEY")
+    supabase_service_role_key = secret("SUPABASE_SERVICE_ROLE_KEY")
 
     def shape(value, prefix_len=10):
         if not value:
@@ -1366,6 +1369,16 @@ def razorpay_debug_shape():
         "RAZORPAY_KEY_ID": shape(key_id),
         "RAZORPAY_KEY_SECRET": shape(key_secret, prefix_len=4),
         "RAZORPAY_PROFESSIONAL_PLAN_ID": shape(plan_id),
+        "SUPABASE_URL": shape(supabase_url, prefix_len=24),
+        "SUPABASE_ANON_KEY": shape(supabase_anon_key, prefix_len=8),
+        "SUPABASE_SERVICE_ROLE_KEY": shape(supabase_service_role_key, prefix_len=8),
+        "note": (
+            "A genuine Supabase service_role JWT starts with 'eyJhbGci' "
+            "(base64 for the JWT header) and is much longer (150-250+ chars) "
+            "than the RAZORPAY values above. If SUPABASE_SERVICE_ROLE_KEY's "
+            "prefix here doesn't start with 'eyJhbGci', or its length looks "
+            "closer to SUPABASE_ANON_KEY's length, the wrong key was pasted."
+        ),
     }
 
 
@@ -1564,27 +1577,38 @@ def show_pricing(section_id="default"):
                         if not ready:
                             st.error(f"❌ {message}")
                         else:
+                            subscription = None
                             try:
                                 with st.spinner("Creating secure Razorpay subscription..."):
                                     subscription = create_razorpay_subscription(
                                         customer_email=st.session_state.get("user_email", ""),
                                         customer_name=st.session_state.get("user_name", ""),
                                     )
-
-                                # Save tracking first. Checkout URL is exposed only after
-                                # Supabase tracking succeeds, eliminating the previous
-                                # "checkout created but subscription tracking could not be saved" state.
-                                update_user_plan(
-                                    "Free",
-                                    subscription["id"],
-                                    subscription.get("status", "created"),
-                                )
-                                st.session_state.razorpay_checkout_url = subscription["short_url"]
-                                st.session_state.razorpay_subscription_id = subscription["id"]
-                                st.success("Subscription created. Continue to secure Razorpay checkout.")
                             except Exception as exc:
                                 st.session_state.razorpay_checkout_url = ""
-                                st.error(f"❌ {exc}")
+                                st.error(f"❌ Razorpay could not create the subscription: {exc}")
+
+                            if subscription is not None:
+                                try:
+                                    # Save tracking first. Checkout URL is exposed only after
+                                    # Supabase tracking succeeds, eliminating the previous
+                                    # "checkout created but subscription tracking could not be saved" state.
+                                    update_user_plan(
+                                        "Free",
+                                        subscription["id"],
+                                        subscription.get("status", "created"),
+                                    )
+                                    st.session_state.razorpay_checkout_url = subscription["short_url"]
+                                    st.session_state.razorpay_subscription_id = subscription["id"]
+                                    st.success("Subscription created. Continue to secure Razorpay checkout.")
+                                except Exception as exc:
+                                    st.session_state.razorpay_checkout_url = ""
+                                    st.error(
+                                        f"❌ Razorpay subscription {subscription['id']} was created, "
+                                        f"but saving it to your account (Supabase) failed: {exc}\n\n"
+                                        "This usually means SUPABASE_SERVICE_ROLE_KEY is missing, wrong, "
+                                        "or swapped with the anon key in Streamlit Secrets."
+                                    )
 
                 if st.session_state.get("razorpay_checkout_url"):
                     st.link_button(
