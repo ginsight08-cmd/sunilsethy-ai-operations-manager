@@ -2032,6 +2032,11 @@ if st.session_state.get("show_plans"):
 
     show_pricing("sidebar")
 
+    # TEMPORARY DEBUG — remove this expander once the Bearer token
+    # issue is resolved. Shows secret shape only, never real values.
+    with st.expander("🔧 Debug: Razorpay secrets (temporary)", expanded=False):
+        st.json(razorpay_debug_shape())
+
     st.divider()
 
 
