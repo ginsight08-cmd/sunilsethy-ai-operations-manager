@@ -2589,6 +2589,16 @@ plan_config = get_plan_config(
     st.session_state.user_plan
 )
 
+# BPO KPI target defaults. Only overridden by the sidebar number
+# inputs below when the BPO industry flow is active — defined here
+# up front so they always exist, even when Manufacturing is selected
+# (the Manufacturing flow doesn't use them, but keeping them defined
+# avoids a NameError if code below ever references them).
+productivity_target = 90
+quality_target = 95
+sla_target = 97
+aht_target = 50
+
 with st.sidebar:
 
     if LOGO_PATH.exists():
@@ -2810,6 +2820,34 @@ if st.session_state.user_plan == "Free" and not free_billing_is_active():
             ):
                 st.session_state.show_plans = True
                 st.rerun()
+
+
+# ============================================================
+# INDUSTRY ROUTING
+# The sidebar lets the user switch between BPO and Manufacturing.
+# Manufacturing has its own dedicated flow (render_manufacturing_flow)
+# with a different upload format, engine, and tab set — route to it
+# here instead of falling through to the BPO dashboard below, which
+# expects BPO-shaped operational data and BPO-only KPI targets.
+# ============================================================
+
+if st.session_state.industry == "Manufacturing":
+
+    show_brand_header(compact=True)
+
+    st.markdown(
+        '<div class="main-title">AI Operations Manager — Manufacturing</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """<div class="brand-subtitle" style="color:#52637A !important; -webkit-text-fill-color:#52637A !important;">Vendor price comparison → recommended vendor → savings → procurement risk</div>""",
+        unsafe_allow_html=True,
+    )
+
+    render_manufacturing_flow(plan_config)
+
+    st.stop()
 
 
 # ============================================================
