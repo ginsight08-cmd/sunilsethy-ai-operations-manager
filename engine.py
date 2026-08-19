@@ -1,10 +1,6 @@
-
 import json
-
 import pandas as pd
 import numpy as np
-import json
-import pandas as pd
 
 
 # ============================================================
@@ -13,8 +9,6 @@ import pandas as pd
 # ============================================================
 
 REQUIRED = [
-    "Employee_ID","Team","Target","Production","AHT_Actual",
-    "Quality_%","SLA_%","Attendance","Error_Count"
     "Employee_ID",
     "Team",
     "Target",
@@ -26,22 +20,13 @@ REQUIRED = [
     "Error_Count",
 ]
 
-def analyze_data(df, productivity_target=90, quality_target=95, sla_target=97, aht_target=50):
 
 # ============================================================
 # DATA CLEANING HELPERS
 # ============================================================
 
 def _clean_column_names(df):
-    """
-    Normalize uploaded dataframe column names.
-
-    Handles:
-    - Leading/trailing spaces
-    - BOM characters
-    - Accidental whitespace
-    - Excel/CSV column formatting issues
-    """
+    """Clean uploaded dataframe column names."""
 
     df = df.copy()
 
@@ -56,10 +41,7 @@ def _clean_column_names(df):
 
 
 def _normalize_numeric_columns(df):
-    """
-    Safely convert operational KPI columns to numeric values.
-    Invalid values are converted to NaN and then filled where appropriate.
-    """
+    """Safely convert KPI columns to numeric."""
 
     df = df.copy()
 
@@ -71,6 +53,7 @@ def _normalize_numeric_columns(df):
         "Quality_%",
         "SLA_%",
         "Error_Count",
+        "Productivity_%",
     ]
 
     for column in numeric_columns:
@@ -84,12 +67,9 @@ def _normalize_numeric_columns(df):
 
 
 def _normalize_text_columns(df):
-    """
-    Clean important text columns.
-    """
+    """Clean important text columns."""
 
     df = df.copy()
-    missing = [c for c in REQUIRED if c not in df.columns]
 
     text_columns = [
         "Employee_ID",
@@ -112,9 +92,7 @@ def _normalize_text_columns(df):
 
 
 def _safe_percentage(numerator, denominator):
-    """
-    Safely calculate percentage without division-by-zero errors.
-    """
+    """Safely calculate percentage."""
 
     numerator = pd.to_numeric(
         numerator,
@@ -138,6 +116,24 @@ def _safe_percentage(numerator, denominator):
     )
 
 
+def _absence_count(series):
+    """Count common absence values."""
+
+    return (
+        series.astype(str)
+        .str.strip()
+        .str.lower()
+        .isin(
+            [
+                "absent",
+                "absence",
+                "a",
+            ]
+        )
+        .sum()
+    )
+
+
 # ============================================================
 # MAIN ANALYSIS
 # ============================================================
@@ -153,11 +149,13 @@ def analyze_data(
     Analyze operational Excel/CSV data.
 
     Returns:
-        team
-        employees
-        findings
-        actions
-        overall
+        {
+            "team": DataFrame,
+            "employees": DataFrame,
+            "findings": DataFrame,
+            "actions": DataFrame,
+            "overall": dict
+        }
     """
 
     # --------------------------------------------------------
@@ -165,7 +163,9 @@ def analyze_data(
     # --------------------------------------------------------
 
     if df is None:
-        raise ValueError("No dataframe was provided.")
+        raise ValueError(
+            "No dataframe was provided."
+        )
 
     if not isinstance(df, pd.DataFrame):
         raise ValueError(
@@ -215,12 +215,10 @@ def analyze_data(
     ]
 
     if missing:
-        raise ValueError("Missing columns: " + ", ".join(missing))
         raise ValueError(
             "Missing columns: "
             + ", ".join(missing)
-            + ". "
-            "Please verify the uploaded file headers."
+            + ". Please verify the uploaded file headers."
         )
 
     # --------------------------------------------------------
@@ -237,6 +235,7 @@ def analyze_data(
     }
 
     for column, default in numeric_defaults.items():
+
         df[column] = (
             pd.to_numeric(
                 df[column],
@@ -274,57 +273,26 @@ def analyze_data(
     # PRODUCTIVITY
     # --------------------------------------------------------
 
+    calculated_productivity = _safe_percentage(
+        df["Production"],
+        df["Target"],
+    )
+
     if "Productivity_%" not in df.columns:
-        df["Productivity_%"] = (df["Production"] / df["Target"].replace(0, np.nan) * 100).fillna(0).round(1)
 
-    team = df.groupby("Team").agg(
-        Records=("Employee_ID","count"),
-        Target=("Target","sum"),
-        Production=("Production","sum"),
-        Avg_AHT=("AHT_Actual","mean"),
-        Avg_Quality=("Quality_%","mean"),
-        Avg_SLA=("SLA_%","mean"),
-        Absences=("Attendance", lambda s: (s.astype(str).str.lower()=="absent").sum()),
-        Errors=("Error_Count","sum")
-    ).reset_index()
-
-    team["Productivity_%"] = (team["Production"] / team["Target"].replace(0,np.nan) * 100).fillna(0).round(1)
-    team["Absence_%"] = (team["Absences"] / team["Records"] * 100).round(1)
-    team["AHT_Gap"] = (team["Avg_AHT"] - aht_target).round(1)
-    team["Avg_AHT"] = team["Avg_AHT"].round(1)
-    team["Avg_Quality"] = team["Avg_Quality"].round(1)
-    team["Avg_SLA"] = team["Avg_SLA"].round(1)
-
-    employees = df.groupby(["Employee_ID","Team"]).agg(
-        Avg_Productivity=("Productivity_%","mean"),
-        Avg_AHT=("AHT_Actual","mean"),
-        Avg_Quality=("Quality_%","mean"),
-        Avg_SLA=("SLA_%","mean"),
-        Absences=("Attendance", lambda s: (s.astype(str).str.lower()=="absent").sum()),
-        Errors=("Error_Count","sum")
-    ).reset_index()
-
-    employees["AHT_Gap"]=(employees["Avg_AHT"]-aht_target).round(1)
-
-        df["Productivity_%"] = _safe_percentage(
-            df["Production"],
-            df["Target"],
-        ).round(1)
+        df["Productivity_%"] = (
+            calculated_productivity
+            .fillna(0)
+            .round(1)
+        )
 
     else:
 
-        df["Productivity_%"] = pd.to_numeric(
-            df["Productivity_%"],
-            errors="coerce",
-        )
-
-        calculated_productivity = _safe_percentage(
-            df["Production"],
-            df["Target"],
-        )
-
         df["Productivity_%"] = (
-            df["Productivity_%"]
+            pd.to_numeric(
+                df["Productivity_%"],
+                errors="coerce",
+            )
             .fillna(calculated_productivity)
             .fillna(0)
             .round(1)
@@ -340,28 +308,38 @@ def analyze_data(
             dropna=False,
         )
         .agg(
-            Records=("Employee_ID", "count"),
-            Target=("Target", "sum"),
-            Production=("Production", "sum"),
-            Avg_AHT=("AHT_Actual", "mean"),
-            Avg_Quality=("Quality_%", "mean"),
-            Avg_SLA=("SLA_%", "mean"),
+            Records=(
+                "Employee_ID",
+                "count",
+            ),
+            Target=(
+                "Target",
+                "sum",
+            ),
+            Production=(
+                "Production",
+                "sum",
+            ),
+            Avg_AHT=(
+                "AHT_Actual",
+                "mean",
+            ),
+            Avg_Quality=(
+                "Quality_%",
+                "mean",
+            ),
+            Avg_SLA=(
+                "SLA_%",
+                "mean",
+            ),
             Absences=(
                 "Attendance",
-                lambda s: (
-                    s.astype(str)
-                    .str.strip()
-                    .str.lower()
-                    .isin(
-                        [
-                            "absent",
-                            "absence",
-                            "a",
-                        ]
-                    )
-                ).sum(),
+                _absence_count,
             ),
-            Errors=("Error_Count", "sum"),
+            Errors=(
+                "Error_Count",
+                "sum",
+            ),
         )
         .reset_index()
     )
@@ -370,10 +348,14 @@ def analyze_data(
     # TEAM KPI CALCULATIONS
     # --------------------------------------------------------
 
-    team["Productivity_%"] = _safe_percentage(
-        team["Production"],
-        team["Target"],
-    ).round(1)
+    team["Productivity_%"] = (
+        _safe_percentage(
+            team["Production"],
+            team["Target"],
+        )
+        .fillna(0)
+        .round(1)
+    )
 
     team["Absence_%"] = np.where(
         team["Records"] != 0,
@@ -383,12 +365,15 @@ def analyze_data(
             * 100
         ),
         0,
-    ).round(1)
+    )
 
-    team["AHT_Gap"] = (
-        team["Avg_AHT"]
-        - aht_target
-    ).round(1)
+    team["Absence_%"] = (
+        pd.Series(
+            team["Absence_%"],
+            index=team.index,
+        )
+        .round(1)
+    )
 
     team["Avg_AHT"] = (
         team["Avg_AHT"]
@@ -407,6 +392,11 @@ def analyze_data(
         .fillna(0)
         .round(1)
     )
+
+    team["AHT_Gap"] = (
+        team["Avg_AHT"]
+        - float(aht_target)
+    ).round(1)
 
     # ========================================================
     # EMPLOYEE ANALYSIS
@@ -439,18 +429,7 @@ def analyze_data(
             ),
             Absences=(
                 "Attendance",
-                lambda s: (
-                    s.astype(str)
-                    .str.strip()
-                    .str.lower()
-                    .isin(
-                        [
-                            "absent",
-                            "absence",
-                            "a",
-                        ]
-                    )
-                ).sum(),
+                _absence_count,
             ),
             Errors=(
                 "Error_Count",
@@ -490,7 +469,7 @@ def analyze_data(
 
     employees["AHT_Gap"] = (
         employees["Avg_AHT"]
-        - aht_target
+        - float(aht_target)
     ).round(1)
 
     # ========================================================
@@ -498,10 +477,6 @@ def analyze_data(
     # ========================================================
 
     employees["Risk_Score"] = (
-        (employees["Avg_Productivity"] < productivity_target).astype(int)
-        + (employees["Avg_Quality"] < quality_target).astype(int)
-        + (employees["Avg_SLA"] < sla_target).astype(int)
-        + (employees["AHT_Gap"] > 10).astype(int)
         (
             employees["Avg_Productivity"]
             < productivity_target
@@ -524,24 +499,6 @@ def analyze_data(
     )
 
     employees["Risk_Level"] = np.select(
-        [employees["Risk_Score"]>=3, employees["Risk_Score"]==2, employees["Risk_Score"]==1],
-        ["Critical","High","Watch"], default="Normal"
-    )
-
-    findings=[]
-    actions=[]
-    for _,r in team.iterrows():
-        evidence=[]
-        if r["Productivity_%"] < productivity_target:
-            evidence.append(f"Productivity {r['Productivity_%']:.1f}% < {productivity_target}%")
-        if r["Avg_Quality"] < quality_target:
-            evidence.append(f"Quality {r['Avg_Quality']:.1f}% < {quality_target}%")
-        if r["Avg_SLA"] < sla_target:
-            evidence.append(f"SLA {r['Avg_SLA']:.1f}% < {sla_target}%")
-        if r["AHT_Gap"] > 0:
-            evidence.append(f"AHT {r['AHT_Gap']:.1f} above target")
-        if r["Absence_%"] > 8:
-            evidence.append(f"Absence {r['Absence_%']:.1f}% > 8%")
         [
             employees["Risk_Score"] >= 3,
             employees["Risk_Score"] == 2,
@@ -568,6 +525,7 @@ def analyze_data(
 
         # Productivity
         if row["Productivity_%"] < productivity_target:
+
             evidence.append(
                 f"Productivity "
                 f"{row['Productivity_%']:.1f}% "
@@ -576,6 +534,7 @@ def analyze_data(
 
         # Quality
         if row["Avg_Quality"] < quality_target:
+
             evidence.append(
                 f"Quality "
                 f"{row['Avg_Quality']:.1f}% "
@@ -584,6 +543,7 @@ def analyze_data(
 
         # SLA
         if row["Avg_SLA"] < sla_target:
+
             evidence.append(
                 f"SLA "
                 f"{row['Avg_SLA']:.1f}% "
@@ -592,6 +552,7 @@ def analyze_data(
 
         # AHT
         if row["AHT_Gap"] > 0:
+
             evidence.append(
                 f"AHT "
                 f"{row['AHT_Gap']:.1f} "
@@ -600,6 +561,7 @@ def analyze_data(
 
         # Attendance
         if row["Absence_%"] > 8:
+
             evidence.append(
                 f"Absence "
                 f"{row['Absence_%']:.1f}% "
@@ -607,27 +569,10 @@ def analyze_data(
             )
 
         # ----------------------------------------------------
-        # FINDING
+        # CREATE FINDING
         # ----------------------------------------------------
 
         if evidence:
-            findings.append(["High", r["Team"], "; ".join(evidence),
-                             "Evidence indicates a performance gap; causal root cause requires validation."])
-            action = "Investigate workload/task mix and review targeted coaching opportunities."
-            if r["AHT_Gap"] > 10:
-                action = "Review high-AHT workflow and run process-efficiency coaching."
-            actions.append([r["Team"], "; ".join(evidence), action,
-                            "Operations Manager / Team Lead","High","Within 2 business days",
-                            "Improve KPI performance without reducing quality/SLA."])
-
-    findings=pd.DataFrame(findings, columns=["Severity","Team","Finding","Root_Cause_Position"])
-    actions=pd.DataFrame(actions, columns=["Team","Issue","Recommended_Action","Owner_Role","Priority","Due","Success_Metric"])
-
-    overall={
-        "productivity": df["Production"].sum()/df["Target"].sum()*100 if df["Target"].sum() else 0,
-        "quality": df["Quality_%"].mean(),
-        "sla": df["SLA_%"].mean(),
-        "aht": df["AHT_Actual"].mean()
 
             findings.append(
                 [
@@ -643,7 +588,7 @@ def analyze_data(
             )
 
             # ------------------------------------------------
-            # ACTION
+            # RECOMMENDED ACTION
             # ------------------------------------------------
 
             action = (
@@ -652,6 +597,7 @@ def analyze_data(
             )
 
             if row["AHT_Gap"] > 10:
+
                 action = (
                     "Review high-AHT workflow and run "
                     "process-efficiency coaching."
@@ -663,18 +609,21 @@ def analyze_data(
                 and row["Avg_Quality"]
                 >= quality_target
             ):
+
                 action = (
                     "Review productivity blockers, workload "
                     "distribution, and process efficiency."
                 )
 
             if row["Avg_Quality"] < quality_target:
+
                 action = (
                     "Conduct quality root-cause analysis "
                     "and targeted quality coaching."
                 )
 
             if row["Avg_SLA"] < sla_target:
+
                 action = (
                     "Review SLA misses, queue management, "
                     "work allocation, and turnaround time."
@@ -696,7 +645,7 @@ def analyze_data(
             )
 
     # ========================================================
-    # DATAFRAME OUTPUTS
+    # FINDINGS DATAFRAME
     # ========================================================
 
     findings = pd.DataFrame(
@@ -708,6 +657,10 @@ def analyze_data(
             "Root_Cause_Position",
         ],
     )
+
+    # ========================================================
+    # ACTIONS DATAFRAME
+    # ========================================================
 
     actions = pd.DataFrame(
         actions,
@@ -735,12 +688,15 @@ def analyze_data(
     )
 
     if total_target > 0:
+
         overall_productivity = (
             total_production
             / total_target
             * 100
         )
+
     else:
+
         overall_productivity = 0
 
     overall_quality = float(
@@ -773,10 +729,9 @@ def analyze_data(
             2,
         ),
     }
-    return {"team":team,"employees":employees,"findings":findings,"actions":actions,"overall":overall}
 
     # ========================================================
-    # RETURN
+    # FINAL RESULT
     # ========================================================
 
     return {
@@ -793,55 +748,60 @@ def analyze_data(
 # ============================================================
 
 def make_ai_prompt(result):
+    """
+    Convert analysis result into a safe AI Operations prompt.
+    """
 
     if not isinstance(result, dict):
+
         raise ValueError(
             "Invalid analysis result supplied to AI prompt."
         )
 
+    team_df = result.get(
+        "team",
+        pd.DataFrame(),
+    )
+
+    employees_df = result.get(
+        "employees",
+        pd.DataFrame(),
+    )
+
+    findings_df = result.get(
+        "findings",
+        pd.DataFrame(),
+    )
+
+    actions_df = result.get(
+        "actions",
+        pd.DataFrame(),
+    )
+
     payload = {
-        "team_performance": result["team"].to_dict(orient="records"),
-        "employee_risk": result["employees"].to_dict(orient="records"),
-        "findings": result["findings"].to_dict(orient="records"),
-        "actions": result["actions"].to_dict(orient="records")
         "team_performance": (
-            result.get(
-                "team",
-                pd.DataFrame(),
+            team_df.to_dict(
+                orient="records"
             )
-            .to_dict(orient="records")
         ),
-
         "employee_risk": (
-            result.get(
-                "employees",
-                pd.DataFrame(),
+            employees_df.to_dict(
+                orient="records"
             )
-            .to_dict(orient="records")
         ),
-
         "findings": (
-            result.get(
-                "findings",
-                pd.DataFrame(),
+            findings_df.to_dict(
+                orient="records"
             )
-            .to_dict(orient="records")
         ),
-
         "actions": (
-            result.get(
-                "actions",
-                pd.DataFrame(),
+            actions_df.to_dict(
+                orient="records"
             )
-            .to_dict(orient="records")
         ),
     }
-    return """You are an AI Operations Analyst.
-Use ONLY the supplied data. Never invent facts.
-Distinguish FACT from HYPOTHESIS.
 
-    return (
-        """
+    prompt = """
 You are an AI Operations Analyst.
 
 Use ONLY the supplied operational data.
@@ -850,28 +810,14 @@ Never invent facts.
 
 Clearly distinguish FACT from HYPOTHESIS.
 
-Do not make employment decisions or infer personal characteristics.
-Return valid JSON with:
-executive_summary, critical_findings, root_cause_analysis,
-affected_teams, affected_employees, recommended_actions,
-management_email, data_gaps.
+Do not infer personal characteristics.
 
-For each root cause include problem, evidence, hypothesis, confidence, validation_needed.
-For each action include issue, action, owner_role, priority, due_date, success_metric.
-Analyze:
-- Team performance
-- Employee operational risk
-- KPI gaps
-- Quality
-- SLA
-- Productivity
-- AHT
-- Attendance
-- Errors
-- Operational findings
-- Recommended actions
+Do not make hiring, firing, promotion, compensation,
+disciplinary, or other employment decisions.
 
-Return VALID JSON with exactly these top-level fields:
+Return VALID JSON only.
+
+The response must contain exactly these top-level fields:
 
 {
   "executive_summary": "",
@@ -894,7 +840,7 @@ For every root cause include:
   "validation_needed": ""
 }
 
-For every action include:
+For every recommended action include:
 
 {
   "issue": "",
@@ -905,25 +851,37 @@ For every action include:
   "success_metric": ""
 }
 
+Analyze:
+
+- Team performance
+- Employee operational risk
+- KPI gaps
+- Quality
+- SLA
+- Productivity
+- AHT
+- Attendance
+- Errors
+- Operational findings
+- Recommended actions
+
 Important rules:
 
 1. Do not invent operational facts.
 2. Do not infer personal characteristics.
-3. Do not make hiring, firing, promotion, compensation,
-   disciplinary, or other employment decisions.
+3. Do not make employment decisions.
 4. Treat root causes as hypotheses unless directly supported
-   by the supplied data.
+   by supplied data.
 5. Mention data gaps when evidence is insufficient.
 6. Use concise management language.
 7. Return valid JSON only.
 
 DATA:
-""" + json.dumps(payload, indent=2, default=str)
 
-"""
-        + json.dumps(
-            payload,
-            indent=2,
-            default=str,
-        )
+""" + json.dumps(
+        payload,
+        indent=2,
+        default=str,
     )
+
+    return prompt
