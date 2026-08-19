@@ -11,7 +11,6 @@ import streamlit as st
 from supabase import create_client, Client
 
 from engine import analyze_data, make_ai_prompt
-import procurement_engine
 
 
 # ============================================================
@@ -78,14 +77,6 @@ DEFAULT_STATE = {
     "free_billing_status": "",
     "free_subscription_id": "",
     "razorpay_checkout_url_free": "",
-    # Industry — switchable anytime from the sidebar. "BPO" uses the
-    # existing Productivity/Quality/SLA/AHT engine; "Manufacturing" uses
-    # the separate procurement/vendor-comparison engine below.
-    "industry": "BPO",
-    "manufacturing_file_name": "",
-    "manufacturing_result": None,
-    "manufacturing_report_bytes": None,
-    "manufacturing_report_generated_at": None,
 }
 
 # Free plan trial length. After this many days on the Free plan,
@@ -569,23 +560,6 @@ def free_billing_is_active():
     return st.session_state.get("free_billing_status", "") == "active"
 
 
-def update_user_industry(industry):
-    """Persist the selected industry (BPO / Manufacturing) to Supabase."""
-    if not st.session_state.get("user_id"):
-        st.session_state.industry = industry
-        return
-    try:
-        admin = get_supabase_admin_client()
-        current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
-        user = getattr(current, "user", None)
-        metadata = dict(getattr(user, "user_metadata", {}) or {}) if user else {}
-        metadata["industry"] = industry
-        admin.auth.admin.update_user_by_id(st.session_state.user_id, {"user_metadata": metadata})
-    except Exception:
-        pass  # Non-critical — session state still reflects the choice this session.
-    st.session_state.industry = industry
-
-
 def get_razorpay_subscription(subscription_id):
     key_id, key_secret = secret("RAZORPAY_KEY_ID"), secret("RAZORPAY_KEY_SECRET")
     if not key_id or not key_secret:
@@ -749,7 +723,6 @@ def set_authenticated_user(response):
     st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
     st.session_state.free_billing_status = metadata.get("free_billing_status", "")
     st.session_state.free_subscription_id = metadata.get("free_subscription_id", "")
-    st.session_state.industry = metadata.get("industry", "BPO") or "BPO"
 
     # Supabase sets this automatically when the account is created — used
     # to work out how many days are left in the Free trial.
@@ -773,11 +746,6 @@ def clear_authentication():
     st.session_state.free_billing_status = ""
     st.session_state.free_subscription_id = ""
     st.session_state.razorpay_checkout_url_free = ""
-    st.session_state.industry = "BPO"
-    st.session_state.manufacturing_file_name = ""
-    st.session_state.manufacturing_result = None
-    st.session_state.manufacturing_report_bytes = None
-    st.session_state.manufacturing_report_generated_at = None
 
     clear_analysis()
 
@@ -1047,199 +1015,6 @@ def build_data_template_bytes():
     return buffer.getvalue()
 
 
-def build_procurement_report_bytes(prs, result):
-    """
-    Build the Manufacturing procurement comparison report (Overview, PR
-    Summary, Item Detail sheets) as in-memory .xlsx bytes for download.
-    Mirrors the standalone report generator used to validate this engine.
-    """
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from openpyxl.utils import get_column_letter
-
-    overall = result["overall"]
-    pr_rows = result["pr_rows"]
-    item_rows = result["item_rows"]
-
-    NAVY = "071A3D"
-    LIGHT_BLUE = "EAF2FD"
-    RISK_FILL = "FDEBEC"
-    RISK_FONT = "B42318"
-    GOOD_FILL = "EAF7EE"
-    GREY = "667085"
-
-    wb = openpyxl.Workbook()
-    thin = Side(style="thin", color="D9DEE7")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
-    header_font = Font(name="Arial", bold=True, color="FFFFFF", size=10)
-    header_fill = PatternFill("solid", fgColor=NAVY)
-    body_font = Font(name="Arial", size=10)
-
-    # --- Overview ---
-    ws = wb.active
-    ws.title = "Overview"
-    ws.column_dimensions["A"].width = 34
-    ws.column_dimensions["B"].width = 22
-
-    title = ws.cell(row=1, column=1, value="Procurement Price Comparison — Overview")
-    title.font = Font(name="Arial", bold=True, size=14, color=NAVY)
-    ws.merge_cells("A1:B1")
-
-    sub = ws.cell(row=2, column=1, value=f"Generated {datetime.now().strftime('%d %b %Y, %H:%M')} · {overall['total_prs']} Purchase Requisitions analyzed")
-    sub.font = Font(name="Arial", italic=True, size=9, color=GREY)
-    ws.merge_cells("A2:B2")
-
-    metrics = [
-        ("Purchase Requisitions", overall["total_prs"]),
-        ("Total Items", overall["total_items"]),
-        ("Recommended Spend (₹)", overall["total_recommended_spend"]),
-        ("Highest-Quote Spend (₹)", overall["total_highest_quote_spend"]),
-        ("Potential Savings (₹)", overall["total_potential_savings"]),
-        ("Overall Savings %", overall["overall_savings_pct"]),
-        ("Single-Vendor Items (Risk)", overall["total_single_vendor_items"]),
-        ("Price-Increase Items (Risk)", overall["total_price_increase_items"]),
-        ("No-Quote Items (Risk)", overall["total_no_quote_items"]),
-    ]
-    r = 4
-    for label, value in metrics:
-        lc = ws.cell(row=r, column=1, value=label)
-        lc.font = Font(name="Arial", bold=True, size=10, color=NAVY)
-        vc = ws.cell(row=r, column=2, value=value)
-        vc.font = body_font
-        if "Spend" in label or "Savings (" in label:
-            vc.number_format = "₹#,##0"
-        elif "%" in label:
-            vc.number_format = "0.0"
-        for cell in (lc, vc):
-            cell.border = border
-            cell.fill = PatternFill("solid", fgColor=LIGHT_BLUE) if r % 2 == 0 else PatternFill("solid", fgColor="FFFFFF")
-        r += 1
-
-    note = ws.cell(row=r + 1, column=1, value=(
-        "Recommended Vendor = lowest quoted total price per item. Savings = difference vs the "
-        "highest quote received for that item. Risk flags call out items with only one quote, "
-        "a >10% price increase vs the last recorded order, or no valid quote at all."
-    ))
-    note.font = Font(name="Arial", italic=True, size=9, color=GREY)
-    note.alignment = Alignment(wrap_text=True)
-    ws.merge_cells(start_row=r + 1, start_column=1, end_row=r + 1, end_column=2)
-    ws.row_dimensions[r + 1].height = 45
-
-    # Executive summary — pulled from procurement_engine.build_insights so
-    # the report always matches exactly what was shown in-app.
-    _insights = procurement_engine.build_insights(result)
-    _risk_level = _insights["risk_level"].split(" ", 1)[-1]  # drop the emoji for the plain-text report title
-
-    r_summary = r + 3
-    summary_title = ws.cell(row=r_summary, column=1, value=f"Executive Summary — {_risk_level}")
-    summary_title.font = Font(name="Arial", bold=True, size=12, color=NAVY)
-    ws.merge_cells(start_row=r_summary, start_column=1, end_row=r_summary, end_column=2)
-    r_summary += 1
-
-    for point in _insights["summary_points"]:
-        # Strip the leading emoji for a plain-text report line.
-        line = point.split(" ", 1)[-1] if point[:1] in "🟢🟡🟠🔴⚪" else point
-        cell = ws.cell(row=r_summary, column=1, value=f"• {line}")
-        cell.font = Font(name="Arial", size=10)
-        cell.alignment = Alignment(wrap_text=True)
-        ws.merge_cells(start_row=r_summary, start_column=1, end_row=r_summary, end_column=2)
-        ws.row_dimensions[r_summary].height = 28
-        r_summary += 1
-
-    r_summary += 1
-    rec_title = ws.cell(row=r_summary, column=1, value="Recommendation")
-    rec_title.font = Font(name="Arial", bold=True, size=11, color=NAVY)
-    ws.merge_cells(start_row=r_summary, start_column=1, end_row=r_summary, end_column=2)
-    r_summary += 1
-    rec_cell = ws.cell(row=r_summary, column=1, value=_insights["recommendation"])
-    rec_cell.font = Font(name="Arial", size=10)
-    rec_cell.alignment = Alignment(wrap_text=True)
-    ws.merge_cells(start_row=r_summary, start_column=1, end_row=r_summary, end_column=2)
-    ws.row_dimensions[r_summary].height = 45
-
-    # --- PR Summary ---
-    ws2 = wb.create_sheet("PR Summary")
-    pr_headers = ["PR Sheet", "Plant / Indenter", "Working Date", "Vendors Compared", "Items",
-                  "Recommended Spend", "Highest-Quote Spend", "Potential Savings", "Savings %",
-                  "Single-Vendor Items", "Price-Increase Items", "No-Quote Items"]
-    for c, h in enumerate(pr_headers, start=1):
-        cell = ws2.cell(row=1, column=c, value=h)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        cell.border = border
-    ws2.row_dimensions[1].height = 30
-    for i, w in enumerate([12, 46, 14, 16, 8, 16, 18, 16, 10, 16, 16, 14], start=1):
-        ws2.column_dimensions[get_column_letter(i)].width = w
-
-    for ridx, row in enumerate(pr_rows, start=2):
-        values = [
-            row["PR Sheet"], row["Plant / Indenter"], row["Working Date"], row["Vendors Compared"],
-            row["Items"], row["Recommended Spend"], row["Highest-Quote Spend"], row["Potential Savings"],
-            row["Savings %"], row["Single-Vendor Items (Risk)"], row["Price-Increase Items (Risk)"],
-            row["No-Quote Items (Risk)"],
-        ]
-        for c, v in enumerate(values, start=1):
-            cell = ws2.cell(row=ridx, column=c, value=v)
-            cell.font = body_font
-            cell.border = border
-            if c in (6, 7, 8):
-                cell.number_format = "₹#,##0"
-            if c == 9 and v is not None:
-                cell.number_format = "0.0"
-            if c in (10, 11, 12) and v:
-                cell.fill = PatternFill("solid", fgColor=RISK_FILL)
-                cell.font = Font(name="Arial", size=10, color=RISK_FONT, bold=True)
-    ws2.freeze_panes = "A2"
-
-    # --- Item Detail ---
-    ws3 = wb.create_sheet("Item Detail")
-    item_headers = ["PR Sheet", "PR No", "Item Code", "Item Name", "Qty", "UM", "Vendors Quoted",
-                     "Recommended Vendor", "Recommended Total Price", "2nd Best Vendor", "2nd Best Total Price",
-                     "Highest Quoted Vendor", "Highest Total Price", "Savings vs Highest", "Savings vs Highest %",
-                     "Previous Unit Price", "Previous Vendor", "% Change vs Previous", "Risk Flags"]
-    for c, h in enumerate(item_headers, start=1):
-        cell = ws3.cell(row=1, column=c, value=h)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        cell.border = border
-    ws3.row_dimensions[1].height = 32
-    for i, w in enumerate([10, 12, 12, 42, 9, 7, 10, 24, 16, 22, 15, 24, 15, 14, 12, 14, 20, 14, 32], start=1):
-        ws3.column_dimensions[get_column_letter(i)].width = w
-
-    money_cols = {9, 11, 13, 14, 16}
-    pct_cols = {15, 18}
-    for ridx, row in enumerate(item_rows, start=2):
-        values = [
-            row["PR Sheet"], row["PR No"], row["Item Code"], row["Item Name"], row["Qty"], row["UM"],
-            row["Vendors Quoted"], row["Recommended Vendor"], row["Recommended Total Price"],
-            row["2nd Best Vendor"], row["2nd Best Total Price"], row["Highest Quoted Vendor"],
-            row["Highest Total Price"], row["Savings vs Highest"], row["Savings vs Highest %"],
-            row["Previous Unit Price"], row["Previous Vendor"], row["% Change vs Previous"], row["Risk Flags"],
-        ]
-        has_risk = bool(row["Risk Flags"])
-        for c, v in enumerate(values, start=1):
-            cell = ws3.cell(row=ridx, column=c, value=v)
-            cell.font = body_font
-            cell.border = border
-            if c in money_cols and v is not None:
-                cell.number_format = "₹#,##0.00"
-            if c in pct_cols and v is not None:
-                cell.number_format = "0.0"
-            if c == 19 and has_risk:
-                cell.fill = PatternFill("solid", fgColor=RISK_FILL)
-                cell.font = Font(name="Arial", size=10, color=RISK_FONT, bold=True)
-            elif c == 8 and not has_risk and row["Vendors Quoted"] > 1:
-                cell.fill = PatternFill("solid", fgColor=GOOD_FILL)
-    ws3.freeze_panes = "B2"
-
-    buffer = io.BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
-    return buffer.getvalue()
-
-
 def render_footer():
     st.divider()
     st.markdown(
@@ -1255,280 +1030,6 @@ Insights today. Intelligence tomorrow.
         unsafe_allow_html=True,
     )
 
-
-def render_manufacturing_flow(plan_config):
-    """
-    Manufacturing industry flow: upload a Price Comparative Sheet workbook
-    (one sheet per Purchase Requisition, multiple vendor quote blocks per
-    sheet), get vendor-comparison analysis, recommended vendor per item,
-    savings vs alternatives, and risk flags. Uses procurement_engine.py,
-    a self-contained module with no dependency on engine.py / analyze_data.
-    """
-
-    st.subheader("🏭 Procurement Setup")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        company_name = st.text_input(
-            "Company Name",
-            value=st.session_state.get("company_name", ""),
-            placeholder="e.g. ABC Manufacturing Pvt. Ltd.",
-            key="mfg_company_name",
-        )
-    with col2:
-        report_name = st.text_input(
-            "Report Name",
-            value="Procurement Price Comparison",
-            key="mfg_report_name",
-        )
-
-    uploaded = st.file_uploader(
-        f"📁 Upload Price Comparative Sheet workbook (.xlsx) — max {plan_config['max_mb']} MB",
-        type=["xlsx"],
-        key="mfg_file_uploader",
-    )
-
-    if not uploaded:
-        st.info(
-            "Upload a Price Comparative Sheet workbook to compare vendor quotes, "
-            "identify the best price per item, and flag procurement risks."
-        )
-        st.markdown("### Expected format")
-        st.caption(
-            "One sheet per Purchase Requisition. Each sheet needs a header row with "
-            "S.N., PR NO, Item Code, Item Name, Qty, UM, then one 5-column block per "
-            "vendor (Make, Quoted Price, Dis %, Dis Price, Total Price), followed by "
-            "Doc. Date, Vendor, and DPTPL (previous order unit price) columns."
-        )
-        st.markdown("### What you get")
-        a, b, c, d = st.columns(4)
-        a.metric("Vendor Comparison", "✓")
-        b.metric("Recommended Vendor", "✓")
-        c.metric("Savings Analysis", "✓")
-        d.metric("Risk Flags", "✓")
-        render_footer()
-        return
-
-    file_mb = uploaded.size / (1024 * 1024)
-    if file_mb > plan_config["max_mb"]:
-        st.error(
-            f"File is {file_mb:.2f} MB. Your {st.session_state.user_plan} plan "
-            f"supports files up to {plan_config['max_mb']} MB."
-        )
-        render_footer()
-        return
-
-    if st.session_state.manufacturing_file_name != uploaded.name:
-        st.session_state.manufacturing_file_name = uploaded.name
-        st.session_state.manufacturing_result = None
-        st.session_state.manufacturing_report_bytes = None
-
-    try:
-        prs = procurement_engine.parse_workbook(uploaded)
-        if not prs:
-            st.error(
-                "❌ No Price Comparative Sheet-style data found in this workbook. "
-                "Check that at least one sheet has a header row starting with 'S.N.'"
-            )
-            render_footer()
-            return
-        result = procurement_engine.analyze_procurement(prs)
-    except Exception as e:
-        st.error(f"❌ Could not analyze the uploaded file: {e}")
-        render_footer()
-        return
-
-    st.session_state.manufacturing_result = result
-    overall = result["overall"]
-
-    st.markdown(
-        f"""<div class="hero">
-<h3>Procurement Overview</h3>
-<p class="small-muted">{company_name or "Your organization"} · {report_name}</p>
-</div>""",
-        unsafe_allow_html=True,
-    )
-
-    r1, r2, r3, r4 = st.columns(4)
-    r1.metric("Recommended Spend", f"₹{overall['total_recommended_spend']:,.0f}")
-    r2.metric("Highest-Quote Spend", f"₹{overall['total_highest_quote_spend']:,.0f}")
-    r3.metric("Potential Savings", f"₹{overall['total_potential_savings']:,.0f}",
-              delta=f"{overall['overall_savings_pct']}%" if overall['overall_savings_pct'] is not None else None)
-    r4.metric("Purchase Requisitions", overall["total_prs"])
-
-    risk1, risk2, risk3 = st.columns(3)
-    risk1.metric("Single-Vendor Items", overall["total_single_vendor_items"])
-    risk2.metric("Price-Increase Items", overall["total_price_increase_items"])
-    risk3.metric("No-Quote Items", overall["total_no_quote_items"])
-
-    # ============================================================
-    # EXECUTIVE SUMMARY — risk level, summary bullets, and the
-    # recommendation are all computed once in procurement_engine.py
-    # (single source of truth shared with the Excel report and the
-    # AI Copilot context), mirroring the BPO engine's insight pattern.
-    # ============================================================
-
-    mfg_insights = procurement_engine.build_insights(result)
-    mfg_risk_level = mfg_insights["risk_level"]
-    mfg_summary_points = mfg_insights["summary_points"]
-    mfg_recommendation = mfg_insights["recommendation"]
-
-    st.subheader("🧠 Executive Summary")
-    st.metric("Procurement Risk", mfg_risk_level)
-    for point in mfg_summary_points:
-        st.write(point)
-    st.info(f"💡 **Procurement Recommendation:** {mfg_recommendation}")
-
-    mfg_tabs = st.tabs(["📋 PR Summary", "📦 Item Detail", "⚠️ Risk Items", "🤖 Procurement Copilot", "📄 Report", "💳 Billing"])
-
-    with mfg_tabs[0]:
-        st.subheader("Purchase Requisition Summary")
-        pr_df = pd.DataFrame(result["pr_rows"])
-        if not pr_df.empty:
-            st.dataframe(pr_df, use_container_width=True, hide_index=True)
-        else:
-            st.info("No PR-level data available.")
-
-    with mfg_tabs[1]:
-        st.subheader("Item-Level Comparison")
-        item_df = pd.DataFrame(result["item_rows"])
-        if not item_df.empty:
-            st.dataframe(item_df, use_container_width=True, hide_index=True)
-        else:
-            st.info("No item-level data available.")
-
-    with mfg_tabs[2]:
-        st.subheader("⚠️ Flagged Items")
-        item_df = pd.DataFrame(result["item_rows"])
-        if not item_df.empty:
-            risk_df = item_df[item_df["Risk Flags"].astype(str).str.len() > 0]
-            if not risk_df.empty:
-                st.dataframe(risk_df, use_container_width=True, hide_index=True)
-            else:
-                st.success("✅ No flagged items — every item has multiple quotes with no unusual price movement.")
-        else:
-            st.info("No item-level data available.")
-
-    with mfg_tabs[3]:
-        st.subheader("🤖 Procurement Copilot")
-        st.caption(
-            "Ask questions about this procurement data. The Copilot is "
-            "instructed to use only the supplied vendor comparison context."
-        )
-
-        mfg_question = st.text_input(
-            "Ask your procurement question",
-            placeholder="Which items have the biggest savings opportunity and which vendor should we use?",
-            key="mfg_copilot_question",
-        )
-
-        mfg_ask_copilot = st.button(
-            "🚀 Ask Procurement Copilot",
-            type="primary",
-            use_container_width=True,
-            key="mfg_ask_copilot",
-        )
-
-        mfg_copilot_url = secret("N8N_COPILOT_WEBHOOK_URL")
-
-        if mfg_ask_copilot:
-            if not mfg_question.strip():
-                st.warning("⚠️ Please enter a question first.")
-            elif not mfg_copilot_url:
-                st.error("❌ N8N_COPILOT_WEBHOOK_URL is not configured in Streamlit Secrets.")
-            else:
-                mfg_context = (
-                    f"Company:\n{company_name}\n\nReport:\n{report_name}\n\n"
-                    + procurement_engine.make_ai_prompt(result, mfg_insights)
-                )
-                mfg_payload = {
-                    "question": mfg_question.strip(),
-                    "company_name": company_name.strip(),
-                    "report_name": report_name.strip(),
-                    "context": mfg_context,
-                    "user_id": st.session_state.user_id,
-                    "user_email": st.session_state.user_email,
-                }
-                try:
-                    with st.spinner("🤖 Procurement Copilot is analyzing..."):
-                        mfg_copilot_response = requests.post(
-                            mfg_copilot_url,
-                            json=mfg_payload,
-                            headers={"Content-Type": "application/json"},
-                            timeout=120,
-                        )
-                    if mfg_copilot_response.status_code < 300:
-                        mfg_raw = normalize_n8n_response(mfg_copilot_response)
-                        st.session_state.copilot_answer = parse_ai_answer(mfg_raw)
-                        st.session_state.last_question = mfg_question.strip()
-                    else:
-                        st.session_state.copilot_answer = None
-                        st.error(f"❌ Copilot workflow failed: HTTP {mfg_copilot_response.status_code}")
-                        st.code(mfg_copilot_response.text, language="text")
-                except requests.exceptions.Timeout:
-                    st.session_state.copilot_answer = None
-                    st.error("⏱️ Procurement Copilot timed out. Please try again.")
-                except requests.exceptions.RequestException as e:
-                    st.session_state.copilot_answer = None
-                    st.error(f"❌ Copilot request failed: {e}")
-
-        if st.session_state.copilot_answer:
-            st.divider()
-            st.markdown("### 🧠 Copilot Analysis")
-            st.caption("Question: " + st.session_state.last_question)
-            mfg_answer = st.session_state.copilot_answer
-            if isinstance(mfg_answer, dict):
-                if mfg_answer.get("what_is_happening"):
-                    st.markdown("#### 🔎 What is happening")
-                    st.info(mfg_answer["what_is_happening"])
-                if mfg_answer.get("recommended_actions"):
-                    st.markdown("#### ✅ Recommended Actions")
-                    for i, action in enumerate(mfg_answer["recommended_actions"], 1):
-                        st.markdown(f"**{i}.** {action}")
-            elif isinstance(mfg_answer, str):
-                st.markdown(mfg_answer)
-            else:
-                st.code(str(mfg_answer), language="text")
-
-    with mfg_tabs[4]:
-        st.subheader("📄 Procurement Report")
-        if st.button("📄 Generate Report", type="primary", use_container_width=True, key="mfg_generate_report"):
-            try:
-                with st.spinner("Generating procurement report..."):
-                    report_bytes = build_procurement_report_bytes(prs, result)
-                st.session_state.manufacturing_report_bytes = report_bytes
-                st.session_state.manufacturing_report_generated_at = datetime.now()
-            except Exception as e:
-                st.error(f"❌ Could not generate report: {e}")
-
-        if st.session_state.manufacturing_report_bytes:
-            filename = (
-                f"{company_name or 'procurement'}_comparison_"
-                f"{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
-            )
-            st.download_button(
-                "⬇️ Download Procurement Report (.xlsx)",
-                data=st.session_state.manufacturing_report_bytes,
-                file_name=filename,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
-                key="mfg_download_report",
-            )
-            if st.session_state.manufacturing_report_generated_at:
-                st.caption(
-                    "Generated "
-                    + st.session_state.manufacturing_report_generated_at.strftime("%d %b %Y, %H:%M")
-                )
-
-    with mfg_tabs[5]:
-        st.subheader("💳 Subscription & Billing")
-        st.info(f"You are currently using the **{st.session_state.user_plan}** plan.")
-        show_pricing("billing_manufacturing")
-
-    with st.expander("🧠 AI Analyst Context / Prompt", expanded=False):
-        st.code(procurement_engine.make_ai_prompt(result, mfg_insights), language="text")
-
-    render_footer()
 
 
 def dataframe_to_text(df):
@@ -2665,66 +2166,37 @@ with st.sidebar:
 
     st.divider()
 
-    st.header("🏭 Industry")
+    st.header("⚙️ KPI Controls")
 
-    industry_options = {
-        "BPO": "BPO / Call Center Operations",
-        "Manufacturing": "Manufacturing (Procurement)",
-    }
-    _current_industry = st.session_state.get("industry", "BPO")
-    _selected_label = st.selectbox(
-        "Analyze data for",
-        options=list(industry_options.values()),
-        index=list(industry_options.keys()).index(_current_industry)
-        if _current_industry in industry_options else 0,
-        key="industry_selector",
+    productivity_target = st.number_input(
+        "Productivity target %",
+        min_value=1,
+        max_value=200,
+        value=90,
     )
-    _selected_industry = next(
-        k for k, v in industry_options.items() if v == _selected_label
+
+    quality_target = st.number_input(
+        "Quality target %",
+        min_value=1,
+        max_value=100,
+        value=95,
     )
-    if _selected_industry != _current_industry:
-        update_user_industry(_selected_industry)
-        clear_analysis()
-        st.session_state.manufacturing_file_name = ""
-        st.session_state.manufacturing_result = None
-        st.session_state.manufacturing_report_bytes = None
-        st.rerun()
+
+    sla_target = st.number_input(
+        "SLA target %",
+        min_value=1,
+        max_value=100,
+        value=97,
+    )
+
+    aht_target = st.number_input(
+        "AHT target",
+        min_value=1,
+        max_value=1000,
+        value=50,
+    )
 
     st.divider()
-
-    if st.session_state.industry == "BPO":
-
-        st.header("⚙️ KPI Controls")
-
-        productivity_target = st.number_input(
-            "Productivity target %",
-            min_value=1,
-            max_value=200,
-            value=90,
-        )
-
-        quality_target = st.number_input(
-            "Quality target %",
-            min_value=1,
-            max_value=100,
-            value=95,
-        )
-
-        sla_target = st.number_input(
-            "SLA target %",
-            min_value=1,
-            max_value=100,
-            value=97,
-        )
-
-        aht_target = st.number_input(
-            "AHT target",
-            min_value=1,
-            max_value=1000,
-            value=50,
-        )
-
-        st.divider()
 
     if st.button(
         "💳 View Plans",
