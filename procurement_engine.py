@@ -2,22 +2,36 @@
 Procurement / Vendor Price Comparison engine — Manufacturing industry module
 for AI Operations Manager.
 
-Parses "Price Comparative Sheet" style workbooks (one sheet per Purchase
-Requisition, N vendor quote blocks per sheet, plus a Previous Order Details
-block) and produces vendor-comparison analysis: recommended vendor per item,
-savings vs alternatives, price trend vs the last order, and risk flags.
+Supports TWO workbook formats, auto-detected:
+
+1. PRICE COMPARISON — "Price Comparative Sheet" style workbooks (one sheet
+   per Purchase Requisition, N vendor quote blocks per sheet, plus a
+   Previous Order Details block). Produces vendor-comparison analysis:
+   recommended vendor per item, savings vs alternatives, price trend vs
+   the last order, and risk flags.
+
+2. COMMERCIAL COMPARISON — vendor/commercial-terms comparison workbooks
+   (Make, Freight, Delivery, Payment, Warranty, Previous Order Date, etc.)
+   with no price fields. Produces sourcing/risk/data-quality analysis
+   instead of spend/savings metrics.
 
 This is intentionally a SEPARATE module from engine.py (the BPO/ops-KPI
 engine) — Manufacturing procurement analysis has nothing in common with
 Productivity/Quality/SLA/AHT, so it doesn't touch or depend on engine.py.
 """
 
+import hashlib
+import json
 import re
 from datetime import datetime
 
 import openpyxl
 import pandas as pd
 
+
+# ============================================================
+# SHARED HELPERS
+# ============================================================
 
 def _clean(v):
     if v is None:
@@ -28,6 +42,56 @@ def _clean(v):
 def _is_number(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
+
+# ============================================================
+# FORMAT DETECTION
+# ============================================================
+
+def detect_workbook_format(filepath):
+    """
+    Detect the Manufacturing workbook structure.
+
+    Returns one of: "price_comparison", "commercial_comparison", "unsupported"
+    """
+    wb = openpyxl.load_workbook(filepath, data_only=True, read_only=False)
+
+    price_score = 0
+    commercial_score = 0
+
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+
+        for row in ws.iter_rows(min_row=1, max_row=min(ws.max_row, 20), values_only=True):
+            values = [_clean(value).lower() for value in row if _clean(value)]
+            joined = " | ".join(values)
+
+            if "quoted price" in joined:
+                price_score += 2
+            if "total price" in joined:
+                price_score += 2
+            if "item code" in joined:
+                price_score += 1
+            if "item name" in joined:
+                price_score += 1
+            if "previous order details" in joined:
+                commercial_score += 1
+            if "freight" in joined:
+                commercial_score += 2
+            if "application" in joined:
+                commercial_score += 1
+            if "prepared by" in joined:
+                commercial_score += 1
+
+    if price_score >= 4:
+        return "price_comparison"
+    if commercial_score >= 3:
+        return "commercial_comparison"
+    return "unsupported"
+
+
+# ============================================================
+# FORMAT 1: PRICE COMPARISON PARSER
+# ============================================================
 
 def _find_header_row(ws, max_scan=20):
     for r in range(1, max_scan + 1):
@@ -55,12 +119,9 @@ def _parse_sheet(ws, sheet_name):
 
     headers = {c: _clean(ws.cell(row=header_row, column=c).value) for c in range(1, max_col + 1)}
 
-    # Fixed leading columns
     col_sn, col_prno, col_itemcode, col_itemname, col_qty, col_um = 1, 2, 3, 4, 5, 6
 
-    # Walk columns from 7 onward: consume 5-col vendor blocks (Make, Quoted
-    # Price, Dis %, Dis Price, Total Price) until we hit "Doc. Date".
-    vendor_blocks = []  # list of dicts: {name, make_col, quoted_col, disp_pct_col, disp_price_col, total_col}
+    vendor_blocks = []
     c = 7
     while c <= max_col:
         label = headers.get(c, "")
@@ -80,7 +141,6 @@ def _parse_sheet(ws, sheet_name):
         else:
             c += 1
 
-    # Previous order block: find Doc.Date, Vendor, DPTPL columns by label
     doc_date_col = vendor_col = dptpl_col = None
     for c2 in range(c, max_col + 1):
         label = headers.get(c2, "")
@@ -91,7 +151,6 @@ def _parse_sheet(ws, sheet_name):
         elif label == "DPTPL":
             dptpl_col = c2
 
-    # Meta info (plant/indenter/working date) — best-effort, from row 3/4 text
     plant_indenter = ""
     working_date = ""
     for r in range(1, header_row):
@@ -108,7 +167,7 @@ def _parse_sheet(ws, sheet_name):
     while r <= ws.max_row:
         sn_val = ws.cell(row=r, column=col_sn).value
         if not _is_number(sn_val):
-            break  # hit "Freight" row or end of item block
+            break
 
         item_code = _clean(ws.cell(row=r, column=col_itemcode).value)
         item_name = _clean(ws.cell(row=r, column=col_itemname).value)
@@ -167,24 +226,16 @@ def parse_workbook(filepath):
 def analyze_procurement(prs, price_increase_risk_pct=10.0):
     """
     Turn parsed PR sheets into item-level and PR-level analysis.
-    Returns dict with 'item_rows' (list) and 'pr_rows' (list) and 'overall' (dict).
+    Returns dict with 'item_rows', 'pr_rows', 'overall'.
     """
     item_rows = []
 
     for pr in prs:
-        pr_recommended_spend = 0.0
-        pr_highest_spend = 0.0
-        pr_savings = 0.0
-        single_vendor_count = 0
-        price_increase_count = 0
-        no_prev_data_count = 0
-
         for it in pr["items"]:
             quotes = sorted(it["quotes"], key=lambda q: q["total_price"])
             n_quotes = len(quotes)
 
             if n_quotes == 0:
-                # No valid quote at all — flag and skip ranking
                 item_rows.append({
                     "PR Sheet": pr["sheet_name"],
                     "PR No": it["pr_no"],
@@ -214,8 +265,7 @@ def analyze_procurement(prs, price_increase_risk_pct=10.0):
 
             savings_vs_highest = worst["total_price"] - best["total_price"]
             savings_vs_highest_pct = (
-                (savings_vs_highest / worst["total_price"] * 100.0)
-                if worst["total_price"] else None
+                (savings_vs_highest / worst["total_price"] * 100.0) if worst["total_price"] else None
             )
 
             pct_change_vs_prev = None
@@ -227,16 +277,8 @@ def analyze_procurement(prs, price_increase_risk_pct=10.0):
             risk_flags = []
             if n_quotes == 1:
                 risk_flags.append("Single vendor quoted")
-                single_vendor_count += 1
             if pct_change_vs_prev is not None and pct_change_vs_prev >= price_increase_risk_pct:
                 risk_flags.append(f"Price up {pct_change_vs_prev:.1f}% vs last order")
-                price_increase_count += 1
-            if it["prev_unit_price"] is None:
-                no_prev_data_count += 1
-
-            pr_recommended_spend += best["total_price"]
-            pr_highest_spend += worst["total_price"]
-            pr_savings += savings_vs_highest
 
             item_rows.append({
                 "PR Sheet": pr["sheet_name"],
@@ -259,9 +301,6 @@ def analyze_procurement(prs, price_increase_risk_pct=10.0):
                 "% Change vs Previous": round(pct_change_vs_prev, 1) if pct_change_vs_prev is not None else None,
                 "Risk Flags": "; ".join(risk_flags) if risk_flags else "",
             })
-
-        item_count = len(pr["items"])
-        item_rows_for_pr = [r for r in item_rows if r["PR Sheet"] == pr["sheet_name"]]
 
     pr_rows = []
     for pr in prs:
@@ -306,15 +345,10 @@ def analyze_procurement(prs, price_increase_risk_pct=10.0):
 
 
 # ============================================================
-# INSIGHT LAYER
-# Mirrors engine.py's analyze_data()-then-insight pattern (risk level,
-# executive summary bullets, one management recommendation) so both
-# industries produce the same KIND of insight from very different data.
+# PRICE-COMPARISON INSIGHT LAYER
 # ============================================================
 
 def compute_risk_level(overall):
-    """Breach-based risk level — same 0/1/2/3+ pattern as the BPO engine,
-    counting risk categories instead of KPI misses."""
     breaches = sum([
         overall["total_single_vendor_items"] > 0,
         overall["total_price_increase_items"] > 0,
@@ -329,7 +363,6 @@ def compute_risk_level(overall):
 
 
 def build_summary_points(overall):
-    """Plain-language bullets summarizing the procurement risk position."""
     return [
         f"{'🟢' if overall['total_potential_savings'] > 0 else '⚪'} "
         f"Potential savings: ₹{overall['total_potential_savings']:,.0f} "
@@ -351,7 +384,6 @@ def build_summary_points(overall):
 
 
 def build_recommendation(breaches):
-    """One management recommendation, tone-matched to the BPO engine's."""
     if breaches >= 3:
         return (
             "Immediate procurement review is recommended. Multiple risk "
@@ -372,11 +404,6 @@ def build_recommendation(breaches):
 
 
 def build_insights(result):
-    """
-    One call that returns everything the UI/report needs: risk level,
-    summary bullets, and the recommendation — computed once so app.py,
-    the Excel report, and the AI Copilot context never disagree.
-    """
     overall = result["overall"]
     risk_level, breaches = compute_risk_level(overall)
     summary_points = build_summary_points(overall)
@@ -390,15 +417,11 @@ def build_insights(result):
 
 
 def make_ai_prompt(result, insights=None):
-    """
-    Procurement equivalent of engine.py's make_ai_prompt() — a single
-    text block an LLM (or the debug expander) can use as full context.
-    """
     overall = result["overall"]
     insights = insights or build_insights(result)
 
     item_lines = []
-    for row in result["item_rows"][:200]:  # keep the prompt bounded
+    for row in result["item_rows"][:200]:
         item_lines.append(
             f"- {row['Item Name']} (PR {row['PR Sheet']}, Qty {row['Qty']} {row['UM']}): "
             f"recommended {row['Recommended Vendor']} at ₹{row['Recommended Total Price']}, "
@@ -442,4 +465,499 @@ Purchase Requisition Breakdown:
 
 Item-Level Detail:
 {chr(10).join(item_lines)}
+""".strip()
+
+
+# ============================================================
+# FORMAT 2: COMMERCIAL COMPARISON PARSER
+# ============================================================
+
+COMMERCIAL_TERM_NAMES = {
+    1: "Freight Terms",
+    2: "Taxes",
+    3: "Other Charges",
+    4: "Delivery Period",
+    5: "Payment Terms",
+    6: "Payment Basis",
+    7: "Warranty",
+    8: "Term 8",
+    9: "Term 9",
+    10: "Communication Mode",
+}
+
+
+def _normalize_name(value):
+    value = _clean(value).lower()
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def _parse_date(value):
+    if value in (None, ""):
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    text = _clean(value)
+    for fmt in ("%d-%m-%Y", "%d.%m.%Y", "%d/%m/%Y", "%Y-%m-%d", "%d-%m-%y", "%d.%m.%y"):
+        try:
+            return datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _extract_working_date(value):
+    text = _clean(value)
+    match = re.search(
+        r"working\s*date\s*:?\s*(\d{1,2}[-./]\d{1,2}[-./]\d{2,4})",
+        text, flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    return _parse_date(match.group(1))
+
+
+def _commercial_sheet_fingerprint(parsed):
+    payload = {
+        "working_date": parsed["working_date"].isoformat() if parsed["working_date"] else "",
+        "vendors": [_normalize_name(v["vendor_name"]) for v in parsed["vendors"]],
+        "items": [
+            {
+                "sn": item["sn"],
+                "makes": item["makes"],
+                "previous_order_date": str(item.get("previous_order_date") or ""),
+            }
+            for item in parsed["items"]
+        ],
+        "prepared_by": _normalize_name(parsed["prepared_by"]),
+    }
+    encoded = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _find_row_by_first_cell(ws, expected):
+    expected = expected.lower()
+    for row_number in range(1, ws.max_row + 1):
+        value = _clean(ws.cell(row=row_number, column=1).value).lower()
+        if value == expected:
+            return row_number
+    return None
+
+
+def _parse_commercial_sheet(ws, sheet_name):
+    header_row = _find_row_by_first_cell(ws, "s.n.")
+    if not header_row:
+        return None
+
+    previous_order_col = None
+    for column in range(1, ws.max_column + 1):
+        for row in range(1, header_row + 1):
+            value = _clean(ws.cell(row=row, column=column).value).lower()
+            if "previous order details" in value:
+                previous_order_col = column
+                break
+        if previous_order_col:
+            break
+    if not previous_order_col:
+        previous_order_col = ws.max_column
+
+    vendor_row = None
+    for row in range(1, header_row):
+        non_empty = [_clean(ws.cell(row=row, column=c).value) for c in range(2, previous_order_col)]
+        if sum(bool(value) for value in non_empty) >= 1:
+            vendor_row = row
+    if not vendor_row:
+        vendor_row = 1
+
+    working_date = None
+    for row in range(1, header_row):
+        for column in range(1, ws.max_column + 1):
+            detected = _extract_working_date(ws.cell(row=row, column=column).value)
+            if detected:
+                working_date = detected
+                break
+        if working_date:
+            break
+
+    vendors = []
+    for column in range(2, previous_order_col):
+        vendor_name = _clean(ws.cell(row=vendor_row, column=column).value)
+        if not vendor_name:
+            continue
+        if vendor_name.lower() in {"contact no.& name", "make"}:
+            continue
+        vendors.append({
+            "vendor_name": vendor_name,
+            "normalized_name": _normalize_name(vendor_name),
+            "column": column,
+            "contact": "",
+            "commercial_terms": {},
+        })
+
+    freight_row = _find_row_by_first_cell(ws, "freight")
+
+    items = []
+    row = header_row + 1
+    while row <= ws.max_row:
+        sn = ws.cell(row=row, column=1).value
+        if not isinstance(sn, (int, float)):
+            break
+
+        makes = {}
+        for vendor in vendors:
+            makes[vendor["vendor_name"]] = _clean(ws.cell(row=row, column=vendor["column"]).value)
+
+        previous_value = ws.cell(row=row, column=previous_order_col).value if previous_order_col else None
+
+        items.append({
+            "sn": int(sn),
+            "makes": makes,
+            "previous_order_date": _parse_date(previous_value),
+            "previous_order_raw": _clean(previous_value),
+        })
+        row += 1
+
+    if freight_row:
+        row = freight_row + 1
+        while row <= ws.max_row:
+            term_no = ws.cell(row=row, column=1).value
+            if not isinstance(term_no, (int, float)):
+                break
+            term_no = int(term_no)
+            term_name = COMMERCIAL_TERM_NAMES.get(term_no, f"Term {term_no}")
+            for vendor in vendors:
+                vendor["commercial_terms"][term_name] = _clean(ws.cell(row=row, column=vendor["column"]).value)
+            row += 1
+
+    prepared_by = ""
+    for row in range(1, ws.max_row + 1):
+        value = _clean(ws.cell(row=row, column=1).value)
+        if value.lower().startswith("prepared by"):
+            prepared_by = value.split(":", 1)[-1].strip()
+            break
+
+    parsed = {
+        "sheet_name": sheet_name,
+        "working_date": working_date,
+        "vendors": vendors,
+        "items": items,
+        "prepared_by": prepared_by,
+    }
+    parsed["fingerprint"] = _commercial_sheet_fingerprint(parsed)
+    return parsed
+
+
+def parse_commercial_workbook(filepath):
+    wb = openpyxl.load_workbook(filepath, data_only=True)
+    cases = []
+    for sheet_name in wb.sheetnames:
+        parsed = _parse_commercial_sheet(wb[sheet_name], sheet_name)
+        if parsed and parsed["items"]:
+            cases.append(parsed)
+    return cases
+
+
+def analyze_commercial_procurement(cases, analysis_date=None, stale_days=365):
+    analysis_date = analysis_date or datetime.now().date()
+
+    seen_fingerprints = {}
+    duplicate_sheets = []
+    case_rows = []
+    item_rows = []
+    vendor_rows = []
+    distinct_cases = []
+
+    for case in cases:
+        fingerprint = case["fingerprint"]
+        if fingerprint in seen_fingerprints:
+            duplicate_sheets.append({
+                "Duplicate Sheet": case["sheet_name"],
+                "Original Sheet": seen_fingerprints[fingerprint],
+                "Reason": "Identical procurement content",
+            })
+            continue
+        seen_fingerprints[fingerprint] = case["sheet_name"]
+        distinct_cases.append(case)
+
+    total_items = 0
+    total_vendor_columns = 0
+    single_source_cases = 0
+    stale_references = 0
+    recent_references = 0
+    new_item_references = 0
+    missing_previous_dates = 0
+    missing_warranty_quotes = 0
+    extended_lead_time_quotes = 0
+    duplicate_vendor_cases = 0
+
+    for case in distinct_cases:
+        vendors = case["vendors"]
+        items = case["items"]
+        total_items += len(items)
+        total_vendor_columns += len(vendors)
+
+        normalized_names = [v["normalized_name"] for v in vendors if v["normalized_name"]]
+        duplicated_vendors = sorted({n for n in normalized_names if normalized_names.count(n) > 1})
+        if duplicated_vendors:
+            duplicate_vendor_cases += 1
+        if len(set(normalized_names)) <= 1:
+            single_source_cases += 1
+
+        stale_in_case = 0
+        new_in_case = 0
+        missing_previous_in_case = 0
+        warranty_missing_in_case = 0
+        extended_delivery_in_case = 0
+
+        for item in items:
+            previous_date = item["previous_order_date"]
+            previous_raw = item["previous_order_raw"]
+            age_days = None
+            recency = "Unavailable"
+
+            if previous_date:
+                age_days = (analysis_date - previous_date).days
+                if age_days > stale_days:
+                    recency = "Stale"
+                    stale_references += 1
+                    stale_in_case += 1
+                else:
+                    recency = "Current"
+                    recent_references += 1
+            elif "new item" in previous_raw.lower():
+                recency = "New Item"
+                new_item_references += 1
+                new_in_case += 1
+            else:
+                missing_previous_dates += 1
+                missing_previous_in_case += 1
+
+            item_rows.append({
+                "Sheet": case["sheet_name"],
+                "Working Date": case["working_date"],
+                "S.N.": item["sn"],
+                "Vendor Makes": "; ".join(f"{v}: {m or 'Missing'}" for v, m in item["makes"].items()),
+                "Previous Order Date": previous_date,
+                "Reference Age Days": age_days,
+                "Reference Status": recency,
+            })
+
+        for vendor in vendors:
+            terms = vendor["commercial_terms"]
+            warranty = terms.get("Warranty", "")
+            delivery = terms.get("Delivery Period", "")
+            if not warranty:
+                missing_warranty_quotes += 1
+                warranty_missing_in_case += 1
+            delivery_lower = delivery.lower()
+            is_extended = "week" in delivery_lower and not ("7-10 day" in delivery_lower or "7–10 day" in delivery_lower)
+            if is_extended:
+                extended_lead_time_quotes += 1
+                extended_delivery_in_case += 1
+
+            vendor_rows.append({
+                "Sheet": case["sheet_name"],
+                "Vendor": vendor["vendor_name"],
+                "Freight Terms": terms.get("Freight Terms", ""),
+                "Taxes": terms.get("Taxes", ""),
+                "Other Charges": terms.get("Other Charges", ""),
+                "Delivery Period": delivery,
+                "Payment Terms": terms.get("Payment Terms", ""),
+                "Payment Basis": terms.get("Payment Basis", ""),
+                "Warranty": warranty,
+                "Communication Mode": terms.get("Communication Mode", ""),
+            })
+
+        risks = []
+        if len(set(normalized_names)) <= 1:
+            risks.append("Single-source procurement")
+        if stale_in_case:
+            risks.append(f"{stale_in_case} stale previous-order reference(s)")
+        if new_in_case:
+            risks.append(f"{new_in_case} new-item reference(s)")
+        if warranty_missing_in_case:
+            risks.append(f"{warranty_missing_in_case} quotation(s) missing warranty")
+        if extended_delivery_in_case:
+            risks.append(f"{extended_delivery_in_case} extended lead-time quotation(s)")
+        if duplicated_vendors:
+            risks.append("Duplicate supplier entry: " + ", ".join(duplicated_vendors))
+
+        risk_score = 0
+        if len(set(normalized_names)) <= 1:
+            risk_score += 20
+        if stale_in_case:
+            risk_score += 15
+        if new_in_case:
+            risk_score += 20
+        if warranty_missing_in_case:
+            risk_score += 10
+        if extended_delivery_in_case:
+            risk_score += 10
+        if duplicated_vendors:
+            risk_score += 15
+        risk_score = min(risk_score, 100)
+
+        if risk_score >= 60:
+            risk_level = "Critical"
+        elif risk_score >= 40:
+            risk_level = "High"
+        elif risk_score >= 20:
+            risk_level = "Moderate"
+        else:
+            risk_level = "Low"
+
+        case_rows.append({
+            "Sheet": case["sheet_name"],
+            "Working Date": case["working_date"],
+            "Vendor Columns": len(vendors),
+            "Distinct Vendors": len(set(normalized_names)),
+            "Items": len(items),
+            "Stale References": stale_in_case,
+            "New Items": new_in_case,
+            "Missing Previous Dates": missing_previous_in_case,
+            "Missing Warranty Quotes": warranty_missing_in_case,
+            "Risk Score": risk_score,
+            "Risk Level": risk_level,
+            "Risk Flags": "; ".join(risks),
+        })
+
+    distinct_case_count = len(distinct_cases)
+    competitive_cases = distinct_case_count - single_source_cases
+    competitive_pct = (competitive_cases / distinct_case_count * 100) if distinct_case_count else 0
+
+    overall_risk_score = 0
+    if duplicate_sheets:
+        overall_risk_score += 15
+    if single_source_cases:
+        overall_risk_score += 20
+    if stale_references:
+        overall_risk_score += 15
+    if missing_warranty_quotes:
+        overall_risk_score += 10
+    if extended_lead_time_quotes:
+        overall_risk_score += 10
+    if duplicate_vendor_cases:
+        overall_risk_score += 15
+    overall_risk_score = min(overall_risk_score, 100)
+
+    if overall_risk_score >= 60:
+        overall_risk_level = "Critical"
+    elif overall_risk_score >= 40:
+        overall_risk_level = "High"
+    elif overall_risk_score >= 20:
+        overall_risk_level = "Moderate"
+    else:
+        overall_risk_level = "Low"
+
+    return {
+        "analysis_type": "commercial_comparison",
+        "overall": {
+            "uploaded_sheets": len(cases),
+            "distinct_procurement_cases": distinct_case_count,
+            "duplicate_sheets": len(duplicate_sheets),
+            "total_items": total_items,
+            "vendor_quotation_columns": total_vendor_columns,
+            "competitive_cases": competitive_cases,
+            "competitive_case_pct": round(competitive_pct, 1),
+            "single_source_cases": single_source_cases,
+            "stale_references": stale_references,
+            "recent_references": recent_references,
+            "new_item_references": new_item_references,
+            "missing_previous_dates": missing_previous_dates,
+            "missing_warranty_quotes": missing_warranty_quotes,
+            "extended_lead_time_quotes": extended_lead_time_quotes,
+            "overall_risk_score": overall_risk_score,
+            "overall_risk_level": overall_risk_level,
+        },
+        "case_rows": case_rows,
+        "item_rows": item_rows,
+        "vendor_rows": vendor_rows,
+        "duplicate_rows": duplicate_sheets,
+    }
+
+
+def build_commercial_insights(result):
+    overall = result["overall"]
+    risk_level = f"{overall['overall_risk_level']} ({overall['overall_risk_score']}/100)"
+
+    summary_points = [
+        f"{overall['distinct_procurement_cases']} distinct procurement cases were analyzed from "
+        f"{overall['uploaded_sheets']} uploaded sheets.",
+        f"{overall['competitive_case_pct']:.1f}% of cases have competitive supplier coverage.",
+        f"{overall['single_source_cases']} procurement case(s) have single-source risk.",
+        f"{overall['stale_references']} previous-order reference(s) are older than 12 months.",
+        f"{overall['missing_warranty_quotes']} supplier quotation(s) have missing warranty terms.",
+        f"{overall['duplicate_sheets']} duplicate sheet(s) were excluded from distinct-case totals.",
+    ]
+
+    actions = []
+    if overall["single_source_cases"]:
+        actions.append("Obtain additional supplier quotations or record an approved single-source justification.")
+    if overall["stale_references"]:
+        actions.append("Refresh market quotations for previous-order references older than 12 months.")
+    if overall["missing_warranty_quotes"]:
+        actions.append("Confirm warranty duration, coverage, exclusions, and replacement conditions before PO release.")
+    if overall["duplicate_sheets"]:
+        actions.append("Remove duplicate procurement sheets or assign unique PR/RFQ identifiers.")
+
+    actions.extend([
+        "Add PR number, item code, item description, quantity, unit price, tax, freight amount, and "
+        "total landed cost to future uploads.",
+        "Capture promised delivery, actual receipt, accepted quantity, and rejected quantity for "
+        "supplier performance measurement.",
+    ])
+
+    recommendation = (
+        "Treat the current workbook as a sourcing and commercial-terms comparison rather than a "
+        "financial performance report. Resolve duplicate records, single-source cases, stale "
+        "benchmarks, and missing warranty information before supplier award. Add price, quantity, "
+        "PO, receipt, and quality fields to enable spend, savings, delivery, and supplier-performance "
+        "analysis."
+    )
+
+    return {
+        "risk_level": risk_level,
+        "summary_points": summary_points,
+        "recommended_actions": actions,
+        "recommendation": recommendation,
+    }
+
+
+def make_commercial_ai_prompt(result, insights=None):
+    overall = result["overall"]
+    insights = insights or build_commercial_insights(result)
+
+    case_lines = [
+        f"- {row['Sheet']}: {row['Distinct Vendors']} vendor(s), {row['Items']} item(s), "
+        f"Risk {row['Risk Level']} ({row['Risk Score']}/100)"
+        + (f" — {row['Risk Flags']}" if row["Risk Flags"] else "")
+        for row in result["case_rows"]
+    ]
+
+    return f"""
+PROCUREMENT COMMERCIAL COMPARISON — ANALYSIS CONTEXT
+
+Overall Risk: {insights['risk_level']}
+
+Overview:
+- Uploaded Sheets: {overall['uploaded_sheets']}
+- Distinct Procurement Cases: {overall['distinct_procurement_cases']}
+- Duplicate Sheets: {overall['duplicate_sheets']}
+- Total Item References: {overall['total_items']}
+- Competitive Cases: {overall['competitive_case_pct']}%
+- Single-Source Cases: {overall['single_source_cases']}
+- Stale References: {overall['stale_references']}
+- Missing Warranty Quotes: {overall['missing_warranty_quotes']}
+
+Executive Summary:
+{chr(10).join('- ' + p for p in insights['summary_points'])}
+
+Recommended Actions:
+{chr(10).join('- ' + a for a in insights['recommended_actions'])}
+
+Recommendation:
+{insights['recommendation']}
+
+Case-Level Breakdown:
+{chr(10).join(case_lines)}
 """.strip()
