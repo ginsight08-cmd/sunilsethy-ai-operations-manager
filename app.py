@@ -92,6 +92,26 @@ DEFAULT_STATE = {
 # the dashboard is locked and the user is shown an upgrade-only screen.
 FREE_TRIAL_DAYS = 15
 
+# ============================================================
+# INDUSTRY REGISTRY
+# Single source of truth for the sidebar dropdown. "built" industries
+# have a real, complete flow (their own upload, engine, tabs, insights).
+# Everything else in this dict shows a graceful "coming soon" screen
+# instead of crashing or showing fake data — add a new engine module
+# (like procurement_engine.py) and flip it into BUILT_INDUSTRIES when
+# a module is ready.
+# ============================================================
+
+INDUSTRY_LABELS = {
+    "BPO": "BPO / Call Center Operations",
+    "Manufacturing": "Manufacturing (Procurement)",
+    "Retail": "Retail / E-commerce",
+    "Logistics": "Logistics / Delivery",
+    "Healthcare": "Healthcare / Clinics",
+}
+
+BUILT_INDUSTRIES = {"BPO", "Manufacturing"}
+
 for key, value in DEFAULT_STATE.items():
     if key not in st.session_state:
         st.session_state[key] = value
@@ -1254,6 +1274,49 @@ Insights today. Intelligence tomorrow.
 </div>""",
         unsafe_allow_html=True,
     )
+
+
+def render_coming_soon_flow(industry_key):
+    """
+    Shown for any industry selected in the dropdown that doesn't have a
+    real engine module yet (Retail, Logistics, Healthcare, ...). Never
+    shows fake data or placeholder insights — just a clear message and
+    a way to request the module, same brand styling as the rest of the app.
+    """
+    show_brand_header(compact=True)
+
+    label = INDUSTRY_LABELS.get(industry_key, industry_key)
+
+    st.markdown(
+        f'<div class="main-title">{label}</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f"""<div class="hero">
+<h3>This industry module is coming soon</h3>
+<p class="small-muted">{label} isn't built yet — Manufacturing (Procurement) and BPO / Call Center are live today. Switch back to one of those from the sidebar, or tell us what this module needs.</p>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### What we'd need to build this")
+    st.write(
+        "Every industry module follows the same pattern as the existing "
+        "ones: a sample template of your operational data, the KPIs that "
+        "matter for this industry, and how risk should be flagged. Share "
+        "that and we can turn it into a working module the same way "
+        "Manufacturing (Procurement) was built."
+    )
+
+    contact_email = secret("SUPPORT_EMAIL", "hello@generativeinsight.in")
+    st.link_button(
+        f"📧 Request the {label} module",
+        f"mailto:{contact_email}?subject=Requesting%20the%20{label.replace(' ', '%20')}%20module",
+        use_container_width=False,
+    )
+
+    render_footer()
 
 
 def render_manufacturing_flow(plan_config):
@@ -2667,20 +2730,16 @@ with st.sidebar:
 
     st.header("🏭 Industry")
 
-    industry_options = {
-        "BPO": "BPO / Call Center Operations",
-        "Manufacturing": "Manufacturing (Procurement)",
-    }
     _current_industry = st.session_state.get("industry", "BPO")
     _selected_label = st.selectbox(
         "Analyze data for",
-        options=list(industry_options.values()),
-        index=list(industry_options.keys()).index(_current_industry)
-        if _current_industry in industry_options else 0,
+        options=list(INDUSTRY_LABELS.values()),
+        index=list(INDUSTRY_LABELS.keys()).index(_current_industry)
+        if _current_industry in INDUSTRY_LABELS else 0,
         key="industry_selector",
     )
     _selected_industry = next(
-        k for k, v in industry_options.items() if v == _selected_label
+        k for k, v in INDUSTRY_LABELS.items() if v == _selected_label
     )
     if _selected_industry != _current_industry:
         update_user_industry(_selected_industry)
@@ -2692,7 +2751,7 @@ with st.sidebar:
 
     st.divider()
 
-    if st.session_state.industry != "Manufacturing":
+    if st.session_state.industry == "BPO":
 
         st.header("⚙️ KPI Controls")
 
@@ -2830,7 +2889,8 @@ st.markdown(
 
 # ============================================================
 # INDUSTRY DISPATCH
-# Manufacturing gets its own complete, self-contained flow and stops
+# Manufacturing gets its own complete, self-contained flow. Anything
+# not yet in BUILT_INDUSTRIES gets the coming-soon screen. Both stop
 # here. Everything below this point (Report Setup, file upload, KPI
 # analysis, tabs) is BPO-only and assumes productivity_target etc.
 # exist, which they only do when industry == "BPO".
@@ -2838,6 +2898,10 @@ st.markdown(
 
 if st.session_state.industry == "Manufacturing":
     render_manufacturing_flow(plan_config)
+    st.stop()
+
+elif st.session_state.industry not in BUILT_INDUSTRIES:
+    render_coming_soon_flow(st.session_state.industry)
     st.stop()
 
 
