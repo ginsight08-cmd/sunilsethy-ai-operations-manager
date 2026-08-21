@@ -954,7 +954,7 @@ def build_data_template_bytes():
         ("AHT_Target", "Number", 12),
         ("Quality_%", "Number (0-100)", 12),
         ("SLA_%", "Number (0-100)", 10),
-        ("Attendance", "Number (0-100)", 12),
+        ("Attendance", "Text (Present/Absent)", 16),
         ("Error_Count", "Number", 12),
         ("Error_Category", "Text", 18),
     ]
@@ -983,11 +983,11 @@ def build_data_template_bytes():
 
     base_date = datetime(2026, 8, 3).date()
     sample_rows = [
-        [base_date, "EMP-1001", "Aditi Sharma", "Collections", 50, 47, 6.4, 6.0, 96.5, 98.1, 97, 1, "Documentation"],
-        [base_date, "EMP-1002", "Rahul Verma", "Collections", 50, 41, 7.8, 6.0, 91.2, 93.4, 92, 4, "Process error"],
-        [base_date, "EMP-1003", "Meera Iyer", "Customer Care", 45, 46, 5.9, 6.0, 98.0, 99.0, 100, 0, ""],
-        [base_date + timedelta(days=1), "EMP-1001", "Aditi Sharma", "Collections", 50, 44, 6.7, 6.0, 95.0, 97.2, 95, 2, "Documentation"],
-        [base_date + timedelta(days=1), "EMP-1004", "Karan Malhotra", "Customer Care", 45, 38, 8.2, 6.0, 88.5, 90.0, 89, 6, "Escalation delay"],
+        [base_date, "EMP-1001", "Aditi Sharma", "Collections", 50, 47, 6.4, 6.0, 96.5, 98.1, "Present", 1, "Documentation"],
+        [base_date, "EMP-1002", "Rahul Verma", "Collections", 50, 41, 7.8, 6.0, 91.2, 93.4, "Present", 4, "Process error"],
+        [base_date, "EMP-1003", "Meera Iyer", "Customer Care", 45, 46, 5.9, 6.0, 98.0, 99.0, "Absent", 0, ""],
+        [base_date + timedelta(days=1), "EMP-1001", "Aditi Sharma", "Collections", 50, 44, 6.7, 6.0, 95.0, 97.2, "Present", 2, "Documentation"],
+        [base_date + timedelta(days=1), "EMP-1004", "Karan Malhotra", "Customer Care", 45, 38, 8.2, 6.0, 88.5, 90.0, "Present", 6, "Escalation delay"],
     ]
 
     sample_font = Font(name="Arial", size=10)
@@ -1050,8 +1050,8 @@ def build_data_template_bytes():
         ("AHT_Target", "The target Average Handling Time to compare against.", "Optional"),
         ("Quality_%", "Quality score for the day, as a percentage (0–100, not a decimal fraction).", "Required"),
         ("SLA_%", "SLA adherence for the day, as a percentage (0–100).", "Required"),
-        ("Attendance", "Attendance percentage or indicator for that day.", "Optional"),
-        ("Error_Count", "Number of errors recorded that day.", "Optional"),
+        ("Attendance", "The day's attendance status as text, e.g. 'Present' or 'Absent' (the app calculates absence % from this — don't enter a percentage here).", "Required"),
+        ("Error_Count", "Number of errors recorded that day.", "Required"),
         ("Error_Category", "A short label for the main error type, if any (e.g. Documentation, Process error).", "Optional"),
     ]
 
@@ -1076,7 +1076,8 @@ def build_data_template_bytes():
     notes = [
         "• Keep the header row (row 1) exactly as provided — column names must match for the upload to work.",
         "• One row = one employee's record for one day. Add as many rows as you need.",
-        "• Quality_%, SLA_%, and Attendance should be plain numbers like 96.5, not '96.5%' as text.",
+        "• Quality_% and SLA_% should be plain numbers like 96.5, not '96.5%' as text.",
+        "• Attendance is a text status per row (e.g. 'Present' or 'Absent') — the app calculates absence % from this automatically.",
         "• Keep the sheet named 'Operational_Data' if using an Excel file with multiple sheets.",
         "• Free plan supports files up to 5 MB; Professional up to 25 MB; Business up to 100 MB.",
     ]
@@ -3154,6 +3155,12 @@ required_columns = [
     "AHT_Actual",
     "Quality_%",
     "SLA_%",
+    # These two matter: engine.py's analyze_data() requires them too
+    # (see its REQUIRED list). Without checking for them here, a file
+    # could pass this gate cleanly and then crash a moment later
+    # inside analyze_data() with a confusing "Missing columns" error.
+    "Attendance",
+    "Error_Count",
 ]
 
 missing_columns = [
