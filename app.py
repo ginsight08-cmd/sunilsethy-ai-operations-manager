@@ -1,4 +1,5 @@
 import io
+import time
 import json
 import smtplib
 from datetime import datetime, timedelta
@@ -488,6 +489,29 @@ st.markdown(
 # ============================================================
 # HELPERS
 # ============================================================
+
+def render_user_badge(name, email):
+    """Circular initials avatar + name/email, replacing plain-text caption lines."""
+    label = (name or email or "?").strip()
+    initial = label[0].upper() if label else "?"
+    display_name = name.strip() if name and name.strip() else email
+    st.markdown(
+        f"""<div style="display:flex; align-items:center; gap:10px; margin:4px 0 2px;">
+<div style="
+    width:36px; height:36px; border-radius:50%;
+    background:linear-gradient(135deg, {BRAND_BLUE}, {BRAND_CYAN});
+    color:#FFFFFF; font-weight:800; font-size:15px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+">{initial}</div>
+<div style="min-width:0;">
+<div style="font-weight:700; font-size:0.92rem; color:{BRAND_NAVY}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{display_name}</div>
+<div style="font-size:0.78rem; color:#667085; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{email}</div>
+</div>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
 
 def secret(name, default=""):
     try:
@@ -1386,20 +1410,26 @@ def render_manufacturing_flow(plan_config):
         st.session_state.manufacturing_result = None
         st.session_state.manufacturing_report_bytes = None
 
+    _mfg_start_time = time.time()
+
     try:
-        prs = procurement_engine.parse_workbook(uploaded)
-        if not prs:
-            st.error(
-                "❌ No Price Comparative Sheet-style data found in this workbook. "
-                "Check that at least one sheet has a header row starting with 'S.N.'"
-            )
-            render_footer()
-            return
-        result = procurement_engine.analyze_procurement(prs)
+        with st.spinner("🔄 Fetching and reading your procurement workbook..."):
+            prs = procurement_engine.parse_workbook(uploaded)
+            if not prs:
+                st.error(
+                    "❌ No Price Comparative Sheet-style data found in this workbook. "
+                    "Check that at least one sheet has a header row starting with 'S.N.'"
+                )
+                render_footer()
+                return
+        with st.spinner("🧠 Comparing vendor quotes and flagging risk..."):
+            result = procurement_engine.analyze_procurement(prs)
     except Exception as e:
         st.error(f"❌ Could not analyze the uploaded file: {e}")
         render_footer()
         return
+
+    _mfg_elapsed = time.time() - _mfg_start_time
 
     st.session_state.manufacturing_result = result
     overall = result["overall"]
@@ -1408,6 +1438,7 @@ def render_manufacturing_flow(plan_config):
         f"""<div class="hero">
 <h3>Procurement Overview</h3>
 <p class="small-muted">{company_name or "Your organization"} · {report_name}</p>
+<p class="small-muted">⏱️ Data fetched and analyzed in {_mfg_elapsed:.2f}s · {overall['total_items']} item(s) across {overall['total_prs']} PR sheet(s)</p>
 </div>""",
         unsafe_allow_html=True,
     )
@@ -2717,14 +2748,7 @@ with st.sidebar:
                         f"{remaining} days left in your free trial (then ₹299/mo)."
                     )
 
-    if st.session_state.get("user_name"):
-        st.caption(
-            st.session_state.user_name
-        )
-
-    st.caption(
-        st.session_state.user_email
-    )
+    render_user_badge(st.session_state.get("user_name", ""), st.session_state.user_email)
 
     st.divider()
 
@@ -3081,36 +3105,40 @@ if (
 # READ FILE
 # ============================================================
 
-try:
+_analysis_start_time = time.time()
 
-    uploaded.seek(0)
+with st.spinner("🔄 Fetching and reading your uploaded data..."):
 
-    if uploaded.name.lower().endswith(".csv"):
+    try:
 
-        df = pd.read_csv(uploaded)
+        uploaded.seek(0)
 
-    else:
+        if uploaded.name.lower().endswith(".csv"):
 
-        xls = pd.ExcelFile(uploaded)
+            df = pd.read_csv(uploaded)
 
-        sheet = (
-            "Operational_Data"
-            if "Operational_Data" in xls.sheet_names
-            else xls.sheet_names[0]
+        else:
+
+            xls = pd.ExcelFile(uploaded)
+
+            sheet = (
+                "Operational_Data"
+                if "Operational_Data" in xls.sheet_names
+                else xls.sheet_names[0]
+            )
+
+            df = pd.read_excel(
+                uploaded,
+                sheet_name=sheet,
+            )
+
+    except Exception as e:
+
+        st.error(
+            f"❌ Could not read the uploaded file: {e}"
         )
 
-        df = pd.read_excel(
-            uploaded,
-            sheet_name=sheet,
-        )
-
-except Exception as e:
-
-    st.error(
-        f"❌ Could not read the uploaded file: {e}"
-    )
-
-    st.stop()
+        st.stop()
 
 
 # ============================================================
@@ -3149,23 +3177,27 @@ if missing_columns:
 # LOCAL ANALYSIS
 # ============================================================
 
-try:
+with st.spinner("🧠 Analyzing operational data against your KPI targets..."):
 
-    result = analyze_data(
-        df,
-        productivity_target=productivity_target,
-        quality_target=quality_target,
-        sla_target=sla_target,
-        aht_target=aht_target,
-    )
+    try:
 
-except Exception as e:
+        result = analyze_data(
+            df,
+            productivity_target=productivity_target,
+            quality_target=quality_target,
+            sla_target=sla_target,
+            aht_target=aht_target,
+        )
 
-    st.error(
-        f"❌ Analysis failed: {e}"
-    )
+    except Exception as e:
 
-    st.stop()
+        st.error(
+            f"❌ Analysis failed: {e}"
+        )
+
+        st.stop()
+
+_analysis_elapsed = time.time() - _analysis_start_time
 
 st.session_state.analysis_result = result
 st.session_state.analysis_df = df
@@ -3287,6 +3319,7 @@ st.markdown(
     f"""<div class="hero">
 <h3>Executive Health: {risk_level}</h3>
 <p class="small-muted">{company_name or "Your organization"} · {report_name}</p>
+<p class="small-muted">⏱️ Data fetched and analyzed in {_analysis_elapsed:.2f}s · {len(df)} row(s) processed</p>
 </div>""",
     unsafe_allow_html=True,
 )
