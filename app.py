@@ -126,46 +126,48 @@ st.markdown(
     f"""
 <style>
 
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    html, body, .stApp, .stApp * {{
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }}
+
     .stApp {{
-        background:
-            radial-gradient(
-                circle at 85% 0%,
-                rgba(0,174,239,0.08),
-                transparent 30%
-            ),
-            linear-gradient(
-                180deg,
-                #FFFFFF 0%,
-                #F7FAFF 100%
-            );
+        background: #F7F8FA;
     }}
 
     .main {{
-        padding-top: 1.5rem;
+        padding-top: 1.2rem;
+    }}
+
+    .block-container {{
+        padding-top: 1.4rem !important;
+        padding-bottom: 3rem !important;
+        max-width: 1320px;
     }}
 
     .main-title {{
-        font-size: 2.35rem;
+        font-size: 2.05rem;
         font-weight: 850;
-        color: {BRAND_NAVY};
+        color: #0B0F19;
         margin-bottom: 0.15rem;
-        letter-spacing: -1px;
+        letter-spacing: -0.7px;
     }}
 
     .brand-subtitle {{
-        color: #0757B8 !important;
-        -webkit-text-fill-color: #0757B8 !important;
-        font-size: 1.02rem;
-        font-weight: 700;
+        color: #6B7280 !important;
+        -webkit-text-fill-color: #6B7280 !important;
+        font-size: 0.98rem;
+        font-weight: 500;
         margin-bottom: 1rem;
         opacity: 1 !important;
         visibility: visible !important;
     }}
 
     .gi-brand {{
-        font-size: 1.45rem;
+        font-size: 1.3rem;
         font-weight: 800;
-        color: {BRAND_NAVY};
+        color: #0B0F19;
         letter-spacing: -0.5px;
     }}
 
@@ -174,93 +176,239 @@ st.markdown(
     }}
 
     .gi-tagline {{
-        color: #667085;
-        font-size: 0.82rem;
-        margin-top: 0.15rem;
+        color: #9CA3AF;
+        font-size: 0.78rem;
+        margin-top: 0.1rem;
     }}
 
+    /* -------------------- Hero / page header card -------------------- */
     .hero {{
-        padding: 1.45rem 1.6rem;
+        padding: 1.4rem 1.7rem;
         border-radius: 20px;
-        border: 1px solid #DCE8F8;
-        background:
-            linear-gradient(
-                135deg,
-                rgba(7,87,184,0.08),
-                rgba(0,174,239,0.04),
-                rgba(255,157,0,0.05)
-            );
-        box-shadow: 0 8px 30px rgba(7,87,184,0.06);
-        margin-bottom: 1.2rem;
+        border: 1px solid #ECEEF1;
+        background: #FFFFFF;
+        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
+        margin-bottom: 1.3rem;
     }}
 
     .small-muted {{
-        color: #667085;
+        color: #6B7280;
         font-size: .88rem;
     }}
 
+    /* -------------------- Native st.metric styled as a KPI card -------------------- */
     div[data-testid="stMetric"] {{
         background: #FFFFFF;
-        border: 1px solid #E0E8F5;
-        border-radius: 16px;
-        padding: 0.8rem;
-        box-shadow: 0 4px 15px rgba(7,87,184,0.05);
+        border: 1px solid #ECEEF1;
+        border-radius: 18px;
+        padding: 1.1rem 1.2rem;
+        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
+    }}
+
+    div[data-testid="stMetricLabel"] {{
+        color: #6B7280 !important;
+        font-weight: 600 !important;
+        font-size: 0.86rem !important;
     }}
 
     div[data-testid="stMetricValue"] {{
-        color: {BRAND_NAVY};
+        color: #0B0F19 !important;
+        font-weight: 850 !important;
+        font-size: 1.9rem !important;
+        -webkit-text-fill-color: #0B0F19 !important;
+    }}
+
+    div[data-testid="stMetricDelta"] {{
+        font-weight: 700 !important;
+        font-size: 0.85rem !important;
+    }}
+
+    /* -------------------- Custom KPI card component -------------------- */
+    .gi-kpi-grid {{
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 1.2rem;
+    }}
+
+    @media (max-width:1100px) {{
+        .gi-kpi-grid {{ grid-template-columns: repeat(2, 1fr); }}
+    }}
+    @media (max-width:600px) {{
+        .gi-kpi-grid {{ grid-template-columns: 1fr; }}
+    }}
+
+    .gi-kpi-card {{
+        background: #FFFFFF;
+        border: 1px solid #ECEEF1;
+        border-radius: 18px;
+        padding: 1.15rem 1.25rem;
+        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
+    }}
+
+    .gi-kpi-label {{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #667085;
+        font-size: 0.86rem;
+        font-weight: 600;
+        margin-bottom: 0.55rem;
+    }}
+
+    .gi-kpi-icon {{
+        font-size: 1.05rem;
+        opacity: 0.65;
+    }}
+
+    .gi-kpi-value {{
+        color: #0B0F19;
+        font-size: 1.85rem;
+        font-weight: 850;
+        letter-spacing: -0.5px;
+        line-height: 1.15;
+    }}
+
+    .gi-kpi-delta {{
+        margin-top: 0.4rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }}
+
+    .gi-kpi-delta.up-good {{ color: #17803D; }}
+    .gi-kpi-delta.up-bad {{ color: #C0261C; }}
+    .gi-kpi-delta.down-good {{ color: #17803D; }}
+    .gi-kpi-delta.down-bad {{ color: #C0261C; }}
+    .gi-kpi-delta.neutral {{ color: #0757B8; }}
+
+    /* -------------------- Monochrome pill badges (risk levels, priority) -------------------- */
+    .gi-badge {{
+        display: inline-flex;
+        align-items: center;
+        padding: 0.28rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        background: #0B0F19;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        white-space: nowrap;
+    }}
+    .gi-badge.soft {{
+        background: #F2F4F7;
+        color: #344054 !important;
+        -webkit-text-fill-color: #344054 !important;
+    }}
+    .gi-badge.danger {{
+        background: #FDEBEC;
+        color: #B42318 !important;
+        -webkit-text-fill-color: #B42318 !important;
+    }}
+    .gi-badge.warn {{
+        background: #FEF3E0;
+        color: #93500B !important;
+        -webkit-text-fill-color: #93500B !important;
+    }}
+    .gi-badge.good {{
+        background: #EAF7EE;
+        color: #17803D !important;
+        -webkit-text-fill-color: #17803D !important;
+    }}
+
+    /* -------------------- Generic content card wrapper -------------------- */
+    .gi-card {{
+        background: #FFFFFF;
+        border: 1px solid #ECEEF1;
+        border-radius: 20px;
+        padding: 1.3rem 1.4rem;
+        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
+        margin-bottom: 1rem;
+    }}
+
+    .gi-card-title {{
+        font-size: 1.05rem;
         font-weight: 800;
+        color: #0B0F19;
+        margin-bottom: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }}
+
+    /* -------------------- Risk alert rows -------------------- */
+    .gi-alert-row {{
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0.85rem 0;
+        border-bottom: 1px solid #F1F2F4;
+    }}
+    .gi-alert-row:last-child {{ border-bottom: none; }}
+    .gi-alert-title {{
+        font-weight: 700;
+        color: #0B0F19;
+        font-size: 0.92rem;
+        margin-bottom: 0.15rem;
+    }}
+    .gi-alert-sub {{
+        color: #667085;
+        font-size: 0.82rem;
     }}
 
     .plan-card {{
         padding: 1.25rem;
         border-radius: 18px;
-        border: 1px solid #DDE7F5;
+        border: 1px solid #ECEEF1;
         background: #FFFFFF;
         min-height: 260px;
-        box-shadow: 0 8px 24px rgba(7,87,184,0.06);
+        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
         color: #172033 !important;
         transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }}
 
     .plan-card:hover {{
-        border-color: {BRAND_CYAN};
-        box-shadow: 0 10px 30px rgba(0,174,239,0.12);
+        border-color: #0B0F19;
+        box-shadow: 0 10px 30px rgba(16,24,40,0.10);
         transform: translateY(-3px);
     }}
 
+    /* -------------------- Sidebar: light, app-nav feel -------------------- */
     section[data-testid="stSidebar"] {{
-        background:
-            linear-gradient(
-                180deg,
-                #F5F9FF 0%,
-                #FFFFFF 100%
-            );
-        border-right: 1px solid #E0E8F5;
+        background: #FBFBFC;
+        border-right: 1px solid #ECEEF1;
+    }}
+
+    section[data-testid="stSidebar"] .block-container {{
+        padding-top: 1.4rem;
+    }}
+
+    /* Sidebar buttons look like nav items: full-width, left aligned, subtle */
+    section[data-testid="stSidebar"] .stButton > button {{
+        text-align: left;
+        justify-content: flex-start;
+        background: #FFFFFF;
+        border-radius: 12px;
+        font-weight: 600;
     }}
 
     .stButton > button {{
         border-radius: 10px;
         font-weight: 700;
-        border: 1px solid #C9D8EE;
+        border: 1px solid #E5E7EB;
     }}
 
     .stButton > button[kind="primary"] {{
-        background: linear-gradient(
-            90deg,
-            {BRAND_BLUE},
-            {BRAND_CYAN}
-        );
+        background: #0B0F19;
         color: white;
         border: none;
     }}
 
     .stButton > button[kind="primary"]:hover {{
-        background: linear-gradient(
-            90deg,
-            #064A9D,
-            #009BD5
-        );
+        background: #1F2937;
         color: white;
     }}
 
@@ -269,7 +417,7 @@ st.markdown(
     }}
 
     button[data-baseweb="tab"][aria-selected="true"] {{
-        color: {BRAND_BLUE};
+        color: #0B0F19;
     }}
 
     a {{
@@ -278,9 +426,17 @@ st.markdown(
 
     .gi-footer {{
         text-align: center;
-        color: #667085;
+        color: #9CA3AF;
         font-size: 0.82rem;
         padding: 1.5rem 0;
+    }}
+
+    /* st.container(border=True) styled as a card, matching .gi-card */
+    div[data-testid="stVerticalBlockBorderWrapper"] {{
+        border-radius: 20px !important;
+        border: 1px solid #ECEEF1 !important;
+        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
+        background: #FFFFFF;
     }}
 
 
@@ -308,10 +464,10 @@ st.markdown(
         color: #172033 !important;
     }}
     .stApp button[data-baseweb="tab"] {{
-        color: #334155 !important;
+        color: #667085 !important;
     }}
     .stApp button[data-baseweb="tab"][aria-selected="true"] {{
-        color: #0757B8 !important;
+        color: #0B0F19 !important;
     }}
     .stApp [data-testid="stDataFrame"] *,
     .stApp [data-testid="stTable"] * {{
@@ -391,17 +547,17 @@ st.markdown(
     .stApp button[data-baseweb="tab"],
     .stApp button[data-baseweb="tab"] span,
     .stApp button[data-baseweb="tab"] div {{
-        color: #334155 !important;
+        color: #667085 !important;
         opacity: 1 !important;
         visibility: visible !important;
-        -webkit-text-fill-color: #334155 !important;
+        -webkit-text-fill-color: #667085 !important;
         font-weight: 700 !important;
     }}
     .stApp button[data-baseweb="tab"][aria-selected="true"],
     .stApp button[data-baseweb="tab"][aria-selected="true"] span,
     .stApp button[data-baseweb="tab"][aria-selected="true"] div {{
-        color: #0757B8 !important;
-        -webkit-text-fill-color: #0757B8 !important;
+        color: #0B0F19 !important;
+        -webkit-text-fill-color: #0B0F19 !important;
     }}
 
     /* Streamlit headings/captions outside markdown containers. */
@@ -508,6 +664,74 @@ def render_user_badge(name, email):
 <div style="font-weight:700; font-size:0.92rem; color:{BRAND_NAVY}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{display_name}</div>
 <div style="font-size:0.78rem; color:#667085; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{email}</div>
 </div>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_kpi_grid(cards):
+    """
+    Render a responsive grid of KPI cards matching the reference dashboard
+    design: icon + label on top, big value, small colored delta line below.
+
+    `cards` is a list of dicts:
+        {
+            "label": "On-Time Delivery",
+            "icon": "🚚",
+            "value": "91.4%",
+            "delta": "-8.2% vs target",
+            "delta_tone": "good" | "bad" | "neutral",
+            "delta_dir": "up" | "down" | "",   # arrow direction, optional
+        }
+    Purely visual — does not change any underlying data or logic.
+    """
+    arrow_map = {"up": "↗", "down": "↘"}
+    html_cards = []
+    for c in cards:
+        tone = c.get("delta_tone", "neutral")
+        css_class = "neutral" if tone == "neutral" else f"{c.get('delta_dir', 'up')}-{tone}"
+        arrow = arrow_map.get(c.get("delta_dir", ""), "")
+        delta_html = ""
+        if c.get("delta"):
+            delta_html = f'<div class="gi-kpi-delta {css_class}">{arrow} {c["delta"]}</div>'
+        html_cards.append(
+            f"""<div class="gi-kpi-card">
+<div class="gi-kpi-label"><span>{c.get('label','')}</span><span class="gi-kpi-icon">{c.get('icon','')}</span></div>
+<div class="gi-kpi-value">{c.get('value','')}</div>
+{delta_html}
+</div>"""
+        )
+    st.markdown(
+        f'<div class="gi-kpi-grid">{"".join(html_cards)}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def gi_badge(text, tone="dark"):
+    """Small monochrome pill badge, e.g. for risk/priority labels."""
+    tone_class = "" if tone == "dark" else tone
+    return f'<span class="gi-badge {tone_class}">{text}</span>'
+
+
+def render_alert_card(title, rows):
+    """
+    Card with a title and a stack of alert rows, each with a right-aligned
+    monochrome badge — mirrors the 'Risk Alerts' panel in the reference design.
+    `rows` is a list of dicts: {"title", "sub", "badge", "tone"}
+    """
+    row_html = []
+    for r in rows:
+        badge = gi_badge(r.get("badge", ""), r.get("tone", "soft"))
+        row_html.append(
+            f"""<div class="gi-alert-row">
+<div><div class="gi-alert-title">{r.get('title','')}</div><div class="gi-alert-sub">{r.get('sub','')}</div></div>
+{badge}
+</div>"""
+        )
+    st.markdown(
+        f"""<div class="gi-card">
+<div class="gi-card-title">{title}</div>
+{"".join(row_html)}
 </div>""",
         unsafe_allow_html=True,
     )
@@ -1444,17 +1668,55 @@ def render_manufacturing_flow(plan_config):
         unsafe_allow_html=True,
     )
 
-    r1, r2, r3, r4 = st.columns(4)
-    r1.metric("Recommended Spend", f"₹{overall['total_recommended_spend']:,.0f}")
-    r2.metric("Highest-Quote Spend", f"₹{overall['total_highest_quote_spend']:,.0f}")
-    r3.metric("Potential Savings", f"₹{overall['total_potential_savings']:,.0f}",
-              delta=f"{overall['overall_savings_pct']}%" if overall['overall_savings_pct'] is not None else None)
-    r4.metric("Purchase Requisitions", overall["total_prs"])
+    render_kpi_grid([
+        {
+            "label": "Recommended Spend",
+            "icon": "💰",
+            "value": f"₹{overall['total_recommended_spend']:,.0f}",
+            "delta": "",
+        },
+        {
+            "label": "Highest-Quote Spend",
+            "icon": "📄",
+            "value": f"₹{overall['total_highest_quote_spend']:,.0f}",
+            "delta": "",
+        },
+        {
+            "label": "Potential Savings",
+            "icon": "📉",
+            "value": f"₹{overall['total_potential_savings']:,.0f}",
+            "delta": f"{overall['overall_savings_pct']}%" if overall['overall_savings_pct'] is not None else "",
+            "delta_dir": "down",
+            "delta_tone": "good",
+        },
+        {
+            "label": "Purchase Requisitions",
+            "icon": "📋",
+            "value": str(overall["total_prs"]),
+            "delta": "",
+        },
+    ])
 
-    risk1, risk2, risk3 = st.columns(3)
-    risk1.metric("Single-Vendor Items", overall["total_single_vendor_items"])
-    risk2.metric("Price-Increase Items", overall["total_price_increase_items"])
-    risk3.metric("No-Quote Items", overall["total_no_quote_items"])
+    render_kpi_grid([
+        {
+            "label": "Single-Vendor Items",
+            "icon": "🔒",
+            "value": str(overall["total_single_vendor_items"]),
+            "delta": "",
+        },
+        {
+            "label": "Price-Increase Items",
+            "icon": "📈",
+            "value": str(overall["total_price_increase_items"]),
+            "delta": "",
+        },
+        {
+            "label": "No-Quote Items",
+            "icon": "❌",
+            "value": str(overall["total_no_quote_items"]),
+            "delta": "",
+        },
+    ])
 
     # ============================================================
     # EXECUTIVE SUMMARY — risk level, summary bullets, and the
@@ -1469,7 +1731,17 @@ def render_manufacturing_flow(plan_config):
     mfg_recommendation = mfg_insights["recommendation"]
 
     st.subheader("🧠 Executive Summary")
-    st.metric("Procurement Risk", mfg_risk_level)
+    _mfg_risk_text = mfg_risk_level.split(" ", 1)[-1].title()
+    _mfg_tone = "danger" if "critical" in mfg_risk_level.lower() or "high" in mfg_risk_level.lower() else (
+        "warn" if "medium" in mfg_risk_level.lower() else "good"
+    )
+    st.markdown(
+        f"""<div class="gi-card">
+<div class="gi-kpi-label"><span>Procurement Risk</span></div>
+<div style="margin-top:.3rem;">{gi_badge(_mfg_risk_text, _mfg_tone)}</div>
+</div>""",
+        unsafe_allow_html=True,
+    )
     for point in mfg_summary_points:
         st.write(point)
     st.info(f"💡 **Procurement Recommendation:** {mfg_recommendation}")
@@ -3336,36 +3608,34 @@ st.markdown(
 # TOP EXECUTIVE METRICS
 # ============================================================
 
-r1, r2, r3, r4 = st.columns(4)
-
-with r1:
-
-    st.metric(
-        "Operational Risk",
-        risk_level,
-    )
-
-with r2:
-
-    st.metric(
-        "KPI Breaches",
-        breaches,
-        delta=f"{4 - breaches} on target",
-    )
-
-with r3:
-
-    st.metric(
-        "Action Items",
-        action_count,
-    )
-
-with r4:
-
-    st.metric(
-        "High/Critical Actions",
-        high_priority_count,
-    )
+render_kpi_grid([
+    {
+        "label": "Operational Risk",
+        "icon": "⚠️",
+        "value": risk_level.split(" ", 1)[-1].title(),
+        "delta": "",
+    },
+    {
+        "label": "KPI Breaches",
+        "icon": "📊",
+        "value": str(breaches),
+        "delta": f"{4 - breaches} on target",
+        "delta_dir": "up" if breaches == 0 else "down",
+        "delta_tone": "good" if breaches == 0 else ("bad" if breaches >= 2 else "neutral"),
+    },
+    {
+        "label": "Action Items",
+        "icon": "✅",
+        "value": str(action_count),
+        "delta": "",
+    },
+    {
+        "label": "High/Critical Actions",
+        "icon": "🚨",
+        "value": str(high_priority_count),
+        "delta": "",
+    },
+])
 
 
 # ============================================================
@@ -3376,47 +3646,40 @@ st.subheader(
     "📊 KPI Performance vs Target"
 )
 
-k1, k2, k3, k4 = st.columns(4)
-
-with k1:
-
-    st.metric(
-        "Productivity",
-        f"{productivity:.2f}%",
-        delta=(
-            f"{productivity_gap:+.2f}% vs target"
-        ),
-    )
-
-with k2:
-
-    st.metric(
-        "Quality",
-        f"{quality:.2f}%",
-        delta=(
-            f"{quality_gap:+.2f}% vs target"
-        ),
-    )
-
-with k3:
-
-    st.metric(
-        "SLA",
-        f"{sla:.2f}%",
-        delta=(
-            f"{sla_gap:+.2f}% vs target"
-        ),
-    )
-
-with k4:
-
-    st.metric(
-        "Average AHT",
-        f"{aht:.2f}",
-        delta=(
-            f"{aht_gap:+.2f} vs target"
-        ),
-    )
+render_kpi_grid([
+    {
+        "label": "Productivity",
+        "icon": "⚙️",
+        "value": f"{productivity:.2f}%",
+        "delta": f"{productivity_gap:+.2f}% vs target",
+        "delta_dir": "up" if productivity_gap >= 0 else "down",
+        "delta_tone": "good" if productivity_gap >= 0 else "bad",
+    },
+    {
+        "label": "Quality",
+        "icon": "🎯",
+        "value": f"{quality:.2f}%",
+        "delta": f"{quality_gap:+.2f}% vs target",
+        "delta_dir": "up" if quality_gap >= 0 else "down",
+        "delta_tone": "good" if quality_gap >= 0 else "bad",
+    },
+    {
+        "label": "SLA",
+        "icon": "📈",
+        "value": f"{sla:.2f}%",
+        "delta": f"{sla_gap:+.2f}% vs target",
+        "delta_dir": "up" if sla_gap >= 0 else "down",
+        "delta_tone": "good" if sla_gap >= 0 else "bad",
+    },
+    {
+        "label": "Average AHT",
+        "icon": "⏱️",
+        "value": f"{aht:.2f}",
+        "delta": f"{aht_gap:+.2f} vs target",
+        "delta_dir": "down" if aht_gap <= 0 else "up",
+        "delta_tone": "good" if aht_gap <= 0 else "bad",
+    },
+])
 
 
 # ============================================================
@@ -3596,6 +3859,7 @@ with tabs[0]:
     left, right = st.columns([1.4, 1])
 
     with left:
+      with st.container(border=True):
 
         st.subheader("Team Performance")
 
@@ -3637,6 +3901,7 @@ with tabs[0]:
             )
 
     with right:
+      with st.container(border=True):
 
         st.subheader(
             "Management Snapshot"
@@ -3652,17 +3917,19 @@ with tabs[0]:
             and not employees.empty
         ):
 
-            st.metric(
-                "Employees analyzed",
-                len(employees),
-            )
+            m1, m2 = st.columns(2)
+            with m1:
+                st.metric(
+                    "Employees analyzed",
+                    len(employees),
+                )
 
             if "Risk_Score" in employees.columns:
-
-                st.metric(
-                    "Highest employee risk score",
-                    f"{employees['Risk_Score'].max():.2f}",
-                )
+                with m2:
+                    st.metric(
+                        "Highest employee risk score",
+                        f"{employees['Risk_Score'].max():.2f}",
+                    )
 
         st.write(
             "**Current KPI position**"
