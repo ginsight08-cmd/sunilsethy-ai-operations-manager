@@ -2692,7 +2692,7 @@ with st.sidebar:
 
     st.divider()
 
-    if st.session_state.industry == "BPO":
+    if st.session_state.industry != "Manufacturing":
 
         st.header("⚙️ KPI Controls")
 
@@ -2827,6 +2827,18 @@ st.markdown(
     """<div class="brand-subtitle" style="color:#52637A !important; -webkit-text-fill-color:#52637A !important;">Executive operational intelligence → risk detection → AI decisions → action plans → management reports</div>""",
     unsafe_allow_html=True,
 )
+
+# ============================================================
+# INDUSTRY DISPATCH
+# Manufacturing gets its own complete, self-contained flow and stops
+# here. Everything below this point (Report Setup, file upload, KPI
+# analysis, tabs) is BPO-only and assumes productivity_target etc.
+# exist, which they only do when industry == "BPO".
+# ============================================================
+
+if st.session_state.industry == "Manufacturing":
+    render_manufacturing_flow(plan_config)
+    st.stop()
 
 
 # ============================================================
