@@ -2326,17 +2326,14 @@ def show_pricing(section_id="default"):
             popular_badge = '<div class="plan-badge-popular">Most popular</div>' if name == "Professional" else ""
 
             st.markdown(
-                f'''
-                <div class="plan-card">
-                    {popular_badge}
-                    <div style="font-size:2.6rem; line-height:1; margin-bottom:.7rem;">{icon}</div>
-                    <div class="plan-name" style="font-size:1.15rem; font-weight:800;">{name}</div>
-                    <div class="plan-price" style="font-size:1.65rem; font-weight:850; margin:.35rem 0;">{price}</div>
-                    <div class="plan-description" style="font-size:.86rem; margin-bottom:.8rem;">{description}</div>
-                    {''.join(f'<div class="plan-feature" style="margin:.35rem 0;">✓ {feature}</div>' for feature in features)}
-                </div>
-                '''
-                , unsafe_allow_html=True,
+                f'''<div class="plan-card">{popular_badge}
+<div style="font-size:2.6rem; line-height:1; margin-bottom:.7rem;">{icon}</div>
+<div class="plan-name" style="font-size:1.15rem; font-weight:800;">{name}</div>
+<div class="plan-price" style="font-size:1.65rem; font-weight:850; margin:.35rem 0;">{price}</div>
+<div class="plan-description" style="font-size:.86rem; margin-bottom:.8rem;">{description}</div>
+{''.join(f'<div class="plan-feature" style="margin:.35rem 0;">✓ {feature}</div>' for feature in features)}
+</div>''',
+                unsafe_allow_html=True,
             )
 
             # Professional uses the Razorpay subscription API.
