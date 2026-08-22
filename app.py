@@ -126,380 +126,350 @@ st.markdown(
     f"""
 <style>
 
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
-    html, body, .stApp, .stApp * {{
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* ============================================================
+       DESIGN TOKENS — matched to the approved mockups: minimal
+       black/white surface, green for "good"/Free, amber for trial
+       urgency, red for risk, blue reserved for links/the "Insight"
+       wordmark accent. Card shapes, spacing, and button style below
+       all follow the mockups; every widget/function is unchanged.
+       ============================================================ */
+    :root {{
+        --ink: #0F1115;
+        --ink-soft: #4B5262;
+        --muted: #6B7280;
+        --paper: #FFFFFF;
+        --bg: #FAFAFA;
+        --border: #E7E8EC;
+        --border-soft: #EFEFF2;
+        --black: #111114;
+        --black-hover: #26272C;
+        --green-bg: #E8F8EE;
+        --green-ink: #1D8A4A;
+        --amber-bg: #FDF3DA;
+        --amber-ink: #8A6100;
+        --red-bg: #FDEBEC;
+        --red-ink: #B42318;
+        --blue-link: {BRAND_BLUE};
+        --radius-lg: 20px;
+        --radius-md: 14px;
+        --radius-sm: 10px;
+        --shadow-card: 0 1px 2px rgba(15,17,21,0.04), 0 8px 20px rgba(15,17,21,0.04);
     }}
 
     .stApp {{
-        background: #F7F8FA;
+        background: var(--bg);
     }}
 
     .main {{
-        padding-top: 1.2rem;
+        padding-top: 1.25rem;
     }}
 
-    .block-container {{
-        padding-top: 1.4rem !important;
-        padding-bottom: 3rem !important;
-        max-width: 1320px;
-    }}
-
+    /* ---------- Typography ---------- */
     .main-title {{
-        font-size: 2.05rem;
-        font-weight: 850;
-        color: #0B0F19;
-        margin-bottom: 0.15rem;
-        letter-spacing: -0.7px;
+        font-size: 2.1rem;
+        font-weight: 800;
+        color: var(--ink);
+        margin-bottom: 0.2rem;
+        letter-spacing: -0.02em;
     }}
 
     .brand-subtitle {{
-        color: #6B7280 !important;
-        -webkit-text-fill-color: #6B7280 !important;
-        font-size: 0.98rem;
+        color: var(--muted) !important;
+        -webkit-text-fill-color: var(--muted) !important;
+        font-size: 1rem;
         font-weight: 500;
         margin-bottom: 1rem;
         opacity: 1 !important;
         visibility: visible !important;
     }}
 
+    /* ---------- Logo mark (CSS-drawn, matches the mockup's black
+       rounded-square sparkle icon; a real uploaded logo image always
+       takes priority over this — see show_brand_header()). ---------- */
+    .gi-logo-mark {{
+        width: 40px; height: 40px; border-radius: 11px;
+        background: var(--black);
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 18px; color: #FFFFFF; flex-shrink: 0;
+        box-shadow: 0 2px 6px rgba(17,17,20,0.25);
+    }}
+    .gi-brand-row {{ display: flex; align-items: center; gap: 12px; margin-bottom: 2px; }}
+
     .gi-brand {{
         font-size: 1.3rem;
         font-weight: 800;
-        color: #0B0F19;
-        letter-spacing: -0.5px;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+        line-height: 1.15;
     }}
 
     .gi-brand span {{
-        color: {BRAND_BLUE};
+        color: var(--blue-link);
     }}
 
     .gi-tagline {{
-        color: #9CA3AF;
+        color: var(--muted);
         font-size: 0.78rem;
         margin-top: 0.1rem;
     }}
 
-    /* -------------------- Hero / page header card -------------------- */
+    /* ---------- Hero / info cards ---------- */
     .hero {{
-        padding: 1.4rem 1.7rem;
-        border-radius: 20px;
-        border: 1px solid #ECEEF1;
-        background: #FFFFFF;
-        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
-        margin-bottom: 1.3rem;
-    }}
-
-    .small-muted {{
-        color: #6B7280;
-        font-size: .88rem;
-    }}
-
-    /* -------------------- Native st.metric styled as a KPI card -------------------- */
-    div[data-testid="stMetric"] {{
-        background: #FFFFFF;
-        border: 1px solid #ECEEF1;
-        border-radius: 18px;
-        padding: 1.1rem 1.2rem;
-        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
-    }}
-
-    div[data-testid="stMetricLabel"] {{
-        color: #6B7280 !important;
-        font-weight: 600 !important;
-        font-size: 0.86rem !important;
-    }}
-
-    div[data-testid="stMetricValue"] {{
-        color: #0B0F19 !important;
-        font-weight: 850 !important;
-        font-size: 1.9rem !important;
-        -webkit-text-fill-color: #0B0F19 !important;
-    }}
-
-    div[data-testid="stMetricDelta"] {{
-        font-weight: 700 !important;
-        font-size: 0.85rem !important;
-    }}
-
-    /* -------------------- Custom KPI card component -------------------- */
-    .gi-kpi-grid {{
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
+        padding: 1.4rem 1.6rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        background: var(--paper);
+        box-shadow: var(--shadow-card);
         margin-bottom: 1.2rem;
     }}
 
-    @media (max-width:1100px) {{
-        .gi-kpi-grid {{ grid-template-columns: repeat(2, 1fr); }}
-    }}
-    @media (max-width:600px) {{
-        .gi-kpi-grid {{ grid-template-columns: 1fr; }}
+    .small-muted {{
+        color: var(--muted);
+        font-size: .88rem;
     }}
 
-    .gi-kpi-card {{
-        background: #FFFFFF;
-        border: 1px solid #ECEEF1;
-        border-radius: 18px;
-        padding: 1.15rem 1.25rem;
-        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
+    /* ---------- st.metric cards ---------- */
+    div[data-testid="stMetric"] {{
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1rem 1.1rem;
+        box-shadow: var(--shadow-card);
     }}
 
-    .gi-kpi-label {{
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        color: #667085;
-        font-size: 0.86rem;
-        font-weight: 600;
-        margin-bottom: 0.55rem;
+    div[data-testid="stMetricLabel"] {{
+        color: var(--muted) !important;
+        font-weight: 600 !important;
     }}
 
-    .gi-kpi-icon {{
+    div[data-testid="stMetricValue"] {{
+        color: var(--ink) !important;
+        font-weight: 800 !important;
+    }}
+
+    div[data-testid="stMetricDelta"] svg {{
+        display: inline;
+    }}
+
+    /* ---------- Custom metric-card component (used via
+       render_metric_card()) — icon + label + big value + colored
+       delta chip, matching the mockup's stat cards more closely
+       than st.metric's default layout allows. ---------- */
+    .gi-metric-card {{
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1.1rem 1.2rem;
+        box-shadow: var(--shadow-card);
+        height: 100%;
+    }}
+    .gi-metric-icon {{
         font-size: 1.05rem;
-        opacity: 0.65;
+        margin-bottom: 0.55rem;
+        opacity: 0.85;
     }}
-
-    .gi-kpi-value {{
-        color: #0B0F19;
-        font-size: 1.85rem;
-        font-weight: 850;
-        letter-spacing: -0.5px;
-        line-height: 1.15;
+    .gi-metric-label {{
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
     }}
-
-    .gi-kpi-delta {{
-        margin-top: 0.4rem;
-        font-size: 0.85rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 4px;
+    .gi-metric-value {{
+        color: var(--ink);
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        line-height: 1.1;
+        margin-bottom: 0.4rem;
     }}
-
-    .gi-kpi-delta.up-good {{ color: #17803D; }}
-    .gi-kpi-delta.up-bad {{ color: #C0261C; }}
-    .gi-kpi-delta.down-good {{ color: #17803D; }}
-    .gi-kpi-delta.down-bad {{ color: #C0261C; }}
-    .gi-kpi-delta.neutral {{ color: #0757B8; }}
-
-    /* -------------------- Monochrome pill badges (risk levels, priority) -------------------- */
-    .gi-badge {{
+    .gi-metric-delta {{
         display: inline-flex;
         align-items: center;
-        padding: 0.28rem 0.75rem;
-        border-radius: 999px;
+        gap: 4px;
         font-size: 0.78rem;
         font-weight: 700;
-        background: #0B0F19;
-        color: #FFFFFF !important;
-        -webkit-text-fill-color: #FFFFFF !important;
-        white-space: nowrap;
+        padding: 2px 9px;
+        border-radius: 999px;
     }}
-    .gi-badge.soft {{
-        background: #F2F4F7;
-        color: #344054 !important;
-        -webkit-text-fill-color: #344054 !important;
-    }}
-    .gi-badge.danger {{
-        background: #FDEBEC;
-        color: #B42318 !important;
-        -webkit-text-fill-color: #B42318 !important;
-    }}
-    .gi-badge.warn {{
-        background: #FEF3E0;
-        color: #93500B !important;
-        -webkit-text-fill-color: #93500B !important;
-    }}
-    .gi-badge.good {{
-        background: #EAF7EE;
-        color: #17803D !important;
-        -webkit-text-fill-color: #17803D !important;
-    }}
+    .gi-metric-delta.good {{ background: var(--green-bg); color: var(--green-ink); }}
+    .gi-metric-delta.bad {{ background: var(--red-bg); color: var(--red-ink); }}
+    .gi-metric-delta.neutral {{ background: var(--border-soft); color: var(--ink-soft); }}
 
-    /* -------------------- Generic content card wrapper -------------------- */
-    .gi-card {{
-        background: #FFFFFF;
-        border: 1px solid #ECEEF1;
-        border-radius: 20px;
-        padding: 1.3rem 1.4rem;
-        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
-        margin-bottom: 1rem;
-    }}
-
-    .gi-card-title {{
-        font-size: 1.05rem;
-        font-weight: 800;
-        color: #0B0F19;
-        margin-bottom: 0.9rem;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }}
-
-    /* -------------------- Risk alert rows -------------------- */
-    .gi-alert-row {{
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 0.85rem 0;
-        border-bottom: 1px solid #F1F2F4;
-    }}
-    .gi-alert-row:last-child {{ border-bottom: none; }}
-    .gi-alert-title {{
-        font-weight: 700;
-        color: #0B0F19;
-        font-size: 0.92rem;
-        margin-bottom: 0.15rem;
-    }}
-    .gi-alert-sub {{
-        color: #667085;
-        font-size: 0.82rem;
-    }}
-
+    /* ---------- Pricing / plan cards ---------- */
     .plan-card {{
-        padding: 1.25rem;
-        border-radius: 18px;
-        border: 1px solid #ECEEF1;
-        background: #FFFFFF;
+        padding: 1.35rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        background: var(--paper);
         min-height: 260px;
-        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
-        color: #172033 !important;
+        box-shadow: var(--shadow-card);
+        color: var(--ink) !important;
         transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        position: relative;
     }}
 
     .plan-card:hover {{
-        border-color: #0B0F19;
-        box-shadow: 0 10px 30px rgba(16,24,40,0.10);
+        border-color: var(--ink);
+        box-shadow: 0 4px 8px rgba(15,17,21,0.06), 0 16px 32px rgba(15,17,21,0.08);
         transform: translateY(-3px);
     }}
 
-    /* -------------------- Sidebar: light, app-nav feel -------------------- */
+    .plan-card .plan-badge-popular {{
+        position: absolute; top: -11px; right: 18px;
+        background: var(--black); color: #FFFFFF;
+        font-size: 0.68rem; font-weight: 700;
+        padding: 4px 12px; border-radius: 999px;
+        letter-spacing: 0.02em;
+    }}
+
+    .plan-card .plan-name, .plan-card .plan-price {{
+        color: var(--ink) !important;
+    }}
+    .plan-card .plan-description, .plan-card .plan-feature {{
+        color: var(--muted) !important;
+    }}
+    .plan-card .plan-feature {{
+        font-weight: 500 !important;
+    }}
+
+    /* ---------- Sidebar ---------- */
     section[data-testid="stSidebar"] {{
-        background: #FBFBFC;
-        border-right: 1px solid #ECEEF1;
+        background: var(--paper);
+        border-right: 1px solid var(--border);
     }}
 
-    section[data-testid="stSidebar"] .block-container {{
-        padding-top: 1.4rem;
-    }}
-
-    /* Sidebar buttons look like nav items: full-width, left aligned, subtle */
-    section[data-testid="stSidebar"] .stButton > button {{
-        text-align: left;
-        justify-content: flex-start;
-        background: #FFFFFF;
-        border-radius: 12px;
+    /* Status pills used in the sidebar (plan badge, trial notice) */
+    .gi-pill {{
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        font-size: 0.85rem;
         font-weight: 600;
+        line-height: 1.4;
+        margin-bottom: 10px;
+    }}
+    .gi-pill.green {{ background: var(--green-bg); color: var(--green-ink); }}
+    .gi-pill.amber {{ background: var(--amber-bg); color: var(--amber-ink); }}
+    .gi-pill.red {{ background: var(--red-bg); color: var(--red-ink); }}
+    .gi-pill.neutral {{ background: var(--border-soft); color: var(--ink-soft); }}
+
+    /* ---------- Buttons ---------- */
+    .stButton > button {{
+        border-radius: var(--radius-sm);
+        font-weight: 700;
+        border: 1px solid var(--border);
+        color: var(--ink);
+        background: var(--paper);
     }}
 
-    .stButton > button {{
-        border-radius: 10px;
-        font-weight: 700;
-        border: 1px solid #E5E7EB;
+    .stButton > button:hover {{
+        border-color: var(--ink);
     }}
 
     .stButton > button[kind="primary"] {{
-        background: #0B0F19;
-        color: white;
+        background: var(--black);
+        color: #FFFFFF;
         border: none;
     }}
 
     .stButton > button[kind="primary"]:hover {{
-        background: #1F2937;
-        color: white;
+        background: var(--black-hover);
+        color: #FFFFFF;
     }}
 
+    [data-testid="stLinkButton"] a {{
+        border-radius: var(--radius-sm) !important;
+        font-weight: 700 !important;
+    }}
+
+    /* ---------- Tabs ---------- */
     button[data-baseweb="tab"] {{
         font-weight: 700;
     }}
 
     button[data-baseweb="tab"][aria-selected="true"] {{
-        color: #0B0F19;
+        color: var(--ink);
+    }}
+
+    .stApp [data-baseweb="tab-list"] {{
+        background: transparent !important;
+        border-bottom: 1px solid var(--border) !important;
+    }}
+    .stApp button[data-baseweb="tab"],
+    .stApp button[data-baseweb="tab"] span,
+    .stApp button[data-baseweb="tab"] div {{
+        color: var(--muted) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: var(--muted) !important;
+        font-weight: 700 !important;
+    }}
+    .stApp button[data-baseweb="tab"][aria-selected="true"],
+    .stApp button[data-baseweb="tab"][aria-selected="true"] span,
+    .stApp button[data-baseweb="tab"][aria-selected="true"] div {{
+        color: var(--ink) !important;
+        -webkit-text-fill-color: var(--ink) !important;
+    }}
+    .stApp [data-baseweb="tab-highlight"] {{
+        background-color: var(--ink) !important;
     }}
 
     a {{
-        color: {BRAND_BLUE};
+        color: var(--blue-link);
+    }}
+    .stApp a {{
+        color: var(--blue-link) !important;
+        text-decoration: none;
+    }}
+    .stApp a:hover {{
+        text-decoration: underline;
     }}
 
     .gi-footer {{
         text-align: center;
-        color: #9CA3AF;
+        color: var(--muted);
         font-size: 0.82rem;
         padding: 1.5rem 0;
     }}
 
-    /* st.container(border=True) styled as a card, matching .gi-card */
-    div[data-testid="stVerticalBlockBorderWrapper"] {{
-        border-radius: 20px !important;
-        border: 1px solid #ECEEF1 !important;
-        box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.04);
-        background: #FFFFFF;
-    }}
-
-
-    /* EMBED-SAFE TYPOGRAPHY: explicit dark text prevents host-page CSS
-       from making Streamlit content white/invisible inside an iframe. */
+    /* ============================================================
+       EMBED-SAFE TYPOGRAPHY — explicit dark text prevents host-page
+       CSS from making Streamlit content white/invisible in an iframe.
+       ============================================================ */
     .stApp .stMarkdown, .stApp .stMarkdown p, .stApp .stMarkdown li,
     .stApp .stMarkdown span, .stApp label,
     .stApp [data-testid="stWidgetLabel"], .stApp [data-testid="stWidgetLabel"] * {{
-        color: #172033 !important;
+        color: var(--ink) !important;
     }}
     .stApp .stCaption, .stApp [data-testid="stCaptionContainer"],
     .stApp [data-testid="stCaptionContainer"] * {{
-        color: #52637A !important;
+        color: var(--muted) !important;
     }}
     .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{
-        color: #071A3D !important;
+        color: var(--ink) !important;
     }}
     .stApp input, .stApp textarea, .stApp select,
     .stApp input::placeholder, .stApp textarea::placeholder {{
-        color: #172033 !important;
-        -webkit-text-fill-color: #172033 !important;
+        color: var(--ink) !important;
+        -webkit-text-fill-color: var(--ink) !important;
         opacity: 1 !important;
     }}
     .stApp [data-baseweb="select"] * {{
-        color: #172033 !important;
+        color: var(--ink) !important;
     }}
-    .stApp button[data-baseweb="tab"] {{
-        color: #667085 !important;
-    }}
-    .stApp button[data-baseweb="tab"][aria-selected="true"] {{
-        color: #0B0F19 !important;
+    .stApp [data-baseweb="select"] > div {{
+        border-radius: var(--radius-sm) !important;
+        border-color: var(--border) !important;
     }}
     .stApp [data-testid="stDataFrame"] *,
     .stApp [data-testid="stTable"] * {{
-        color: #172033 !important;
+        color: var(--ink) !important;
     }}
     .plan-card, .plan-card * {{
-        color: #172033 !important;
+        color: var(--ink) !important;
     }}
-    .plan-card .plan-name, .plan-card .plan-price {{
-        color: #071A3D !important;
-    }}
-    .plan-card .plan-description, .plan-card .plan-feature {{
-        color: #52637A !important;
-    }}
-    .plan-card .plan-feature {{
-        font-weight: 600 !important;
-    }}
-    .stApp a {{
-        color: #0757B8 !important;
-        text-decoration: none;
-    }}
-    .stApp a:hover {{
-        color: #003F8F !important;
-        text-decoration: underline;
-    }}
-
-    /* ========================================================
-       HARD EMBED CONTRAST FIX
-       Explicitly style Streamlit-generated content and the
-       custom HTML blocks. This prevents invisible text when
-       the app is embedded inside a website/iframe.
-       ======================================================== */
     .stApp [data-testid="stMarkdownContainer"],
     .stApp [data-testid="stMarkdownContainer"] p,
     .stApp [data-testid="stMarkdownContainer"] div,
@@ -507,60 +477,35 @@ st.markdown(
     .stApp [data-testid="stMarkdownContainer"] li,
     .stApp [data-testid="stMarkdownContainer"] strong,
     .stApp [data-testid="stMarkdownContainer"] em {{
-        color: #172033 !important;
+        color: var(--ink) !important;
         opacity: 1 !important;
         visibility: visible !important;
-        -webkit-text-fill-color: #172033 !important;
+        -webkit-text-fill-color: var(--ink) !important;
     }}
-
     .stApp [data-testid="stMarkdownContainer"] h1,
     .stApp [data-testid="stMarkdownContainer"] h2,
     .stApp [data-testid="stMarkdownContainer"] h3,
     .stApp [data-testid="stMarkdownContainer"] h4,
     .stApp [data-testid="stMarkdownContainer"] h5,
     .stApp [data-testid="stMarkdownContainer"] h6 {{
-        color: #071A3D !important;
+        color: var(--ink) !important;
         opacity: 1 !important;
         visibility: visible !important;
-        -webkit-text-fill-color: #071A3D !important;
+        -webkit-text-fill-color: var(--ink) !important;
     }}
-
     .stApp .hero p {{
-        color: #475569 !important;
+        color: var(--ink-soft) !important;
         opacity: 1 !important;
         visibility: visible !important;
-        -webkit-text-fill-color: #475569 !important;
-        font-size: 0.98rem !important;
+        -webkit-text-fill-color: var(--ink-soft) !important;
+        font-size: 0.96rem !important;
         line-height: 1.65 !important;
     }}
-
     .stApp .hero .brand-subtitle {{
-        color: #0757B8 !important;
+        color: var(--blue-link) !important;
         opacity: 1 !important;
-        -webkit-text-fill-color: #0757B8 !important;
+        -webkit-text-fill-color: var(--blue-link) !important;
     }}
-
-    /* Tabs: force both selected and unselected labels to remain visible. */
-    .stApp [data-baseweb="tab-list"] {{
-        background: transparent !important;
-    }}
-    .stApp button[data-baseweb="tab"],
-    .stApp button[data-baseweb="tab"] span,
-    .stApp button[data-baseweb="tab"] div {{
-        color: #667085 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        -webkit-text-fill-color: #667085 !important;
-        font-weight: 700 !important;
-    }}
-    .stApp button[data-baseweb="tab"][aria-selected="true"],
-    .stApp button[data-baseweb="tab"][aria-selected="true"] span,
-    .stApp button[data-baseweb="tab"][aria-selected="true"] div {{
-        color: #0B0F19 !important;
-        -webkit-text-fill-color: #0B0F19 !important;
-    }}
-
-    /* Streamlit headings/captions outside markdown containers. */
     .stApp [data-testid="stHeader"] *,
     .stApp [data-testid="stText"],
     .stApp [data-testid="stCaptionContainer"] *,
@@ -570,232 +515,110 @@ st.markdown(
         opacity: 1 !important;
         visibility: visible !important;
     }}
-
-    .stApp [data-testid="stCaptionContainer"] *,
-    .stApp .stCaption {{
-        color: #52637A !important;
-        -webkit-text-fill-color: #52637A !important;
-    }}
-
-    /* Inputs and buttons in an embedded page. */
     .stApp input,
     .stApp textarea,
     .stApp [role="textbox"],
     .stApp [data-baseweb="input"] input,
     .stApp [data-baseweb="textarea"] textarea {{
-        background-color: #FFFFFF !important;
-        color: #172033 !important;
-        -webkit-text-fill-color: #172033 !important;
+        background-color: var(--paper) !important;
+        color: var(--ink) !important;
+        -webkit-text-fill-color: var(--ink) !important;
         opacity: 1 !important;
     }}
-
+    .stApp [data-baseweb="input"], .stApp [data-baseweb="textarea"] {{
+        border-radius: var(--radius-sm) !important;
+        border-color: var(--border) !important;
+    }}
     .stApp input::placeholder,
     .stApp textarea::placeholder {{
-        color: #64748B !important;
-        -webkit-text-fill-color: #64748B !important;
+        color: #9CA3AF !important;
+        -webkit-text-fill-color: #9CA3AF !important;
         opacity: 1 !important;
     }}
-
     .stApp .stButton button,
     .stApp [data-testid="stFormSubmitButton"] button,
     .stApp [data-testid="stLinkButton"] a {{
         opacity: 1 !important;
         visibility: visible !important;
     }}
-
-    /* FINAL EMBED / WIX CONTRAST + MOBILE SAFETY */
-    .stApp .gi-brand, .stApp .gi-brand * {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; opacity:1 !important; visibility:visible !important; }}
-    .stApp .gi-brand span {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; }}
-    .stApp .gi-tagline {{ color:#52637A !important; -webkit-text-fill-color:#52637A !important; opacity:1 !important; }}
-    .stApp .hero .main-title {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; }}
-    .stApp .hero .brand-subtitle {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; opacity:1 !important; visibility:visible !important; }}
-    .stApp .hero p, .stApp .hero .hero-description {{ color:#334155 !important; -webkit-text-fill-color:#334155 !important; opacity:1 !important; visibility:visible !important; }}
-    .stApp .website-link {{ color:#0757B8 !important; -webkit-text-fill-color:#0757B8 !important; font-weight:700 !important; text-decoration:none !important; }}
+    .stApp .gi-brand, .stApp .gi-brand * {{ color:var(--ink) !important; -webkit-text-fill-color:var(--ink) !important; opacity:1 !important; visibility:visible !important; }}
+    .stApp .gi-brand span {{ color:var(--blue-link) !important; -webkit-text-fill-color:var(--blue-link) !important; }}
+    .stApp .gi-tagline {{ color:var(--muted) !important; -webkit-text-fill-color:var(--muted) !important; opacity:1 !important; }}
+    .stApp .website-link {{ color:var(--blue-link) !important; -webkit-text-fill-color:var(--blue-link) !important; font-weight:700 !important; text-decoration:none !important; }}
     .stApp .plan-card, .stApp .plan-card * {{ opacity:1 !important; visibility:visible !important; }}
-    .stApp .plan-card .plan-name, .stApp .plan-card .plan-price {{ color:#071A3D !important; -webkit-text-fill-color:#071A3D !important; }}
-    .stApp .plan-card .plan-description, .stApp .plan-card .plan-feature {{ color:#52637A !important; -webkit-text-fill-color:#52637A !important; }}
 
-    /* ========================================================
+    /* ============================================================
        HIDE STREAMLIT CHROME
-       Fallback in case config.toml's toolbarMode isn't picked up
-       (e.g. first load, or the app opened directly rather than
-       embedded). Hides the Share/star/GitHub/edit/deploy toolbar,
-       the hamburger menu, and the "Made with Streamlit" footer so
-       the repo and deploy controls aren't exposed to visitors.
-       ======================================================== */
+       ============================================================ */
     #MainMenu {{ visibility: hidden !important; }}
     header [data-testid="stToolbar"] {{ display: none !important; visibility: hidden !important; }}
     footer {{ visibility: hidden !important; }}
     [data-testid="stDecoration"] {{ display: none !important; }}
     a[href*="github.com"] {{ display: none !important; }}
 
-    @media (max-width:768px) {{
-        .main-title {{ font-size:1.8rem !important; }}
-        .hero {{ padding:1.1rem 1rem !important; border-radius:16px !important; }}
-        .plan-card {{ min-height:auto !important; margin-bottom:.75rem !important; }}
-        .stApp .stButton > button, .stApp [data-testid="stLinkButton"] a, .stApp [data-testid="stFormSubmitButton"] button {{ width:100% !important; min-height:44px !important; }}
+    /* ============================================================
+       RESPONSIVE — tablet (\u2264768px) and phone (\u2264480px). Every
+       card/button/grid below reflows to single-column with full-width,
+       touch-sized (\u226544px) controls at phone width.
+       ============================================================ */
+    @media (max-width: 768px) {{
+        .main-title {{ font-size: 1.6rem !important; }}
+        .hero {{ padding: 1.1rem 1rem !important; border-radius: 16px !important; }}
+        .plan-card {{ min-height: auto !important; margin-bottom: .75rem !important; }}
+        .gi-metric-card {{ margin-bottom: .6rem; }}
+        .stApp .stButton > button,
+        .stApp [data-testid="stLinkButton"] a,
+        .stApp [data-testid="stFormSubmitButton"] button {{
+            width: 100% !important;
+            min-height: 44px !important;
+        }}
+        div[data-testid="column"] {{
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+        }}
     }}
 
-    /* ========================================================
-       LOGO BADGE
-       Rounded dark square + sparkle glyph, used in the header and
-       the sidebar so the brand mark is consistent everywhere, with
-       or without an uploaded PNG logo (assets/Generative_insight.png).
-       ======================================================== */
-    .gi-logo-row {{
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 4px;
-    }}
-    .gi-logo-row.compact {{ gap: 10px; margin-bottom: 2px; }}
-    .gi-logo-badge {{
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 44px;
-        height: 44px;
-        border-radius: 13px;
-        background: linear-gradient(135deg, #0B0F19, #1F2937);
-        box-shadow: 0 3px 10px rgba(11,15,25,0.25);
-    }}
-    .gi-logo-row.compact .gi-logo-badge {{ width: 36px; height: 36px; border-radius: 11px; }}
-    .gi-logo-badge svg {{ width: 55%; height: 55%; }}
-    .gi-logo-text {{ display: flex; flex-direction: column; justify-content: center; line-height: 1.15; }}
-    .gi-logo-text .gi-brand {{ margin: 0; }}
-    .gi-logo-text .gi-tagline {{ margin: 0; }}
-
-    section[data-testid="stSidebar"] .gi-logo-badge {{ width: 38px; height: 38px; border-radius: 12px; }}
-
-    /* ========================================================
-       SIDEBAR NAV POLISH
-       ======================================================== */
-    section[data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {{
-        box-shadow: none;
-    }}
-    section[data-testid="stSidebar"] hr {{
-        margin: 0.9rem 0;
-        border-color: #ECEEF1;
-    }}
-    section[data-testid="stSidebar"] .stSelectbox > div > div {{
-        border-radius: 12px !important;
-    }}
-    section[data-testid="stSidebar"] .stAlert {{
-        border-radius: 14px;
-    }}
-
-    /* ========================================================
-       FILE UPLOADER — dark rounded dropzone matching the
-       reference "Upload" control, same drag/drop behaviour.
-       ======================================================== */
-    .stApp [data-testid="stFileUploaderDropzone"] {{
-        background: #0B0F19 !important;
-        border: 1px solid #0B0F19 !important;
-        border-radius: 14px !important;
-        padding: 0.6rem 1rem !important;
-    }}
-    .stApp [data-testid="stFileUploaderDropzone"] * {{
-        color: #FFFFFF !important;
-        -webkit-text-fill-color: #FFFFFF !important;
-    }}
-    .stApp [data-testid="stFileUploaderDropzone"] small,
-    .stApp [data-testid="stFileUploaderDropzone"] span {{
-        opacity: 0.8;
-    }}
-    .stApp [data-testid="stFileUploaderDropzone"] button {{
-        background: #FFFFFF !important;
-        color: #0B0F19 !important;
-        -webkit-text-fill-color: #0B0F19 !important;
-        border-radius: 999px !important;
-        border: none !important;
-        font-weight: 700 !important;
-    }}
-    .stApp [data-testid="stFileUploaderDropzone"] svg {{ fill: #FFFFFF !important; }}
-
-    /* ========================================================
-       PRICING CARDS — icon chip + "Most popular" ribbon so the
-       three tiers read the same as the plans reference page.
-       ======================================================== */
-    .plan-card {{ position: relative; overflow: visible; text-align: left; }}
-    .plan-card.popular {{ border-color: #0B0F19 !important; box-shadow: 0 10px 30px rgba(16,24,40,0.10); }}
-    .plan-ribbon {{
-        position: absolute;
-        top: -12px;
-        right: 18px;
-        background: #0B0F19;
-        color: #FFFFFF !important;
-        -webkit-text-fill-color: #FFFFFF !important;
-        font-size: 0.72rem;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        padding: 0.3rem 0.7rem;
-        border-radius: 999px;
-        box-shadow: 0 3px 8px rgba(11,15,25,0.25);
-    }}
-    .plan-icon-chip {{
-        width: 52px;
-        height: 52px;
-        border-radius: 14px;
-        background: #F2F4F7;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.65rem;
-        margin-bottom: 0.85rem;
-    }}
-
-    /* ========================================================
-       SEGMENTED TAB STYLING — rounded pill container so tab
-       groups (Create Account / Sign In / Plans, and the main
-       dashboard tabs) read as one connected control.
-       ======================================================== */
-    .stApp [data-baseweb="tab-list"] {{
-        background: #F2F4F7 !important;
-        border-radius: 14px !important;
-        padding: 5px !important;
-        gap: 4px !important;
-    }}
-    .stApp button[data-baseweb="tab"] {{
-        border-radius: 10px !important;
-        padding: 0.5rem 1rem !important;
-    }}
-    .stApp button[data-baseweb="tab"][aria-selected="true"] {{
-        background: #FFFFFF !important;
-        box-shadow: 0 1px 3px rgba(16,24,40,0.10);
-    }}
-    .stApp [data-baseweb="tab-highlight"] {{ display: none !important; }}
-    .stApp [data-baseweb="tab-border"] {{ display: none !important; }}
-
-    /* ========================================================
-       RESPONSIVE — tablet + phone breakpoints on top of the
-       existing 768px rule, so layout stays clean across
-       desktop, laptop, tablet and phone widths without moving
-       any feature or changing behaviour.
-       ======================================================== */
-    @media (max-width:1100px) {{
-        .block-container {{ padding-left: 1.4rem !important; padding-right: 1.4rem !important; }}
-    }}
-    @media (max-width:600px) {{
-        .block-container {{ padding-left: 0.9rem !important; padding-right: 0.9rem !important; }}
-        .gi-logo-badge {{ width: 36px !important; height: 36px !important; }}
-        .gi-brand {{ font-size: 1.12rem !important; }}
-        .hero {{ padding: 1rem 0.9rem !important; }}
-        .gi-card {{ padding: 1.05rem 1.05rem !important; }}
-        .plan-icon-chip {{ width: 44px; height: 44px; font-size: 1.4rem; }}
-        div[data-testid="stMetricValue"] {{ font-size: 1.55rem !important; }}
-        .stApp [data-testid="stFileUploaderDropzone"] {{ padding: 0.9rem 0.8rem !important; }}
+    @media (max-width: 480px) {{
+        .main-title {{ font-size: 1.35rem !important; }}
+        .brand-subtitle {{ font-size: 0.88rem !important; }}
+        .hero {{ padding: 0.9rem 0.85rem !important; border-radius: 14px !important; }}
+        .gi-metric-value {{ font-size: 1.3rem !important; }}
+        div[data-testid="stMetricValue"] {{ font-size: 1.35rem !important; }}
+        .plan-card {{ padding: 1.05rem !important; }}
+        section[data-testid="stSidebar"] {{ min-width: 100% !important; }}
     }}
 </style>
-"""
-,
+""",
     unsafe_allow_html=True,
 )
+
 
 
 # ============================================================
 # HELPERS
 # ============================================================
+
+def render_metric_card(icon, label, value, delta=None, delta_tone="neutral"):
+    """
+    Custom stat card: icon, label, big value, colored delta chip.
+    Visually closer to the approved mockups than st.metric's default
+    layout — purely presentational, carries no logic of its own.
+    delta_tone: "good" (green), "bad" (red), or "neutral" (gray).
+    """
+    delta_html = ""
+    if delta:
+        delta_html = f'<div class="gi-metric-delta {delta_tone}">{delta}</div>'
+    st.markdown(
+        f"""<div class="gi-metric-card">
+<div class="gi-metric-icon">{icon}</div>
+<div class="gi-metric-label">{label}</div>
+<div class="gi-metric-value">{value}</div>
+{delta_html}
+</div>""",
+        unsafe_allow_html=True,
+    )
+
 
 def render_user_badge(name, email):
     """Circular initials avatar + name/email, replacing plain-text caption lines."""
@@ -820,107 +643,11 @@ def render_user_badge(name, email):
     )
 
 
-def render_kpi_grid(cards):
-    """
-    Render a responsive grid of KPI cards matching the reference dashboard
-    design: icon + label on top, big value, small colored delta line below.
-
-    `cards` is a list of dicts:
-        {
-            "label": "On-Time Delivery",
-            "icon": "🚚",
-            "value": "91.4%",
-            "delta": "-8.2% vs target",
-            "delta_tone": "good" | "bad" | "neutral",
-            "delta_dir": "up" | "down" | "",   # arrow direction, optional
-        }
-    Purely visual — does not change any underlying data or logic.
-    """
-    arrow_map = {"up": "↗", "down": "↘"}
-    html_cards = []
-    for c in cards:
-        tone = c.get("delta_tone", "neutral")
-        css_class = "neutral" if tone == "neutral" else f"{c.get('delta_dir', 'up')}-{tone}"
-        arrow = arrow_map.get(c.get("delta_dir", ""), "")
-        delta_html = ""
-        if c.get("delta"):
-            delta_html = f'<div class="gi-kpi-delta {css_class}">{arrow} {c["delta"]}</div>'
-        html_cards.append(
-            f"""<div class="gi-kpi-card">
-<div class="gi-kpi-label"><span>{c.get('label','')}</span><span class="gi-kpi-icon">{c.get('icon','')}</span></div>
-<div class="gi-kpi-value">{c.get('value','')}</div>
-{delta_html}
-</div>"""
-        )
-    st.markdown(
-        f'<div class="gi-kpi-grid">{"".join(html_cards)}</div>',
-        unsafe_allow_html=True,
-    )
-
-
-def gi_badge(text, tone="dark"):
-    """Small monochrome pill badge, e.g. for risk/priority labels."""
-    tone_class = "" if tone == "dark" else tone
-    return f'<span class="gi-badge {tone_class}">{text}</span>'
-
-
-def render_alert_card(title, rows):
-    """
-    Card with a title and a stack of alert rows, each with a right-aligned
-    monochrome badge — mirrors the 'Risk Alerts' panel in the reference design.
-    `rows` is a list of dicts: {"title", "sub", "badge", "tone"}
-    """
-    row_html = []
-    for r in rows:
-        badge = gi_badge(r.get("badge", ""), r.get("tone", "soft"))
-        row_html.append(
-            f"""<div class="gi-alert-row">
-<div><div class="gi-alert-title">{r.get('title','')}</div><div class="gi-alert-sub">{r.get('sub','')}</div></div>
-{badge}
-</div>"""
-        )
-    st.markdown(
-        f"""<div class="gi-card">
-<div class="gi-card-title">{title}</div>
-{"".join(row_html)}
-</div>""",
-        unsafe_allow_html=True,
-    )
-
-
 def secret(name, default=""):
     try:
         return st.secrets.get(name, default)
     except Exception:
         return default
-
-
-SPARKLE_SVG = (
-    '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
-    '<path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6-5.6-1.9 5.6-1.9L12 2.5z" '
-    'fill="#FFFFFF"/>'
-    '<circle cx="19" cy="18" r="2.2" fill="#FFFFFF"/>'
-    '</svg>'
-)
-
-
-def render_logo_badge(compact=False):
-    """
-    Rounded dark badge with a sparkle glyph + the wordmark, used as the
-    fallback brand mark whenever assets/Generative_insight.png hasn't
-    been uploaded yet. Purely visual — no functional change.
-    """
-    row_class = "gi-logo-row compact" if compact else "gi-logo-row"
-    st.markdown(
-        f"""<div class="{row_class}">
-<div class="gi-logo-badge">{SPARKLE_SVG}</div>
-<div class="gi-logo-text">
-<div class="gi-brand">Generative <span>Insight</span></div>
-<div class="gi-tagline">Insights today. Intelligence tomorrow.</div>
-</div>
-</div>""",
-        unsafe_allow_html=True,
-    )
 
 
 def show_brand_header(compact=False):
@@ -932,7 +659,16 @@ def show_brand_header(compact=False):
             width=230 if compact else 420,
         )
     else:
-        render_logo_badge(compact=compact)
+        st.markdown(
+            """<div class="gi-brand-row">
+<div class="gi-logo-mark">✦</div>
+<div>
+<div class="gi-brand">Generative <span>Insight</span></div>
+<div class="gi-tagline">Insights today. Intelligence tomorrow.</div>
+</div>
+</div>""",
+            unsafe_allow_html=True,
+        )
 
     st.markdown(
         f"""<div style="margin-top:-8px; margin-bottom:18px; color:#667085; font-size:0.85rem;">
@@ -1843,55 +1579,36 @@ def render_manufacturing_flow(plan_config):
         unsafe_allow_html=True,
     )
 
-    render_kpi_grid([
-        {
-            "label": "Recommended Spend",
-            "icon": "💰",
-            "value": f"₹{overall['total_recommended_spend']:,.0f}",
-            "delta": "",
-        },
-        {
-            "label": "Highest-Quote Spend",
-            "icon": "📄",
-            "value": f"₹{overall['total_highest_quote_spend']:,.0f}",
-            "delta": "",
-        },
-        {
-            "label": "Potential Savings",
-            "icon": "📉",
-            "value": f"₹{overall['total_potential_savings']:,.0f}",
-            "delta": f"{overall['overall_savings_pct']}%" if overall['overall_savings_pct'] is not None else "",
-            "delta_dir": "down",
-            "delta_tone": "good",
-        },
-        {
-            "label": "Purchase Requisitions",
-            "icon": "📋",
-            "value": str(overall["total_prs"]),
-            "delta": "",
-        },
-    ])
+    r1, r2, r3, r4 = st.columns(4)
+    with r1:
+        render_metric_card("💰", "Recommended Spend", f"₹{overall['total_recommended_spend']:,.0f}")
+    with r2:
+        render_metric_card("🔎", "Highest-Quote Spend", f"₹{overall['total_highest_quote_spend']:,.0f}")
+    with r3:
+        render_metric_card(
+            "📉", "Potential Savings", f"₹{overall['total_potential_savings']:,.0f}",
+            delta=f"{overall['overall_savings_pct']}%" if overall['overall_savings_pct'] is not None else None,
+            delta_tone="good" if (overall['overall_savings_pct'] or 0) > 0 else "neutral",
+        )
+    with r4:
+        render_metric_card("📋", "Purchase Requisitions", overall["total_prs"])
 
-    render_kpi_grid([
-        {
-            "label": "Single-Vendor Items",
-            "icon": "🔒",
-            "value": str(overall["total_single_vendor_items"]),
-            "delta": "",
-        },
-        {
-            "label": "Price-Increase Items",
-            "icon": "📈",
-            "value": str(overall["total_price_increase_items"]),
-            "delta": "",
-        },
-        {
-            "label": "No-Quote Items",
-            "icon": "❌",
-            "value": str(overall["total_no_quote_items"]),
-            "delta": "",
-        },
-    ])
+    risk1, risk2, risk3 = st.columns(3)
+    with risk1:
+        render_metric_card(
+            "⚠️", "Single-Vendor Items", overall["total_single_vendor_items"],
+            delta_tone="bad" if overall["total_single_vendor_items"] > 0 else "good",
+        )
+    with risk2:
+        render_metric_card(
+            "📈", "Price-Increase Items", overall["total_price_increase_items"],
+            delta_tone="bad" if overall["total_price_increase_items"] > 0 else "good",
+        )
+    with risk3:
+        render_metric_card(
+            "❓", "No-Quote Items", overall["total_no_quote_items"],
+            delta_tone="bad" if overall["total_no_quote_items"] > 0 else "good",
+        )
 
     # ============================================================
     # EXECUTIVE SUMMARY — risk level, summary bullets, and the
@@ -1906,17 +1623,7 @@ def render_manufacturing_flow(plan_config):
     mfg_recommendation = mfg_insights["recommendation"]
 
     st.subheader("🧠 Executive Summary")
-    _mfg_risk_text = mfg_risk_level.split(" ", 1)[-1].title()
-    _mfg_tone = "danger" if "critical" in mfg_risk_level.lower() or "high" in mfg_risk_level.lower() else (
-        "warn" if "medium" in mfg_risk_level.lower() else "good"
-    )
-    st.markdown(
-        f"""<div class="gi-card">
-<div class="gi-kpi-label"><span>Procurement Risk</span></div>
-<div style="margin-top:.3rem;">{gi_badge(_mfg_risk_text, _mfg_tone)}</div>
-</div>""",
-        unsafe_allow_html=True,
-    )
+    st.metric("Procurement Risk", mfg_risk_level)
     for point in mfg_summary_points:
         st.write(point)
     st.info(f"💡 **Procurement Recommendation:** {mfg_recommendation}")
@@ -2616,15 +2323,13 @@ def show_pricing(section_id="default"):
                 "Business": ("🏢", "Scale AI operations across teams"),
             }
             icon, description = plan_visuals.get(name, ("✨", "Operational intelligence"))
-            is_popular = name == "Professional"
-            card_class = "plan-card popular" if is_popular else "plan-card"
-            ribbon_html = '<div class="plan-ribbon">MOST POPULAR</div>' if is_popular else ""
+            popular_badge = '<div class="plan-badge-popular">Most popular</div>' if name == "Professional" else ""
 
             st.markdown(
                 f'''
-                <div class="{card_class}">
-                    {ribbon_html}
-                    <div class="plan-icon-chip">{icon}</div>
+                <div class="plan-card">
+                    {popular_badge}
+                    <div style="font-size:2.6rem; line-height:1; margin-bottom:.7rem;">{icon}</div>
                     <div class="plan-name" style="font-size:1.15rem; font-weight:800;">{name}</div>
                     <div class="plan-price" style="font-size:1.65rem; font-weight:850; margin:.35rem 0;">{price}</div>
                     <div class="plan-description" style="font-size:.86rem; margin-bottom:.8rem;">{description}</div>
@@ -3143,11 +2848,18 @@ with st.sidebar:
             str(LOGO_PATH),
             use_container_width=True,
         )
-        st.caption("AI Operations Copilot")
 
     else:
 
-        render_logo_badge(compact=True)
+        st.markdown(
+            """<div class="gi-brand-row">
+<div class="gi-logo-mark">✦</div>
+<div class="gi-brand">Generative <span>Insight</span></div>
+</div>""",
+            unsafe_allow_html=True,
+        )
+
+    st.caption("AI Operations Copilot")
 
     st.markdown(
         f"""<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">🌐 Visit Generative Insight</a>""",
@@ -3156,33 +2868,40 @@ with st.sidebar:
 
     st.divider()
 
-    st.success(
-        f"Plan: **{st.session_state.user_plan}**"
+    st.markdown(
+        f'<div class="gi-pill green">Plan: {st.session_state.user_plan}</div>',
+        unsafe_allow_html=True,
     )
 
     if st.session_state.user_plan == "Free":
         if free_billing_is_active():
-            st.caption("✅ ₹299/mo billing active — trial limits don't apply.")
+            st.markdown(
+                '<div class="gi-pill green">✅ ₹299/mo billing active — trial limits don\'t apply.</div>',
+                unsafe_allow_html=True,
+            )
         else:
             remaining = trial_days_remaining()
             if remaining is not None:
                 if remaining <= 0:
-                    st.error(
-                        f"Your {FREE_TRIAL_DAYS}-day free trial has ended. "
-                        "Continue for ₹299/mo to keep using AI Operations Manager."
+                    st.markdown(
+                        f'<div class="gi-pill red">Your {FREE_TRIAL_DAYS}-day free trial has ended. '
+                        'Continue for ₹299/mo to keep using AI Operations Manager.</div>',
+                        unsafe_allow_html=True,
                     )
                 elif remaining <= 3:
-                    st.warning(
-                        f"⏳ {remaining} day(s) left in your free trial "
-                        "(then ₹299/mo)."
+                    st.markdown(
+                        f'<div class="gi-pill amber">⏳ {remaining} day(s) left in your free trial '
+                        '(then ₹299/mo).</div>',
+                        unsafe_allow_html=True,
                     )
                 elif remaining <= 5:
                     # Soft nudge before the hard wall hits — people convert
                     # better when they choose to upgrade early than when
                     # they're forced to at day 0.
-                    st.info(
-                        f"🙂 {remaining} days left in your trial. "
-                        "Lock in ₹299/mo now to avoid any interruption."
+                    st.markdown(
+                        f'<div class="gi-pill amber">🙂 {remaining} days left in your trial. '
+                        'Lock in ₹299/mo now to avoid any interruption.</div>',
+                        unsafe_allow_html=True,
                     )
                     if st.button(
                         "Continue for ₹299/mo",
@@ -3192,8 +2911,9 @@ with st.sidebar:
                         st.session_state.show_plans = True
                         st.rerun()
                 else:
-                    st.caption(
-                        f"{remaining} days left in your free trial (then ₹299/mo)."
+                    st.markdown(
+                        f'<div class="gi-pill neutral">{remaining} days left in your free trial (then ₹299/mo).</div>',
+                        unsafe_allow_html=True,
                     )
 
     render_user_badge(st.session_state.get("user_name", ""), st.session_state.user_email)
@@ -3783,34 +3503,26 @@ st.markdown(
 # TOP EXECUTIVE METRICS
 # ============================================================
 
-render_kpi_grid([
-    {
-        "label": "Operational Risk",
-        "icon": "⚠️",
-        "value": risk_level.split(" ", 1)[-1].title(),
-        "delta": "",
-    },
-    {
-        "label": "KPI Breaches",
-        "icon": "📊",
-        "value": str(breaches),
-        "delta": f"{4 - breaches} on target",
-        "delta_dir": "up" if breaches == 0 else "down",
-        "delta_tone": "good" if breaches == 0 else ("bad" if breaches >= 2 else "neutral"),
-    },
-    {
-        "label": "Action Items",
-        "icon": "✅",
-        "value": str(action_count),
-        "delta": "",
-    },
-    {
-        "label": "High/Critical Actions",
-        "icon": "🚨",
-        "value": str(high_priority_count),
-        "delta": "",
-    },
-])
+r1, r2, r3, r4 = st.columns(4)
+
+with r1:
+    render_metric_card("🚦", "Operational Risk", risk_level)
+
+with r2:
+    render_metric_card(
+        "🎯", "KPI Breaches", breaches,
+        delta=f"{4 - breaches} on target",
+        delta_tone="good" if breaches == 0 else ("bad" if breaches >= 2 else "neutral"),
+    )
+
+with r3:
+    render_metric_card("✅", "Action Items", action_count)
+
+with r4:
+    render_metric_card(
+        "🔺", "High/Critical Actions", high_priority_count,
+        delta_tone="bad" if high_priority_count > 0 else "good",
+    )
 
 
 # ============================================================
@@ -3821,40 +3533,35 @@ st.subheader(
     "📊 KPI Performance vs Target"
 )
 
-render_kpi_grid([
-    {
-        "label": "Productivity",
-        "icon": "⚙️",
-        "value": f"{productivity:.2f}%",
-        "delta": f"{productivity_gap:+.2f}% vs target",
-        "delta_dir": "up" if productivity_gap >= 0 else "down",
-        "delta_tone": "good" if productivity_gap >= 0 else "bad",
-    },
-    {
-        "label": "Quality",
-        "icon": "🎯",
-        "value": f"{quality:.2f}%",
-        "delta": f"{quality_gap:+.2f}% vs target",
-        "delta_dir": "up" if quality_gap >= 0 else "down",
-        "delta_tone": "good" if quality_gap >= 0 else "bad",
-    },
-    {
-        "label": "SLA",
-        "icon": "📈",
-        "value": f"{sla:.2f}%",
-        "delta": f"{sla_gap:+.2f}% vs target",
-        "delta_dir": "up" if sla_gap >= 0 else "down",
-        "delta_tone": "good" if sla_gap >= 0 else "bad",
-    },
-    {
-        "label": "Average AHT",
-        "icon": "⏱️",
-        "value": f"{aht:.2f}",
-        "delta": f"{aht_gap:+.2f} vs target",
-        "delta_dir": "down" if aht_gap <= 0 else "up",
-        "delta_tone": "good" if aht_gap <= 0 else "bad",
-    },
-])
+k1, k2, k3, k4 = st.columns(4)
+
+with k1:
+    render_metric_card(
+        "📈", "Productivity", f"{productivity:.2f}%",
+        delta=f"{productivity_gap:+.2f}% vs target",
+        delta_tone="good" if productivity_gap >= 0 else "bad",
+    )
+
+with k2:
+    render_metric_card(
+        "✔️", "Quality", f"{quality:.2f}%",
+        delta=f"{quality_gap:+.2f}% vs target",
+        delta_tone="good" if quality_gap >= 0 else "bad",
+    )
+
+with k3:
+    render_metric_card(
+        "⏱️", "SLA", f"{sla:.2f}%",
+        delta=f"{sla_gap:+.2f}% vs target",
+        delta_tone="good" if sla_gap >= 0 else "bad",
+    )
+
+with k4:
+    render_metric_card(
+        "⌛", "Average AHT", f"{aht:.2f}",
+        delta=f"{aht_gap:+.2f} vs target",
+        delta_tone="bad" if aht_gap > 0 else "good",
+    )
 
 
 # ============================================================
@@ -4034,7 +3741,6 @@ with tabs[0]:
     left, right = st.columns([1.4, 1])
 
     with left:
-      with st.container(border=True):
 
         st.subheader("Team Performance")
 
@@ -4076,7 +3782,6 @@ with tabs[0]:
             )
 
     with right:
-      with st.container(border=True):
 
         st.subheader(
             "Management Snapshot"
@@ -4092,19 +3797,17 @@ with tabs[0]:
             and not employees.empty
         ):
 
-            m1, m2 = st.columns(2)
-            with m1:
-                st.metric(
-                    "Employees analyzed",
-                    len(employees),
-                )
+            st.metric(
+                "Employees analyzed",
+                len(employees),
+            )
 
             if "Risk_Score" in employees.columns:
-                with m2:
-                    st.metric(
-                        "Highest employee risk score",
-                        f"{employees['Risk_Score'].max():.2f}",
-                    )
+
+                st.metric(
+                    "Highest employee risk score",
+                    f"{employees['Risk_Score'].max():.2f}",
+                )
 
         st.write(
             "**Current KPI position**"
@@ -4773,5 +4476,5 @@ Insights today. Intelligence tomorrow.
 &nbsp;·&nbsp;
 © {datetime.now().year}
 </div>""",
-        unsafe_allow_html=True,
+    unsafe_allow_html=True,
 )
