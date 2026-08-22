@@ -635,6 +635,157 @@ st.markdown(
         .plan-card {{ min-height:auto !important; margin-bottom:.75rem !important; }}
         .stApp .stButton > button, .stApp [data-testid="stLinkButton"] a, .stApp [data-testid="stFormSubmitButton"] button {{ width:100% !important; min-height:44px !important; }}
     }}
+
+    /* ========================================================
+       LOGO BADGE
+       Rounded dark square + sparkle glyph, used in the header and
+       the sidebar so the brand mark is consistent everywhere, with
+       or without an uploaded PNG logo (assets/Generative_insight.png).
+       ======================================================== */
+    .gi-logo-row {{
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 4px;
+    }}
+    .gi-logo-row.compact {{ gap: 10px; margin-bottom: 2px; }}
+    .gi-logo-badge {{
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 13px;
+        background: linear-gradient(135deg, #0B0F19, #1F2937);
+        box-shadow: 0 3px 10px rgba(11,15,25,0.25);
+    }}
+    .gi-logo-row.compact .gi-logo-badge {{ width: 36px; height: 36px; border-radius: 11px; }}
+    .gi-logo-badge svg {{ width: 55%; height: 55%; }}
+    .gi-logo-text {{ display: flex; flex-direction: column; justify-content: center; line-height: 1.15; }}
+    .gi-logo-text .gi-brand {{ margin: 0; }}
+    .gi-logo-text .gi-tagline {{ margin: 0; }}
+
+    section[data-testid="stSidebar"] .gi-logo-badge {{ width: 38px; height: 38px; border-radius: 12px; }}
+
+    /* ========================================================
+       SIDEBAR NAV POLISH
+       ======================================================== */
+    section[data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {{
+        box-shadow: none;
+    }}
+    section[data-testid="stSidebar"] hr {{
+        margin: 0.9rem 0;
+        border-color: #ECEEF1;
+    }}
+    section[data-testid="stSidebar"] .stSelectbox > div > div {{
+        border-radius: 12px !important;
+    }}
+    section[data-testid="stSidebar"] .stAlert {{
+        border-radius: 14px;
+    }}
+
+    /* ========================================================
+       FILE UPLOADER — dark rounded dropzone matching the
+       reference "Upload" control, same drag/drop behaviour.
+       ======================================================== */
+    .stApp [data-testid="stFileUploaderDropzone"] {{
+        background: #0B0F19 !important;
+        border: 1px solid #0B0F19 !important;
+        border-radius: 14px !important;
+        padding: 0.6rem 1rem !important;
+    }}
+    .stApp [data-testid="stFileUploaderDropzone"] * {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }}
+    .stApp [data-testid="stFileUploaderDropzone"] small,
+    .stApp [data-testid="stFileUploaderDropzone"] span {{
+        opacity: 0.8;
+    }}
+    .stApp [data-testid="stFileUploaderDropzone"] button {{
+        background: #FFFFFF !important;
+        color: #0B0F19 !important;
+        -webkit-text-fill-color: #0B0F19 !important;
+        border-radius: 999px !important;
+        border: none !important;
+        font-weight: 700 !important;
+    }}
+    .stApp [data-testid="stFileUploaderDropzone"] svg {{ fill: #FFFFFF !important; }}
+
+    /* ========================================================
+       PRICING CARDS — icon chip + "Most popular" ribbon so the
+       three tiers read the same as the plans reference page.
+       ======================================================== */
+    .plan-card {{ position: relative; overflow: visible; text-align: left; }}
+    .plan-card.popular {{ border-color: #0B0F19 !important; box-shadow: 0 10px 30px rgba(16,24,40,0.10); }}
+    .plan-ribbon {{
+        position: absolute;
+        top: -12px;
+        right: 18px;
+        background: #0B0F19;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        box-shadow: 0 3px 8px rgba(11,15,25,0.25);
+    }}
+    .plan-icon-chip {{
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: #F2F4F7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.65rem;
+        margin-bottom: 0.85rem;
+    }}
+
+    /* ========================================================
+       SEGMENTED TAB STYLING — rounded pill container so tab
+       groups (Create Account / Sign In / Plans, and the main
+       dashboard tabs) read as one connected control.
+       ======================================================== */
+    .stApp [data-baseweb="tab-list"] {{
+        background: #F2F4F7 !important;
+        border-radius: 14px !important;
+        padding: 5px !important;
+        gap: 4px !important;
+    }}
+    .stApp button[data-baseweb="tab"] {{
+        border-radius: 10px !important;
+        padding: 0.5rem 1rem !important;
+    }}
+    .stApp button[data-baseweb="tab"][aria-selected="true"] {{
+        background: #FFFFFF !important;
+        box-shadow: 0 1px 3px rgba(16,24,40,0.10);
+    }}
+    .stApp [data-baseweb="tab-highlight"] {{ display: none !important; }}
+    .stApp [data-baseweb="tab-border"] {{ display: none !important; }}
+
+    /* ========================================================
+       RESPONSIVE — tablet + phone breakpoints on top of the
+       existing 768px rule, so layout stays clean across
+       desktop, laptop, tablet and phone widths without moving
+       any feature or changing behaviour.
+       ======================================================== */
+    @media (max-width:1100px) {{
+        .block-container {{ padding-left: 1.4rem !important; padding-right: 1.4rem !important; }}
+    }}
+    @media (max-width:600px) {{
+        .block-container {{ padding-left: 0.9rem !important; padding-right: 0.9rem !important; }}
+        .gi-logo-badge {{ width: 36px !important; height: 36px !important; }}
+        .gi-brand {{ font-size: 1.12rem !important; }}
+        .hero {{ padding: 1rem 0.9rem !important; }}
+        .gi-card {{ padding: 1.05rem 1.05rem !important; }}
+        .plan-icon-chip {{ width: 44px; height: 44px; font-size: 1.4rem; }}
+        div[data-testid="stMetricValue"] {{ font-size: 1.55rem !important; }}
+        .stApp [data-testid="stFileUploaderDropzone"] {{ padding: 0.9rem 0.8rem !important; }}
+    }}
 </style>
 """
 ,
@@ -744,6 +895,34 @@ def secret(name, default=""):
         return default
 
 
+SPARKLE_SVG = (
+    '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    '<path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6-5.6-1.9 5.6-1.9L12 2.5z" '
+    'fill="#FFFFFF"/>'
+    '<circle cx="19" cy="18" r="2.2" fill="#FFFFFF"/>'
+    '</svg>'
+)
+
+
+def render_logo_badge(compact=False):
+    """
+    Rounded dark badge with a sparkle glyph + the wordmark, used as the
+    fallback brand mark whenever assets/Generative_insight.png hasn't
+    been uploaded yet. Purely visual — no functional change.
+    """
+    row_class = "gi-logo-row compact" if compact else "gi-logo-row"
+    st.markdown(
+        f"""<div class="{row_class}">
+<div class="gi-logo-badge">{SPARKLE_SVG}</div>
+<div class="gi-logo-text">
+<div class="gi-brand">Generative <span>Insight</span></div>
+<div class="gi-tagline">Insights today. Intelligence tomorrow.</div>
+</div>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
 def show_brand_header(compact=False):
     """Display the Generative Insight logo and website branding."""
 
@@ -753,11 +932,7 @@ def show_brand_header(compact=False):
             width=230 if compact else 420,
         )
     else:
-        st.markdown(
-            """<div class="gi-brand">Generative <span>Insight</span></div>
-<div class="gi-tagline">Insights today. Intelligence tomorrow.</div>""",
-            unsafe_allow_html=True,
-        )
+        render_logo_badge(compact=compact)
 
     st.markdown(
         f"""<div style="margin-top:-8px; margin-bottom:18px; color:#667085; font-size:0.85rem;">
@@ -2441,11 +2616,15 @@ def show_pricing(section_id="default"):
                 "Business": ("🏢", "Scale AI operations across teams"),
             }
             icon, description = plan_visuals.get(name, ("✨", "Operational intelligence"))
+            is_popular = name == "Professional"
+            card_class = "plan-card popular" if is_popular else "plan-card"
+            ribbon_html = '<div class="plan-ribbon">MOST POPULAR</div>' if is_popular else ""
 
             st.markdown(
                 f'''
-                <div class="plan-card">
-                    <div style="font-size:2.6rem; line-height:1; margin-bottom:.7rem;">{icon}</div>
+                <div class="{card_class}">
+                    {ribbon_html}
+                    <div class="plan-icon-chip">{icon}</div>
                     <div class="plan-name" style="font-size:1.15rem; font-weight:800;">{name}</div>
                     <div class="plan-price" style="font-size:1.65rem; font-weight:850; margin:.35rem 0;">{price}</div>
                     <div class="plan-description" style="font-size:.86rem; margin-bottom:.8rem;">{description}</div>
@@ -2964,15 +3143,11 @@ with st.sidebar:
             str(LOGO_PATH),
             use_container_width=True,
         )
+        st.caption("AI Operations Copilot")
 
     else:
 
-        st.markdown(
-            """<div class="gi-brand">Generative <span>Insight</span></div>""",
-            unsafe_allow_html=True,
-        )
-
-    st.caption("AI Operations Copilot")
+        render_logo_badge(compact=True)
 
     st.markdown(
         f"""<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">🌐 Visit Generative Insight</a>""",
@@ -4598,5 +4773,5 @@ Insights today. Intelligence tomorrow.
 &nbsp;·&nbsp;
 © {datetime.now().year}
 </div>""",
-    unsafe_allow_html=True,
+        unsafe_allow_html=True,
 )
