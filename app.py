@@ -25,7 +25,7 @@ APP_VERSION = "1.0.0"
 
 st.set_page_config(
     page_title="Generative Insight | AI Operations Copilot",
-    page_icon="assests/Generative_insight.png",
+    page_icon="assets/Generative_insight.png",
     layout="wide",
     initial_sidebar_state="expanded",
 )
