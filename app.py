@@ -387,13 +387,13 @@ st.markdown(
     }}
 
     /* ---------- Sidebar ---------- */
-    section[data-testid="stSidebar"] {{
+    section[data-testid="stSidebar"] {{{{
         background: var(--paper);
         border-right: 1px solid var(--border);
-    }}
+    }}}}
 
     /* Status pills used in the sidebar (plan badge, trial notice) */
-    .gi-pill {{
+    .gi-pill {{{{
         display: flex;
         align-items: flex-start;
         gap: 8px;
@@ -403,90 +403,90 @@ st.markdown(
         font-weight: 600;
         line-height: 1.4;
         margin-bottom: 10px;
-    }}
-    .gi-pill.green {{ background: var(--green-bg); color: var(--green-ink); }}
-    .gi-pill.amber {{ background: var(--amber-bg); color: var(--amber-ink); }}
-    .gi-pill.red {{ background: var(--red-bg); color: var(--red-ink); }}
-    .gi-pill.neutral {{ background: var(--border-soft); color: var(--ink-soft); }}
+    }}}}
+    .gi-pill.green {{{{ background: var(--green-bg); color: var(--green-ink); }}}}
+    .gi-pill.amber {{{{ background: var(--amber-bg); color: var(--amber-ink); }}}}
+    .gi-pill.red {{{{ background: var(--red-bg); color: var(--red-ink); }}}}
+    .gi-pill.neutral {{{{ background: var(--border-soft); color: var(--ink-soft); }}}}
 
     /* ---------- Buttons ---------- */
-    .stButton > button {{
+    .stButton > button {{{{
         border-radius: var(--radius-sm);
         font-weight: 700;
         border: 1px solid var(--border);
         color: var(--ink);
         background: var(--paper);
-    }}
+    }}}}
 
-    .stButton > button:hover {{
+    .stButton > button:hover {{{{
         border-color: var(--ink);
-    }}
+    }}}}
 
-    .stButton > button[kind="primary"] {{
+    .stButton > button[kind="primary"] {{{{
         background: var(--black);
         color: #FFFFFF;
         border: none;
-    }}
+    }}}}
 
-    .stButton > button[kind="primary"]:hover {{
+    .stButton > button[kind="primary"]:hover {{{{
         background: var(--black-hover);
         color: #FFFFFF;
-    }}
+    }}}}
 
-    [data-testid="stLinkButton"] a {{
+    [data-testid="stLinkButton"] a {{{{
         border-radius: var(--radius-sm) !important;
         font-weight: 700 !important;
-    }}
+    }}}}
 
     /* ---------- Tabs ---------- */
-    button[data-baseweb="tab"] {{
+    button[data-baseweb="tab"] {{{{
         font-weight: 700;
-    }}
+    }}}}
 
-    button[data-baseweb="tab"][aria-selected="true"] {{
+    button[data-baseweb="tab"][aria-selected="true"] {{{{
         color: var(--ink);
-    }}
+    }}}}
 
-    .stApp [data-baseweb="tab-list"] {{
+    .stApp [data-baseweb="tab-list"] {{{{
         background: transparent !important;
         border-bottom: 1px solid var(--border) !important;
-    }}
+    }}}}
     .stApp button[data-baseweb="tab"],
     .stApp button[data-baseweb="tab"] span,
-    .stApp button[data-baseweb="tab"] div {{
+    .stApp button[data-baseweb="tab"] div {{{{
         color: var(--muted) !important;
         opacity: 1 !important;
         visibility: visible !important;
         -webkit-text-fill-color: var(--muted) !important;
         font-weight: 700 !important;
-    }}
+    }}}}
     .stApp button[data-baseweb="tab"][aria-selected="true"],
     .stApp button[data-baseweb="tab"][aria-selected="true"] span,
-    .stApp button[data-baseweb="tab"][aria-selected="true"] div {{
+    .stApp button[data-baseweb="tab"][aria-selected="true"] div {{{{
         color: var(--ink) !important;
         -webkit-text-fill-color: var(--ink) !important;
-    }}
-    .stApp [data-baseweb="tab-highlight"] {{
+    }}}}
+    .stApp [data-baseweb="tab-highlight"] {{{{
         background-color: var(--ink) !important;
-    }}
+    }}}}
 
-    a {{
+    a {{{{
         color: var(--blue-link);
-    }}
-    .stApp a {{
+    }}}}
+    .stApp a {{{{
         color: var(--blue-link) !important;
         text-decoration: none;
-    }}
-    .stApp a:hover {{
+    }}}}
+    .stApp a:hover {{{{
         text-decoration: underline;
-    }}
+    }}}}
 
-    .gi-footer {{
+    .gi-footer {{{{
         text-align: center;
         color: var(--muted);
         font-size: 0.82rem;
         padding: 1.5rem 0;
-    }}
+    }}}}
 
     /* ============================================================
        EMBED-SAFE TYPOGRAPHY — explicit dark text prevents host-page
@@ -494,143 +494,143 @@ st.markdown(
        ============================================================ */
     .stApp .stMarkdown, .stApp .stMarkdown p, .stApp .stMarkdown li,
     .stApp .stMarkdown span, .stApp label,
-    .stApp [data-testid="stWidgetLabel"], .stApp [data-testid="stWidgetLabel"] * {{
+    .stApp [data-testid="stWidgetLabel"], .stApp [data-testid="stWidgetLabel"] * {{{{
         color: var(--ink) !important;
-    }}
+    }}}}
     .stApp .stCaption, .stApp [data-testid="stCaptionContainer"],
-    .stApp [data-testid="stCaptionContainer"] * {{
+    .stApp [data-testid="stCaptionContainer"] * {{{{
         color: var(--muted) !important;
-    }}
-    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{
+    }}}}
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{{{
         color: var(--ink) !important;
-    }}
+    }}}}
     .stApp input, .stApp textarea, .stApp select,
-    .stApp input::placeholder, .stApp textarea::placeholder {{
+    .stApp input::placeholder, .stApp textarea::placeholder {{{{
         color: var(--ink) !important;
         -webkit-text-fill-color: var(--ink) !important;
         opacity: 1 !important;
-    }}
-    .stApp [data-baseweb="select"] * {{
+    }}}}
+    .stApp [data-baseweb="select"] * {{{{
         color: var(--ink) !important;
-    }}
-    .stApp [data-baseweb="select"] > div {{
+    }}}}
+    .stApp [data-baseweb="select"] > div {{{{
         border-radius: var(--radius-sm) !important;
         border-color: var(--border) !important;
-    }}
+    }}}}
     .stApp [data-testid="stDataFrame"] *,
-    .stApp [data-testid="stTable"] * {{
+    .stApp [data-testid="stTable"] * {{{{
         color: var(--ink) !important;
-    }}
-    .plan-card, .plan-card * {{
+    }}}}
+    .plan-card, .plan-card * {{{{
         color: var(--ink) !important;
-    }}
+    }}}}
     .stApp [data-testid="stMarkdownContainer"],
     .stApp [data-testid="stMarkdownContainer"] p,
     .stApp [data-testid="stMarkdownContainer"] div,
     .stApp [data-testid="stMarkdownContainer"] span,
     .stApp [data-testid="stMarkdownContainer"] li,
     .stApp [data-testid="stMarkdownContainer"] strong,
-    .stApp [data-testid="stMarkdownContainer"] em {{
+    .stApp [data-testid="stMarkdownContainer"] em {{{{
         color: var(--ink) !important;
         opacity: 1 !important;
         visibility: visible !important;
         -webkit-text-fill-color: var(--ink) !important;
-    }}
+    }}}}
     .stApp [data-testid="stMarkdownContainer"] h1,
     .stApp [data-testid="stMarkdownContainer"] h2,
     .stApp [data-testid="stMarkdownContainer"] h3,
     .stApp [data-testid="stMarkdownContainer"] h4,
     .stApp [data-testid="stMarkdownContainer"] h5,
-    .stApp [data-testid="stMarkdownContainer"] h6 {{
+    .stApp [data-testid="stMarkdownContainer"] h6 {{{{
         color: var(--ink) !important;
         opacity: 1 !important;
         visibility: visible !important;
         -webkit-text-fill-color: var(--ink) !important;
-    }}
-    .stApp .hero p {{
+    }}}}
+    .stApp .hero p {{{{
         color: var(--ink-soft) !important;
         opacity: 1 !important;
         visibility: visible !important;
         -webkit-text-fill-color: var(--ink-soft) !important;
         font-size: 0.96rem !important;
         line-height: 1.65 !important;
-    }}
-    .stApp .hero .brand-subtitle {{
+    }}}}
+    .stApp .hero .brand-subtitle {{{{
         color: var(--blue-link) !important;
         opacity: 1 !important;
         -webkit-text-fill-color: var(--blue-link) !important;
-    }}
+    }}}}
     .stApp [data-testid="stHeader"] *,
     .stApp [data-testid="stText"],
     .stApp [data-testid="stCaptionContainer"] *,
     .stApp [data-testid="stWidgetLabel"] *,
     .stApp [data-testid="stForm"] label,
-    .stApp [data-testid="stForm"] p {{
+    .stApp [data-testid="stForm"] p {{{{
         opacity: 1 !important;
         visibility: visible !important;
-    }}
+    }}}}
     .stApp input,
     .stApp textarea,
     .stApp [role="textbox"],
     .stApp [data-baseweb="input"] input,
-    .stApp [data-baseweb="textarea"] textarea {{
+    .stApp [data-baseweb="textarea"] textarea {{{{
         background-color: var(--paper) !important;
         color: var(--ink) !important;
         -webkit-text-fill-color: var(--ink) !important;
         opacity: 1 !important;
-    }}
-    .stApp [data-baseweb="input"], .stApp [data-baseweb="textarea"] {{
+    }}}}
+    .stApp [data-baseweb="input"], .stApp [data-baseweb="textarea"] {{{{
         border-radius: var(--radius-sm) !important;
         border-color: var(--border) !important;
-    }}
+    }}}}
     .stApp input::placeholder,
-    .stApp textarea::placeholder {{
+    .stApp textarea::placeholder {{{{
         color: #9CA3AF !important;
         -webkit-text-fill-color: #9CA3AF !important;
         opacity: 1 !important;
-    }}
+    }}}}
     .stApp .stButton button,
     .stApp [data-testid="stFormSubmitButton"] button,
-    .stApp [data-testid="stLinkButton"] a {{
+    .stApp [data-testid="stLinkButton"] a {{{{
         opacity: 1 !important;
         visibility: visible !important;
-    }}
-    .stApp .gi-brand, .stApp .gi-brand * {{ color:var(--ink) !important; -webkit-text-fill-color:var(--ink) !important; opacity:1 !important; visibility:visible !important; }}
-    .stApp .gi-brand span {{ color:var(--blue-link) !important; -webkit-text-fill-color:var(--blue-link) !important; }}
-    .stApp .gi-tagline {{ color:var(--muted) !important; -webkit-text-fill-color:var(--muted) !important; opacity:1 !important; }}
-    .stApp .website-link {{ color:var(--blue-link) !important; -webkit-text-fill-color:var(--blue-link) !important; font-weight:700 !important; text-decoration:none !important; }}
-    .stApp .plan-card, .stApp .plan-card * {{ opacity:1 !important; visibility:visible !important; }}
+    }}}}
+    .stApp .gi-brand, .stApp .gi-brand * {{{{ color:var(--ink) !important; -webkit-text-fill-color:var(--ink) !important; opacity:1 !important; visibility:visible !important; }}}}
+    .stApp .gi-brand span {{{{ color:var(--blue-link) !important; -webkit-text-fill-color:var(--blue-link) !important; }}}}
+    .stApp .gi-tagline {{{{ color:var(--muted) !important; -webkit-text-fill-color:var(--muted) !important; opacity:1 !important; }}}}
+    .stApp .website-link {{{{ color:var(--blue-link) !important; -webkit-text-fill-color:var(--blue-link) !important; font-weight:700 !important; text-decoration:none !important; }}}}
+    .stApp .plan-card, .stApp .plan-card * {{{{ opacity:1 !important; visibility:visible !important; }}}}
 
     /* ============================================================
        HIDE STREAMLIT CHROME
        ============================================================ */
-    #MainMenu {{ visibility: hidden !important; }}
-    header [data-testid="stToolbar"] {{ display: none !important; visibility: hidden !important; }}
-    footer {{ visibility: hidden !important; }}
-    [data-testid="stDecoration"] {{ display: none !important; }}
-    a[href*="github.com"] {{ display: none !important; }}
+    #MainMenu {{{{ visibility: hidden !important; }}}}
+    header [data-testid="stToolbar"] {{{{ display: none !important; visibility: hidden !important; }}}}
+    footer {{{{ visibility: hidden !important; }}}}
+    [data-testid="stDecoration"] {{{{ display: none !important; }}}}
+    a[href*="github.com"] {{{{ display: none !important; }}}}
 
     /* ============================================================
        REFERENCE SCREEN ALIGNMENT — sidebar + upload screen
        Purely presentational: no widget/state/analysis behavior changes.
        ============================================================ */
 
-    section[data-testid="stSidebar"] {
+    section[data-testid="stSidebar"] {{
         width: 250px !important;
         min-width: 250px !important;
         max-width: 250px !important;
-    }
+    }}
 
-    section[data-testid="stSidebar"] > div:first-child {
+    section[data-testid="stSidebar"] > div:first-child {{
         width: 250px !important;
         padding: 0 !important;
-    }
+    }}
 
-    section[data-testid="stSidebar"] .block-container {
+    section[data-testid="stSidebar"] .block-container {{
         padding: 20px 18px 28px 18px !important;
-    }
+    }}
 
-    section[data-testid="stSidebar"] img {
+    section[data-testid="stSidebar"] img {{
         display: block !important;
         width: 190px !important;
         max-width: 100% !important;
@@ -638,44 +638,44 @@ st.markdown(
         margin: 0 0 7px 0 !important;
         object-fit: contain !important;
         object-position: left center !important;
-    }
+    }}
 
-    section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
+    section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {{
         margin-top: 0 !important;
         margin-bottom: 7px !important;
-    }
+    }}
 
-    section[data-testid="stSidebar"] hr {
+    section[data-testid="stSidebar"] hr {{
         margin: 14px 0 !important;
         border-color: var(--border) !important;
-    }
+    }}
 
     section[data-testid="stSidebar"] h2,
-    section[data-testid="stSidebar"] h3 {
+    section[data-testid="stSidebar"] h3 {{
         font-size: 0.82rem !important;
         line-height: 1.25 !important;
         margin: 0.45rem 0 0.65rem !important;
         letter-spacing: -0.01em;
-    }
+    }}
 
-    section[data-testid="stSidebar"] .stButton > button {
+    section[data-testid="stSidebar"] .stButton > button {{
         min-height: 36px !important;
         font-size: 0.76rem !important;
-    }
+    }}
 
-    section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] label {
+    section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] label {{
         font-size: 0.70rem !important;
         color: var(--muted) !important;
-    }
+    }}
 
-    section[data-testid="stSidebar"] [data-baseweb="select"] {
+    section[data-testid="stSidebar"] [data-baseweb="select"] {{
         min-height: 36px !important;
-    }
+    }}
 
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"] input {
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"] input {{
         min-height: 34px !important;
         font-size: 0.76rem !important;
-    }
+    }}
 
     .main .block-container {
         max-width: 1250px !important;
