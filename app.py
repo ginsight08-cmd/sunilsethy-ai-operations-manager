@@ -611,11 +611,169 @@ st.markdown(
     a[href*="github.com"] {{ display: none !important; }}
 
     /* ============================================================
+       REFERENCE SCREEN ALIGNMENT — sidebar + upload screen
+       Purely presentational: no widget/state/analysis behavior changes.
+       ============================================================ */
+
+    section[data-testid="stSidebar"] {
+        width: 250px !important;
+        min-width: 250px !important;
+        max-width: 250px !important;
+    }
+
+    section[data-testid="stSidebar"] > div:first-child {
+        width: 250px !important;
+        padding: 0 !important;
+    }
+
+    section[data-testid="stSidebar"] .block-container {
+        padding: 20px 18px 28px 18px !important;
+    }
+
+    section[data-testid="stSidebar"] img {
+        display: block !important;
+        width: 190px !important;
+        max-width: 100% !important;
+        height: auto !important;
+        margin: 0 0 7px 0 !important;
+        object-fit: contain !important;
+        object-position: left center !important;
+    }
+
+    section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
+        margin-top: 0 !important;
+        margin-bottom: 7px !important;
+    }
+
+    section[data-testid="stSidebar"] hr {
+        margin: 14px 0 !important;
+        border-color: var(--border) !important;
+    }
+
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3 {
+        font-size: 0.82rem !important;
+        line-height: 1.25 !important;
+        margin: 0.45rem 0 0.65rem !important;
+        letter-spacing: -0.01em;
+    }
+
+    section[data-testid="stSidebar"] .stButton > button {
+        min-height: 36px !important;
+        font-size: 0.76rem !important;
+    }
+
+    section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] label {
+        font-size: 0.70rem !important;
+        color: var(--muted) !important;
+    }
+
+    section[data-testid="stSidebar"] [data-baseweb="select"] {
+        min-height: 36px !important;
+    }
+
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"] input {
+        min-height: 34px !important;
+        font-size: 0.76rem !important;
+    }
+
+    .main .block-container {
+        max-width: 1250px !important;
+        padding: 34px 42px 42px !important;
+    }
+
+    .main-title {
+        font-size: 2rem !important;
+        line-height: 1.15 !important;
+        margin-top: 0 !important;
+        margin-bottom: 5px !important;
+    }
+
+    .brand-subtitle {
+        font-size: 0.92rem !important;
+        line-height: 1.5 !important;
+        margin-bottom: 25px !important;
+    }
+
+    /* Report Setup inputs: equal columns and consistent heights. */
+    .main [data-testid="column"] {
+        min-width: 0 !important;
+    }
+
+    .main [data-testid="stTextInput"] input {
+        min-height: 40px !important;
+    }
+
+    /* Real Streamlit uploader styled as the reference drag/drop card.
+       The native uploader and its behavior remain unchanged. */
+    .main [data-testid="stFileUploader"] {
+        width: 100% !important;
+        margin-top: 2px !important;
+    }
+
+    .main [data-testid="stFileUploaderDropzone"] {
+        min-height: 150px !important;
+        padding: 24px 28px !important;
+        border: 1.5px dashed #C9CDD5 !important;
+        border-radius: 16px !important;
+        background: #FFFFFF !important;
+        box-shadow: 0 1px 2px rgba(15,17,21,0.03) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 18px !important;
+    }
+
+    .main [data-testid="stFileUploaderDropzone"]:hover {
+        border-color: #8F96A3 !important;
+        background: #FCFCFD !important;
+    }
+
+    .main [data-testid="stFileUploaderDropzoneInstructions"] {
+        color: var(--ink) !important;
+    }
+
+    .main [data-testid="stFileUploaderDropzoneInstructions"] > div {
+        color: var(--ink) !important;
+    }
+
+    .main [data-testid="stFileUploaderDropzoneInstructions"] span {
+        color: var(--muted) !important;
+        font-size: 0.74rem !important;
+    }
+
+    .main [data-testid="stFileUploaderDropzone"] button {
+        min-height: 38px !important;
+        padding: 0 18px !important;
+        border-radius: 10px !important;
+        background: var(--black) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        font-weight: 700 !important;
+    }
+
+    /* Required-column code block should read as a clean reference card. */
+    .main [data-testid="stCode"] {
+        border-radius: 12px !important;
+        border: 1px solid var(--border) !important;
+        background: #F6F7F9 !important;
+    }
+
+    .main [data-testid="stDownloadButton"] button {
+        min-height: 40px !important;
+    }
+
+    /* ============================================================
        RESPONSIVE — tablet (\u2264768px) and phone (\u2264480px). Every
        card/button/grid below reflows to single-column with full-width,
        touch-sized (\u226544px) controls at phone width.
        ============================================================ */
     @media (max-width: 768px) {{
+        section[data-testid="stSidebar"] {{
+            width: 280px !important;
+            min-width: 280px !important;
+            max-width: 280px !important;
+        }}
         .main-title {{ font-size: 1.6rem !important; }}
         .hero {{ padding: 1.1rem 1rem !important; border-radius: 16px !important; }}
         .plan-card {{ min-height: auto !important; margin-bottom: .75rem !important; }}
@@ -640,7 +798,6 @@ st.markdown(
         .gi-metric-value {{ font-size: 1.3rem !important; }}
         div[data-testid="stMetricValue"] {{ font-size: 1.35rem !important; }}
         .plan-card {{ padding: 1.05rem !important; }}
-        section[data-testid="stSidebar"] {{ min-width: 100% !important; }}
     }}
 </style>
 """,
@@ -2919,9 +3076,12 @@ with st.sidebar:
 
     if LOGO_PATH.exists():
 
+        # Keep the real logo anchored at the top-left of the sidebar,
+        # matching the reference layout instead of stretching it to the
+        # full sidebar width.
         st.image(
             str(LOGO_PATH),
-            use_container_width=True,
+            width=190,
         )
 
     else:
@@ -3141,8 +3301,6 @@ if st.session_state.user_plan == "Free" and not free_billing_is_active():
 # ============================================================
 # HEADER
 # ============================================================
-
-show_brand_header(compact=True)
 
 st.markdown(
     '<div class="main-title">AI Operations Manager</div>',
