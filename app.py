@@ -195,6 +195,60 @@ st.markdown(
     }}
     .gi-brand-row {{ display: flex; align-items: center; gap: 12px; margin-bottom: 2px; }}
 
+    /* ---------- Auth screen — matched to the provided reference
+       design (Tailwind neutral-950/500/200 palette, rounded-2xl
+       card, size-14 icon badge). Same form fields/logic underneath,
+       purely presentational wrapper. ---------- */
+    .gi-auth-topbar {{
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 18px 8px; border-bottom: 1px solid #E5E5E5;
+        margin-bottom: 8px;
+    }}
+    .gi-auth-icon-sm {{
+        width: 40px; height: 40px; border-radius: 12px;
+        background: #0A0A0A; color: #FFFFFF;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; flex-shrink: 0;
+    }}
+    .gi-auth-icon-lg {{
+        width: 56px; height: 56px; border-radius: 16px;
+        background: #0A0A0A; color: #FFFFFF;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px; margin: 0 auto 14px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }}
+    .gi-auth-hero {{ text-align: center; margin-bottom: 4px; }}
+    .gi-auth-hero-title {{
+        font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em;
+        color: #0A0A0A; margin-bottom: 6px;
+    }}
+    .gi-auth-hero-sub {{
+        font-size: 0.9rem; color: #737373; max-width: 380px;
+        margin: 0 auto;
+    }}
+    .gi-auth-card-title {{
+        font-size: 1.25rem; font-weight: 700; color: #0A0A0A;
+        margin-bottom: 2px;
+    }}
+    .gi-auth-card-desc {{
+        font-size: 0.88rem; color: #737373; margin-bottom: 18px;
+    }}
+    .gi-field-label-row {{
+        display: flex; align-items: center; gap: 7px;
+        font-size: 0.85rem; font-weight: 600; color: #0A0A0A;
+        margin-bottom: 4px; margin-top: 2px;
+    }}
+    .gi-auth-footer-note {{
+        text-align: center; font-size: 0.78rem; color: #737373;
+        margin-top: 18px; line-height: 1.5;
+    }}
+    .gi-auth-shell {{
+        max-width: 460px; margin: 8px auto 0;
+        background: #FFFFFF; border: 1px solid #E5E5E5;
+        border-radius: 16px; padding: 2rem;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }}
+
     .gi-brand {{
         font-size: 1.3rem;
         font-weight: 800;
@@ -2557,19 +2611,32 @@ def show_pricing(section_id="default"):
 
 if not st.session_state.authenticated:
 
-    show_brand_header()
+    # Topbar: logo + wordmark/tagline left, matching the reference design.
+    # (The React reference shows "Need an account? Create account" here —
+    # since Streamlit tabs don't support a clickable header-level tab
+    # switch, this is a plain informational line instead.)
+    if LOGO_PATH.exists():
+        st.image(str(LOGO_PATH), width=230)
+    else:
+        st.markdown(
+            """<div class="gi-auth-topbar">
+<div class="gi-brand-row">
+<div class="gi-auth-icon-sm">✦</div>
+<div>
+<div class="gi-brand">Generative <span>Insight</span></div>
+<div class="gi-tagline">AI Operations Copilot</div>
+</div>
+</div>
+<div style="color:#737373; font-size:0.85rem;">Use the tabs below to sign in or create an account</div>
+</div>""",
+            unsafe_allow_html=True,
+        )
 
-    # NOTE: fixed — this block previously opened with a blank line
-    # followed by 4-space-indented HTML. That leading indentation made
-    # Streamlit's markdown renderer treat the whole block as a
-    # preformatted code block (the black box with raw HTML tags visible
-    # in the screenshot) instead of rendering it as styled HTML. Writing
-    # the HTML flush-left inside the string fixes it.
     st.markdown(
-        """<div class="hero">
-<div class="main-title">AI-powered operational intelligence</div>
-<div class="brand-subtitle">Turn operational data into management decisions.</div>
-<p>Create your account, upload Excel/CSV operational data, identify KPI risks, investigate team and employee performance, ask the AI Operations Copilot questions, and generate management-ready reports.</p>
+        """<div class="gi-auth-hero" style="margin-top:18px;">
+<div class="gi-auth-icon-lg">✦</div>
+<div class="gi-auth-hero-title">AI-powered operational intelligence</div>
+<div class="gi-auth-hero-sub">Turn operational data into management decisions. Create your account, upload Excel/CSV operational data, identify KPI risks, investigate team and employee performance, ask the AI Operations Copilot questions, and generate management-ready reports.</div>
 </div>""",
         unsafe_allow_html=True,
     )
@@ -2600,11 +2667,9 @@ if not st.session_state.authenticated:
     with signup_tab:
 
         st.markdown(
-            "### Create your Generative Insight account"
-        )
-
-        st.caption(
-            "Start with the Free plan. You can upgrade later."
+            """<div class="gi-auth-card-title">Create your account</div>
+<div class="gi-auth-card-desc">Start with the Free plan. You can upgrade later.</div>""",
+            unsafe_allow_html=True,
         )
 
         with st.form(
@@ -2612,40 +2677,59 @@ if not st.session_state.authenticated:
             clear_on_submit=False,
         ):
 
+            st.markdown('<div class="gi-field-label-row">👤 Full Name</div>', unsafe_allow_html=True)
             signup_name = st.text_input(
                 "Full Name",
                 placeholder="e.g. Sunil Sethy",
+                label_visibility="collapsed",
             )
 
+            st.markdown('<div class="gi-field-label-row">🏢 Company / Organization</div>', unsafe_allow_html=True)
             signup_company = st.text_input(
                 "Company / Organization",
                 placeholder="e.g. ABC Technologies",
+                label_visibility="collapsed",
             )
 
+            st.markdown('<div class="gi-field-label-row">✉️ Work Email</div>', unsafe_allow_html=True)
             signup_email = st.text_input(
                 "Work Email",
                 placeholder="name@company.com",
+                label_visibility="collapsed",
             )
 
+            st.markdown('<div class="gi-field-label-row">🔒 Password</div>', unsafe_allow_html=True)
             signup_password = st.text_input(
                 "Password",
                 type="password",
+                placeholder="Use a strong password",
                 help=(
                     "Use a strong password. Supabase enforces "
                     "the configured password policy."
                 ),
+                label_visibility="collapsed",
             )
 
+            st.markdown('<div class="gi-field-label-row">🔒 Confirm Password</div>', unsafe_allow_html=True)
             signup_confirm = st.text_input(
                 "Confirm Password",
                 type="password",
+                placeholder="Re-enter your password",
+                label_visibility="collapsed",
             )
 
             signup_submitted = st.form_submit_button(
-                "🚀 Create Free Account",
+                "🚀 Create Free Account   →",
                 type="primary",
                 use_container_width=True,
             )
+
+        st.markdown(
+            """<div class="gi-auth-footer-note">
+By creating an account, you agree to use the platform responsibly and validate AI recommendations before taking material business action.
+</div>""",
+            unsafe_allow_html=True,
+        )
 
         if signup_submitted:
 
@@ -2740,12 +2824,6 @@ if not st.session_state.authenticated:
                         "❌ Could not create account: "
                         + friendly_auth_error(e)
                     )
-
-        st.caption(
-            "By creating an account, you agree to use the platform "
-            "responsibly and validate AI recommendations before "
-            "taking material business action."
-        )
 
     # --------------------------------------------------------
     # LOGIN
