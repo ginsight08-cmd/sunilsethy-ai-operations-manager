@@ -183,9 +183,9 @@ st.markdown(
         visibility: visible !important;
     }}
 
-    /* ---------- Logo mark (CSS-drawn, matches the mockup's black
-       rounded-square sparkle icon; a real uploaded logo image always
-       takes priority over this — see show_brand_header()). ---------- */
+    /* ---------- Logo mark (real logo image when assets/Generative_insight.png
+       exists — see logo_mark_html(); falls back to a CSS-drawn black
+       rounded-square sparkle icon only when no logo file is present). ---------- */
     .gi-logo-mark {{
         width: 40px; height: 40px; border-radius: 11px;
         background: var(--black);
@@ -602,7 +602,12 @@ st.markdown(
     .stApp .plan-card, .stApp .plan-card * {{ opacity:1 !important; visibility:visible !important; }}
 
     /* ============================================================
-       HIDE STREAMLIT CHROME
+       HIDE STREAMLIT CHROME — including the default header bar,
+       which otherwise renders as a solid black/opaque strip above
+       the app content on some hosts (mobile web view especially).
+       We keep the header ELEMENT (it still carries the sidebar
+       hamburger toggle on mobile) but make it fully transparent
+       and shrink it so no black bar is visible.
        ============================================================ */
     #MainMenu {{ visibility: hidden !important; }}
     header [data-testid="stToolbar"] {{ display: none !important; visibility: hidden !important; }}
@@ -610,10 +615,24 @@ st.markdown(
     [data-testid="stDecoration"] {{ display: none !important; }}
     a[href*="github.com"] {{ display: none !important; }}
 
+    header[data-testid="stHeader"] {{
+        background: transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        height: 3rem;
+    }}
+    header[data-testid="stHeader"]::before {{
+        content: none !important;
+    }}
+    div[data-testid="stAppViewContainer"] > .main {{
+        background: var(--bg) !important;
+    }}
+
     /* ============================================================
-       RESPONSIVE — tablet (\u2264768px) and phone (\u2264480px). Every
+       RESPONSIVE — tablet (≤768px) and phone (≤480px). Every
        card/button/grid below reflows to single-column with full-width,
-       touch-sized (\u226544px) controls at phone width.
+       touch-sized (≥44px) controls at phone width.
        ============================================================ */
     @media (max-width: 768px) {{
         .main-title {{ font-size: 1.6rem !important; }}
@@ -631,6 +650,25 @@ st.markdown(
             flex: 1 1 100% !important;
             min-width: 100% !important;
         }}
+        /* Tabs: let them scroll sideways instead of wrapping/clipping */
+        .stApp [data-baseweb="tab-list"] {{
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }}
+        .stApp [data-baseweb="tab-list"]::-webkit-scrollbar {{ height: 3px; }}
+        .stApp button[data-baseweb="tab"] {{
+            padding: 8px 12px !important;
+            font-size: 0.85rem !important;
+            white-space: nowrap;
+        }}
+        .gi-auth-shell {{ padding: 1.25rem !important; margin: 6px 8px 0 !important; max-width: 100% !important; }}
+        .gi-auth-hero-title {{ font-size: 1.5rem !important; }}
+        .gi-auth-hero-sub {{ font-size: 0.85rem !important; padding: 0 6px; }}
+        section[data-testid="stSidebar"] [data-testid="stImage"] img {{ max-width: 170px !important; }}
+        .gi-brand-row {{ gap: 8px; }}
+        header[data-testid="stHeader"] {{ height: 2.75rem; }}
     }}
 
     @media (max-width: 480px) {{
@@ -641,6 +679,11 @@ st.markdown(
         div[data-testid="stMetricValue"] {{ font-size: 1.35rem !important; }}
         .plan-card {{ padding: 1.05rem !important; }}
         section[data-testid="stSidebar"] {{ min-width: 100% !important; }}
+        .gi-auth-icon-lg {{ width: 48px !important; height: 48px !important; }}
+        .gi-auth-icon-lg img {{ width: 48px !important; height: 48px !important; }}
+        .gi-auth-icon-sm {{ width: 34px !important; height: 34px !important; }}
+        .gi-auth-icon-sm img {{ width: 34px !important; height: 34px !important; }}
+        section[data-testid="stSidebar"] [data-testid="stImage"] img {{ max-width: 140px !important; }}
     }}
 </style>
 """,
@@ -652,6 +695,48 @@ st.markdown(
 # ============================================================
 # HELPERS
 # ============================================================
+
+@st.cache_data(show_spinner=False)
+def _logo_data_uri():
+    """
+    Base64 data-URI for the real Generative Insight logo, used inside every
+    small badge/icon mark (auth screen icons, sidebar mark, header mark) so
+    the actual logo renders there instead of a plain black square whenever
+    assets/Generative_insight.png is present. Cached so the file is only
+    read/encoded once per session.
+    """
+    if LOGO_PATH.exists():
+        try:
+            import base64
+            encoded = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
+            return f"data:image/png;base64,{encoded}"
+        except Exception:
+            return None
+    return None
+
+
+def logo_mark_html(size=40, radius=11, font_size=18):
+    """
+    HTML for one logo badge. Returns an <img> tag with the real logo
+    whenever it's available, and only falls back to the CSS-drawn black
+    sparkle square when no logo file exists — keeping every badge in the
+    app (auth page, sidebar, main header) visually consistent.
+    """
+    uri = _logo_data_uri()
+    if uri:
+        return (
+            f'<img src="{uri}" alt="Generative Insight" '
+            f'style="width:{size}px;height:{size}px;border-radius:{radius}px;'
+            f'object-fit:cover;flex-shrink:0;display:block;'
+            f'box-shadow:0 2px 6px rgba(17,17,20,0.25);" />'
+        )
+    return (
+        f'<div style="width:{size}px;height:{size}px;border-radius:{radius}px;'
+        f'background:var(--black);display:flex;align-items:center;justify-content:center;'
+        f'font-size:{font_size}px;color:#FFFFFF;flex-shrink:0;'
+        f'box-shadow:0 2px 6px rgba(17,17,20,0.25);">✦</div>'
+    )
+
 
 def render_metric_card(icon, label, value, delta=None, delta_tone="neutral"):
     """
@@ -714,8 +799,8 @@ def show_brand_header(compact=False):
         )
     else:
         st.markdown(
-            """<div class="gi-brand-row">
-<div class="gi-logo-mark">✦</div>
+            f"""<div class="gi-brand-row">
+{logo_mark_html(40, 11, 18)}
 <div>
 <div class="gi-brand">Generative <span>Insight</span></div>
 <div class="gi-tagline">Insights today. Intelligence tomorrow.</div>
@@ -2619,9 +2704,9 @@ if not st.session_state.authenticated:
         st.image(str(LOGO_PATH), width=230)
     else:
         st.markdown(
-            """<div class="gi-auth-topbar">
+            f"""<div class="gi-auth-topbar">
 <div class="gi-brand-row">
-<div class="gi-auth-icon-sm">✦</div>
+<div class="gi-auth-icon-sm" style="background:transparent;">{logo_mark_html(40, 12, 18)}</div>
 <div>
 <div class="gi-brand">Generative <span>Insight</span></div>
 <div class="gi-tagline">AI Operations Copilot</div>
@@ -2633,8 +2718,8 @@ if not st.session_state.authenticated:
         )
 
     st.markdown(
-        """<div class="gi-auth-hero" style="margin-top:18px;">
-<div class="gi-auth-icon-lg">✦</div>
+        f"""<div class="gi-auth-hero" style="margin-top:18px;">
+<div class="gi-auth-icon-lg" style="background:transparent; box-shadow:none;">{logo_mark_html(56, 16, 26)}</div>
 <div class="gi-auth-hero-title">AI-powered operational intelligence</div>
 <div class="gi-auth-hero-sub">Turn operational data into management decisions. Create your account, upload Excel/CSV operational data, identify KPI risks, investigate team and employee performance, ask the AI Operations Copilot questions, and generate management-ready reports.</div>
 </div>""",
@@ -2927,8 +3012,8 @@ with st.sidebar:
     else:
 
         st.markdown(
-            """<div class="gi-brand-row">
-<div class="gi-logo-mark">✦</div>
+            f"""<div class="gi-brand-row">
+{logo_mark_html(40, 11, 18)}
 <div class="gi-brand">Generative <span>Insight</span></div>
 </div>""",
             unsafe_allow_html=True,
