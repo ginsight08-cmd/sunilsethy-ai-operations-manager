@@ -723,6 +723,22 @@ st.markdown(
         .gi-auth-hero-title {{ font-size: 1.15rem !important; }}
         .gi-auth-icon-lg {{ width: 44px !important; height: 44px !important; margin-bottom: 10px !important; }}
     }}
+
+    /* ============================================================
+       WIDE MONITOR — on large screens Streamlit's default content
+       column stretches edge-to-edge, which was pulling the header
+       tag, hero text, and tabs out of visual alignment with each
+       other. Capping the column keeps everything (header, title,
+       tabs, cards) lined up under one consistent width, same as the
+       mockups. Sidebar and mobile breakpoints above are untouched.
+       ============================================================ */
+    @media (min-width: 1200px) {{
+        div[data-testid="stAppViewContainer"] .main .block-container {{
+            max-width: 1180px;
+            margin-left: auto;
+            margin-right: auto;
+        }}
+    }}
 </style>
 """,
     unsafe_allow_html=True,
@@ -877,27 +893,39 @@ def secret(name, default=""):
 
 
 def show_brand_header(compact=False):
-    """Display the Generative Insight logo and website branding."""
+    """
+    Display the Generative Insight logo and website branding. Rendered as
+    one flex row (not st.columns) so the logo and the "AI Operations
+    Copilot" tag stay close together and vertically tight regardless of
+    viewport width — st.columns stretches to the full container width on
+    a wide monitor, which was pushing the tag far right and adding extra
+    vertical space above the title below it.
+    """
 
-    if LOGO_PATH.exists():
-        st.image(
-            str(LOGO_PATH),
-            width=230 if compact else 420,
-        )
+    logo_width = 230 if compact else 420
+    logo_html = ""
+    uri = _logo_data_uri()
+    if uri:
+        logo_html = f'<img src="{uri}" alt="Generative Insight" style="width:{logo_width}px; max-width:60vw; height:auto; display:block;" />'
     else:
-        st.markdown(
-            f"""<div class="gi-brand-row">
+        logo_html = f"""<div class="gi-brand-row">
 {logo_mark_html(40, 11, 18)}
 <div>
 <div class="gi-brand">Generative <span>Insight</span></div>
 <div class="gi-tagline">Insights today. Intelligence tomorrow.</div>
 </div>
-</div>""",
-            unsafe_allow_html=True,
-        )
+</div>"""
 
     st.markdown(
-        f"""<div style="margin-top:-8px; margin-bottom:18px; color:#667085; font-size:0.85rem;">
+        f"""<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:2px;">
+{logo_html}
+<div style="color:#737373; font-size:0.85rem;">AI Operations Copilot</div>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f"""<div style="margin-top:2px; margin-bottom:18px; color:#667085; font-size:0.85rem;">
 AI / ML &nbsp; | &nbsp; Annotation &nbsp; | &nbsp; Web & App Development
 &nbsp;&nbsp;·&nbsp;&nbsp;
 <a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">Visit Website</a>
@@ -1657,6 +1685,8 @@ Insights today. Intelligence tomorrow.
 <a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">generativeinsight.in</a>
 &nbsp;·&nbsp;
 © {datetime.now().year}
+<br>
+🛡️ Enterprise-grade security for your operational data
 </div>""",
         unsafe_allow_html=True,
     )
@@ -2790,18 +2820,22 @@ if not st.session_state.authenticated:
     # Topbar: logo + wordmark/tagline left, matching the reference design.
     # (The React reference shows "Need an account? Create account" here —
     # since Streamlit tabs don't support a clickable header-level tab
-    # switch, this is a plain informational line instead.)
+    # switch, this is a plain informational line instead.) Rendered as one
+    # flex row (not st.columns) so the note stays close to the logo
+    # instead of drifting to the far edge on a wide monitor.
     if LOGO_PATH.exists():
-        _topbar_logo, _topbar_note = st.columns([3, 2])
-        with _topbar_logo:
-            st.image(str(LOGO_PATH), width=230)
-        with _topbar_note:
-            st.markdown(
-                """<div style="text-align:right; color:#737373; font-size:0.85rem; margin-top:14px;">
-Already have an account? <b style="color:#0A0A0A;">Use the Sign In tab below</b>
+        _auth_logo_uri = _logo_data_uri()
+        _auth_logo_html = (
+            f'<img src="{_auth_logo_uri}" alt="Generative Insight" style="width:230px; max-width:55vw; height:auto; display:block;" />'
+            if _auth_logo_uri else ""
+        )
+        st.markdown(
+            f"""<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding-bottom:8px; border-bottom:1px solid #E5E5E5; margin-bottom:8px;">
+{_auth_logo_html}
+<div style="color:#737373; font-size:0.85rem; text-align:right;">Already have an account? <b style="color:#0A0A0A;">Use the Sign In tab below</b></div>
 </div>""",
-                unsafe_allow_html=True,
-            )
+            unsafe_allow_html=True,
+        )
     else:
         st.markdown(
             f"""<div class="gi-auth-topbar">
@@ -4794,6 +4828,8 @@ Insights today. Intelligence tomorrow.
 <a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">generativeinsight.in</a>
 &nbsp;·&nbsp;
 © {datetime.now().year}
+<br>
+🛡️ Enterprise-grade security for your operational data
 </div>""",
     unsafe_allow_html=True,
 )
