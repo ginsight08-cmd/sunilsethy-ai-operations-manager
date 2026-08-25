@@ -187,7 +187,7 @@ st.markdown(
        exists — see logo_mark_html(); falls back to a CSS-drawn black
        rounded-square sparkle icon only when no logo file is present). ---------- */
     .gi-logo-mark {{
-        width: 40px; height: 40px; border-radius: 11px;
+        width: 100px; height: 40px; border-radius: 11px;
         background: var(--black);
         display: inline-flex; align-items: center; justify-content: center;
         font-size: 18px; color: #FFFFFF; flex-shrink: 0;
