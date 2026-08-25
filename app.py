@@ -161,7 +161,7 @@ st.markdown(
     }}
 
     .main {{
-        padding-top: 1.25rem;
+        padding-top: 0.6rem;
     }}
 
     /* ---------- Typography ---------- */
@@ -640,6 +640,7 @@ st.markdown(
        and shrink it so no black bar is visible.
        ============================================================ */
     #MainMenu {{ visibility: hidden !important; }}
+    [data-testid="StyledFullScreenButton"] {{ display: none !important; }}
     header [data-testid="stToolbar"] {{ display: none !important; visibility: hidden !important; }}
     footer {{ visibility: hidden !important; }}
     [data-testid="stDecoration"] {{ display: none !important; }}
@@ -2807,9 +2808,16 @@ if not st.session_state.authenticated:
             unsafe_allow_html=True,
         )
 
+    # Only draw the hero icon badge when there's no real logo image above
+    # (st.image already rendered it in the topbar) — avoids showing the
+    # logo twice, once big and once small, on the same screen.
+    _hero_icon_html = "" if LOGO_PATH.exists() else (
+        f'<div class="gi-auth-icon-lg" style="background:transparent; box-shadow:none;">'
+        f'{logo_mark_html(56, 16, 26)}</div>'
+    )
     st.markdown(
-        f"""<div class="gi-auth-hero" style="margin-top:18px;">
-<div class="gi-auth-icon-lg" style="background:transparent; box-shadow:none;">{logo_mark_html(56, 16, 26)}</div>
+        f"""<div class="gi-auth-hero" style="margin-top:2px;">
+{_hero_icon_html}
 <div class="gi-auth-hero-title">AI-powered operational intelligence</div>
 <div class="gi-auth-hero-sub">Turn operational data into management decisions. Create your account, upload Excel/CSV operational data, identify KPI risks, investigate team and employee performance, ask the AI Operations Copilot questions, and generate management-ready reports.</div>
 </div>""",
@@ -3008,7 +3016,19 @@ By creating an account, you agree to use the platform responsibly and validate A
 
     with login_tab:
 
-        st.markdown("### Welcome back")
+        st.markdown(
+            """<div class="gi-auth-hero" style="margin:4px 0 18px;">
+<div class="gi-auth-hero-title" style="font-size:1.5rem;">Welcome back</div>
+<div class="gi-auth-hero-sub">Sign in to continue to your operational intelligence workspace.</div>
+</div>""",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            """<div class="gi-auth-card-title">Sign in to your account</div>
+<div class="gi-auth-card-desc">Enter your work credentials below.</div>""",
+            unsafe_allow_html=True,
+        )
 
         with st.container(border=True):
 
@@ -3025,14 +3045,22 @@ By creating an account, you agree to use the platform responsibly and validate A
                 login_password = st.text_input(
                     "Password",
                     type="password",
+                    placeholder="Enter your password",
                     label_visibility="collapsed",
                 )
 
                 login_submitted = st.form_submit_button(
-                    "🔐 Sign In",
+                    "🔐 Sign In   →",
                     type="primary",
                     use_container_width=True,
                 )
+
+        st.markdown(
+            """<div class="gi-auth-footer-note">
+If email confirmation is enabled in Supabase, verify your email before signing in.
+</div>""",
+            unsafe_allow_html=True,
+        )
 
         if login_submitted:
 
@@ -3075,17 +3103,20 @@ By creating an account, you agree to use the platform responsibly and validate A
                         + friendly_auth_error(e)
                     )
 
-        st.info(
-            "If email confirmation is enabled in Supabase, "
-            "verify your email before signing in."
-        )
-
     # --------------------------------------------------------
     # PRICING ON LOGIN PAGE
     # --------------------------------------------------------
 
     with pricing_tab:
         show_pricing("login")
+
+    st.markdown(
+        """<div style="text-align:center; margin-top:28px; padding-top:16px;
+border-top:1px solid var(--border); color:#737373; font-size:0.85rem;">
+🛡️ Enterprise-grade security for your operational data
+</div>""",
+        unsafe_allow_html=True,
+    )
 
     st.stop()
 
