@@ -349,6 +349,29 @@ st.markdown(
     .gi-metric-delta.bad {{ background: var(--red-bg); color: var(--red-ink); }}
     .gi-metric-delta.neutral {{ background: var(--border-soft); color: var(--ink-soft); }}
 
+    /* ---------- Check-cards ("What you get" rows) — bordered card,
+       bold label, filled black check-circle. Presentational only. ---------- */
+    .gi-check-card {{
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1.1rem 1.2rem;
+        box-shadow: var(--shadow-card);
+        height: 100%;
+    }}
+    .gi-check-card .gi-check-label {{
+        font-weight: 700;
+        color: var(--ink);
+        font-size: 0.95rem;
+        margin-bottom: 0.7rem;
+    }}
+    .gi-check-card .gi-check-circle {{
+        width: 26px; height: 26px; border-radius: 50%;
+        background: var(--black); color: #FFFFFF;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.85rem;
+    }}
+
     /* ---------- Pricing / plan cards ---------- */
     .plan-card {{
         padding: 1.35rem;
@@ -374,6 +397,13 @@ st.markdown(
         font-size: 0.68rem; font-weight: 700;
         padding: 4px 12px; border-radius: 999px;
         letter-spacing: 0.02em;
+    }}
+
+    .plan-card .plan-icon-badge {{
+        width: 56px; height: 56px; border-radius: 16px;
+        background: #F2F2F4;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.7rem; margin-bottom: .9rem;
     }}
 
     .plan-card .plan-name, .plan-card .plan-price {{
@@ -639,6 +669,7 @@ st.markdown(
         .hero {{ padding: 1.1rem 1rem !important; border-radius: 16px !important; }}
         .plan-card {{ min-height: auto !important; margin-bottom: .75rem !important; }}
         .gi-metric-card {{ margin-bottom: .6rem; }}
+        .gi-check-card {{ margin-bottom: .6rem; }}
         .stApp .stButton > button,
         .stApp [data-testid="stLinkButton"] a,
         .stApp [data-testid="stFormSubmitButton"] button {{
@@ -685,6 +716,12 @@ st.markdown(
         .gi-auth-icon-sm img {{ width: 34px !important; height: 34px !important; }}
         section[data-testid="stSidebar"] [data-testid="stImage"] img {{ max-width: 140px !important; }}
     }}
+
+    @media (max-width: 360px) {{
+        .main-title {{ font-size: 1.2rem !important; }}
+        .gi-auth-hero-title {{ font-size: 1.15rem !important; }}
+        .gi-auth-icon-lg {{ width: 44px !important; height: 44px !important; margin-bottom: 10px !important; }}
+    }}
 </style>
 """,
     unsafe_allow_html=True,
@@ -717,18 +754,23 @@ def _logo_data_uri():
 
 def logo_mark_html(size=40, radius=11, font_size=18):
     """
-    HTML for one logo badge. Returns an <img> tag with the real logo
-    whenever it's available, and only falls back to the CSS-drawn black
-    sparkle square when no logo file exists — keeping every badge in the
-    app (auth page, sidebar, main header) visually consistent.
+    HTML for one logo badge. Renders the real logo, fully visible
+    (object-fit: contain, not cover — the logo PNG is wider than it is
+    tall, so 'cover' was cropping the wordmark down to a sliver). Falls
+    back to the CSS-drawn black sparkle square only when no logo file
+    exists — keeping every badge in the app (auth page, sidebar, main
+    header) visually consistent.
     """
     uri = _logo_data_uri()
     if uri:
         return (
+            f'<div style="width:{size}px;height:{size}px;border-radius:{radius}px;'
+            f'background:#FFFFFF;display:flex;align-items:center;justify-content:center;'
+            f'flex-shrink:0;overflow:hidden;box-sizing:border-box;padding:3px;'
+            f'box-shadow:0 2px 6px rgba(17,17,20,0.18);">'
             f'<img src="{uri}" alt="Generative Insight" '
-            f'style="width:{size}px;height:{size}px;border-radius:{radius}px;'
-            f'object-fit:cover;flex-shrink:0;display:block;'
-            f'box-shadow:0 2px 6px rgba(17,17,20,0.25);" />'
+            f'style="width:100%;height:100%;object-fit:contain;display:block;" />'
+            f'</div>'
         )
     return (
         f'<div style="width:{size}px;height:{size}px;border-radius:{radius}px;'
@@ -754,6 +796,50 @@ def render_metric_card(icon, label, value, delta=None, delta_tone="neutral"):
 <div class="gi-metric-label">{label}</div>
 <div class="gi-metric-value">{value}</div>
 {delta_html}
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_check_card(label):
+    """
+    Bordered check-card used in every 'What you get' row — bold label on
+    top, filled black check-circle underneath. Matches the reference
+    mockup's feature cards. Presentational only, carries no logic.
+    """
+    st.markdown(
+        f"""<div class="gi-check-card">
+<div class="gi-check-label">{label}</div>
+<div class="gi-check-circle">✓</div>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_risk_card(icon, label, risk_text):
+    """
+    KPI card whose value is rendered as a colored severity pill instead
+    of plain text — matches the High/Medium/Low badge style in the
+    reference dashboard mockups. Strips the leading emoji from
+    risk_text and colors the pill by severity (bad=red, neutral=amber,
+    good=green). Purely presentational — risk_text is exactly what the
+    engine already computed.
+    """
+    clean = risk_text
+    for e in ["🔴", "🟠", "🟡", "🟢", "⚪"]:
+        clean = clean.replace(e, "").strip()
+    upper = clean.upper()
+    if "CRITICAL" in upper or "HIGH" in upper:
+        tone = "bad"
+    elif "MEDIUM" in upper:
+        tone = "neutral"
+    else:
+        tone = "good"
+    st.markdown(
+        f"""<div class="gi-metric-card">
+<div class="gi-metric-icon">{icon}</div>
+<div class="gi-metric-label">{label}</div>
+<div class="gi-metric-delta {tone}" style="font-size:0.95rem; padding:5px 16px; margin-top:2px;">{clean}</div>
 </div>""",
         unsafe_allow_html=True,
     )
@@ -1664,10 +1750,14 @@ def render_manufacturing_flow(plan_config):
         )
         st.markdown("### What you get")
         a, b, c, d = st.columns(4)
-        a.metric("Vendor Comparison", "✓")
-        b.metric("Recommended Vendor", "✓")
-        c.metric("Savings Analysis", "✓")
-        d.metric("Risk Flags", "✓")
+        with a:
+            render_check_card("Vendor Comparison")
+        with b:
+            render_check_card("Recommended Vendor")
+        with c:
+            render_check_card("Savings Analysis")
+        with d:
+            render_check_card("Risk Flags")
         render_footer()
         return
 
@@ -1762,7 +1852,7 @@ def render_manufacturing_flow(plan_config):
     mfg_recommendation = mfg_insights["recommendation"]
 
     st.subheader("🧠 Executive Summary")
-    st.metric("Procurement Risk", mfg_risk_level)
+    render_risk_card("🚦", "Procurement Risk", mfg_risk_level)
     for point in mfg_summary_points:
         st.write(point)
     st.info(f"💡 **Procurement Recommendation:** {mfg_recommendation}")
@@ -2466,7 +2556,7 @@ def show_pricing(section_id="default"):
 
             st.markdown(
                 f'''<div class="plan-card">{popular_badge}
-<div style="font-size:2.6rem; line-height:1; margin-bottom:.7rem;">{icon}</div>
+<div class="plan-icon-badge">{icon}</div>
 <div class="plan-name" style="font-size:1.15rem; font-weight:800;">{name}</div>
 <div class="plan-price" style="font-size:1.65rem; font-weight:850; margin:.35rem 0;">{price}</div>
 <div class="plan-description" style="font-size:.86rem; margin-bottom:.8rem;">{description}</div>
@@ -2757,57 +2847,59 @@ if not st.session_state.authenticated:
             unsafe_allow_html=True,
         )
 
-        with st.form(
-            "signup_form",
-            clear_on_submit=False,
-        ):
+        with st.container(border=True):
 
-            st.markdown('<div class="gi-field-label-row">👤 Full Name</div>', unsafe_allow_html=True)
-            signup_name = st.text_input(
-                "Full Name",
-                placeholder="e.g. Sunil Sethy",
-                label_visibility="collapsed",
-            )
+            with st.form(
+                "signup_form",
+                clear_on_submit=False,
+            ):
 
-            st.markdown('<div class="gi-field-label-row">🏢 Company / Organization</div>', unsafe_allow_html=True)
-            signup_company = st.text_input(
-                "Company / Organization",
-                placeholder="e.g. ABC Technologies",
-                label_visibility="collapsed",
-            )
+                st.markdown('<div class="gi-field-label-row">👤 Full Name</div>', unsafe_allow_html=True)
+                signup_name = st.text_input(
+                    "Full Name",
+                    placeholder="e.g. Sunil Sethy",
+                    label_visibility="collapsed",
+                )
 
-            st.markdown('<div class="gi-field-label-row">✉️ Work Email</div>', unsafe_allow_html=True)
-            signup_email = st.text_input(
-                "Work Email",
-                placeholder="name@company.com",
-                label_visibility="collapsed",
-            )
+                st.markdown('<div class="gi-field-label-row">🏢 Company / Organization</div>', unsafe_allow_html=True)
+                signup_company = st.text_input(
+                    "Company / Organization",
+                    placeholder="e.g. ABC Technologies",
+                    label_visibility="collapsed",
+                )
 
-            st.markdown('<div class="gi-field-label-row">🔒 Password</div>', unsafe_allow_html=True)
-            signup_password = st.text_input(
-                "Password",
-                type="password",
-                placeholder="Use a strong password",
-                help=(
-                    "Use a strong password. Supabase enforces "
-                    "the configured password policy."
-                ),
-                label_visibility="collapsed",
-            )
+                st.markdown('<div class="gi-field-label-row">✉️ Work Email</div>', unsafe_allow_html=True)
+                signup_email = st.text_input(
+                    "Work Email",
+                    placeholder="name@company.com",
+                    label_visibility="collapsed",
+                )
 
-            st.markdown('<div class="gi-field-label-row">🔒 Confirm Password</div>', unsafe_allow_html=True)
-            signup_confirm = st.text_input(
-                "Confirm Password",
-                type="password",
-                placeholder="Re-enter your password",
-                label_visibility="collapsed",
-            )
+                st.markdown('<div class="gi-field-label-row">🔒 Password</div>', unsafe_allow_html=True)
+                signup_password = st.text_input(
+                    "Password",
+                    type="password",
+                    placeholder="Use a strong password",
+                    help=(
+                        "Use a strong password. Supabase enforces "
+                        "the configured password policy."
+                    ),
+                    label_visibility="collapsed",
+                )
 
-            signup_submitted = st.form_submit_button(
-                "🚀 Create Free Account   →",
-                type="primary",
-                use_container_width=True,
-            )
+                st.markdown('<div class="gi-field-label-row">🔒 Confirm Password</div>', unsafe_allow_html=True)
+                signup_confirm = st.text_input(
+                    "Confirm Password",
+                    type="password",
+                    placeholder="Re-enter your password",
+                    label_visibility="collapsed",
+                )
+
+                signup_submitted = st.form_submit_button(
+                    "🚀 Create Free Account   →",
+                    type="primary",
+                    use_container_width=True,
+                )
 
         st.markdown(
             """<div class="gi-auth-footer-note">
@@ -2918,23 +3010,29 @@ By creating an account, you agree to use the platform responsibly and validate A
 
         st.markdown("### Welcome back")
 
-        with st.form("login_form"):
+        with st.container(border=True):
 
-            login_email = st.text_input(
-                "Email",
-                placeholder="name@company.com",
-            )
+            with st.form("login_form"):
 
-            login_password = st.text_input(
-                "Password",
-                type="password",
-            )
+                st.markdown('<div class="gi-field-label-row">✉️ Work Email</div>', unsafe_allow_html=True)
+                login_email = st.text_input(
+                    "Email",
+                    placeholder="name@company.com",
+                    label_visibility="collapsed",
+                )
 
-            login_submitted = st.form_submit_button(
-                "🔐 Sign In",
-                type="primary",
-                use_container_width=True,
-            )
+                st.markdown('<div class="gi-field-label-row">🔒 Password</div>', unsafe_allow_html=True)
+                login_password = st.text_input(
+                    "Password",
+                    type="password",
+                    label_visibility="collapsed",
+                )
+
+                login_submitted = st.form_submit_button(
+                    "🔐 Sign In",
+                    type="primary",
+                    use_container_width=True,
+                )
 
         if login_submitted:
 
@@ -3340,10 +3438,14 @@ if not uploaded:
 
     a, b, c, d = st.columns(4)
 
-    a.metric("Risk Detection", "✓")
-    b.metric("Employee Risk", "✓")
-    c.metric("AI Copilot", "✓")
-    d.metric("Management Report", "✓")
+    with a:
+        render_check_card("Risk Detection")
+    with b:
+        render_check_card("Employee Risk")
+    with c:
+        render_check_card("AI Copilot")
+    with d:
+        render_check_card("Management Report")
 
     st.stop()
 
@@ -3666,7 +3768,7 @@ st.markdown(
 r1, r2, r3, r4 = st.columns(4)
 
 with r1:
-    render_metric_card("🚦", "Operational Risk", risk_level)
+    render_risk_card("🚦", "Operational Risk", risk_level)
 
 with r2:
     render_metric_card(
