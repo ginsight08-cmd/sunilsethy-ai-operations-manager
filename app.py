@@ -2792,7 +2792,16 @@ if not st.session_state.authenticated:
     # since Streamlit tabs don't support a clickable header-level tab
     # switch, this is a plain informational line instead.)
     if LOGO_PATH.exists():
-        st.image(str(LOGO_PATH), width=230)
+        _topbar_logo, _topbar_note = st.columns([3, 2])
+        with _topbar_logo:
+            st.image(str(LOGO_PATH), width=230)
+        with _topbar_note:
+            st.markdown(
+                """<div style="text-align:right; color:#737373; font-size:0.85rem; margin-top:14px;">
+Already have an account? <b style="color:#0A0A0A;">Use the Sign In tab below</b>
+</div>""",
+                unsafe_allow_html=True,
+            )
     else:
         st.markdown(
             f"""<div class="gi-auth-topbar">
@@ -2850,8 +2859,16 @@ if not st.session_state.authenticated:
     with signup_tab:
 
         st.markdown(
-            """<div class="gi-auth-card-title">Create your account</div>
-<div class="gi-auth-card-desc">Start with the Free plan. You can upgrade later.</div>""",
+            """<div class="gi-auth-hero" style="margin:4px 0 18px;">
+<div class="gi-auth-hero-title" style="font-size:1.5rem;">Create your account</div>
+<div class="gi-auth-hero-sub">Set up your operational intelligence workspace.</div>
+</div>""",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            """<div class="gi-auth-card-title">Get started with Generative Insight</div>
+<div class="gi-auth-card-desc">Enter your details to create your workspace account. Starts on the Free plan — upgrade anytime.</div>""",
             unsafe_allow_html=True,
         )
 
@@ -2869,13 +2886,6 @@ if not st.session_state.authenticated:
                     label_visibility="collapsed",
                 )
 
-                st.markdown('<div class="gi-field-label-row">🏢 Company / Organization</div>', unsafe_allow_html=True)
-                signup_company = st.text_input(
-                    "Company / Organization",
-                    placeholder="e.g. ABC Technologies",
-                    label_visibility="collapsed",
-                )
-
                 st.markdown('<div class="gi-field-label-row">✉️ Work Email</div>', unsafe_allow_html=True)
                 signup_email = st.text_input(
                     "Work Email",
@@ -2883,16 +2893,23 @@ if not st.session_state.authenticated:
                     label_visibility="collapsed",
                 )
 
-                st.markdown('<div class="gi-field-label-row">🔒 Password</div>', unsafe_allow_html=True)
+                st.markdown('<div class="gi-field-label-row">🏢 Company / Organization</div>', unsafe_allow_html=True)
+                signup_company = st.text_input(
+                    "Company / Organization",
+                    placeholder="e.g. ABC Technologies",
+                    label_visibility="collapsed",
+                )
+
+                st.markdown('<div class="gi-field-label-row">🔒 Create Password</div>', unsafe_allow_html=True)
                 signup_password = st.text_input(
                     "Password",
                     type="password",
-                    placeholder="Use a strong password",
-                    help=(
-                        "Use a strong password. Supabase enforces "
-                        "the configured password policy."
-                    ),
+                    placeholder="Create a secure password",
                     label_visibility="collapsed",
+                )
+                st.caption(
+                    "Use at least 6 characters. Supabase enforces the "
+                    "configured password policy."
                 )
 
                 st.markdown('<div class="gi-field-label-row">🔒 Confirm Password</div>', unsafe_allow_html=True)
@@ -2903,15 +2920,19 @@ if not st.session_state.authenticated:
                     label_visibility="collapsed",
                 )
 
+                signup_terms_agreed = st.checkbox(
+                    "I agree to the Terms of Service and Privacy Policy.",
+                )
+
                 signup_submitted = st.form_submit_button(
-                    "🚀 Create Free Account   →",
+                    "Create account   →",
                     type="primary",
                     use_container_width=True,
                 )
 
         st.markdown(
             """<div class="gi-auth-footer-note">
-By creating an account, you agree to use the platform responsibly and validate AI recommendations before taking material business action.
+Your data is protected with enterprise-grade security. By creating an account, you agree to use the platform responsibly and validate AI recommendations before taking material business action.
 </div>""",
             unsafe_allow_html=True,
         )
@@ -2923,17 +2944,17 @@ By creating an account, you agree to use the platform responsibly and validate A
                     "Please enter your full name."
                 )
 
-            elif not signup_company.strip():
-                st.warning(
-                    "Please enter your company or organization."
-                )
-
             elif (
                 not signup_email.strip()
                 or "@" not in signup_email
             ):
                 st.warning(
                     "Please enter a valid email address."
+                )
+
+            elif not signup_company.strip():
+                st.warning(
+                    "Please enter your company or organization."
                 )
 
             elif len(signup_password) < 6:
@@ -2944,6 +2965,11 @@ By creating an account, you agree to use the platform responsibly and validate A
             elif signup_password != signup_confirm:
                 st.warning(
                     "Passwords do not match."
+                )
+
+            elif not signup_terms_agreed:
+                st.warning(
+                    "Please agree to the Terms of Service and Privacy Policy to continue."
                 )
 
             else:
