@@ -277,30 +277,29 @@ st.markdown(
     }}
 
     /* Authentication navigation sits directly beneath the brand header. */
-    body:has(.gi-auth-tabs-marker) [data-baseweb="tab-list"] {{
+    body:has(.gi-auth-tabs-marker) .main .block-container {{
+        position: relative !important;
+    }}
+
+    body:has(.gi-auth-tabs-marker) [role="tablist"] {{
+        position: absolute !important;
+        top: 1.15rem !important;
+        right: 1rem !important;
+        z-index: 20 !important;
         justify-content: flex-end !important;
         align-items: center !important;
         gap: 1.25rem !important;
         width: max-content !important;
-        max-width: 72%;
+        max-width: 68%;
         min-height: 42px;
-        margin-left: auto !important;
-        margin-top: -58px !important;
-        margin-bottom: 16px !important;
+        margin: 0 !important;
         padding: 0 !important;
         border-bottom: 0 !important;
         background: transparent !important;
     }}
 
-    body:has(.gi-auth-tabs-marker) [data-baseweb="tab-list"]::before {{
-        content: "Already have an account?";
-        color: #737373;
-        font-size: .84rem;
-        font-weight: 400;
-        white-space: nowrap;
-    }}
-
-    body:has(.gi-auth-tabs-marker) button[data-baseweb="tab"] {{
+    body:has(.gi-auth-tabs-marker) [role="tab"] {{
+        position: relative !important;
         min-height: 42px !important;
         padding: 0 .15rem !important;
         border-radius: 0 !important;
@@ -309,15 +308,23 @@ st.markdown(
         font-weight: 600 !important;
     }}
 
-    body:has(.gi-auth-tabs-marker) button[data-baseweb="tab"][aria-selected="true"],
-    body:has(.gi-auth-tabs-marker) button[data-baseweb="tab"][aria-selected="true"] * {{
+    body:has(.gi-auth-tabs-marker) [role="tab"][aria-selected="true"],
+    body:has(.gi-auth-tabs-marker) [role="tab"][aria-selected="true"] * {{
         color: #0A0A0A !important;
         -webkit-text-fill-color: #0A0A0A !important;
     }}
 
-    body:has(.gi-auth-tabs-marker) [data-baseweb="tab-highlight"] {{
+    body:has(.gi-auth-tabs-marker) [role="tab"][aria-selected="true"]::after {{
+        content:"";
+        position:absolute;
+        left:0; right:0; bottom:0;
         height: 2px !important;
         background: #0A0A0A !important;
+    }}
+
+    body:has(.gi-auth-tabs-marker) [role="tablist"] [data-baseweb="tab-highlight"],
+    body:has(.gi-auth-tabs-marker) [role="tablist"] [data-baseweb="tab-border"] {{
+        display:none !important;
     }}
 
     .gi-brand {{
@@ -848,16 +855,14 @@ st.markdown(
         .gi-auth-shell {{ padding: 1.25rem !important; margin: 6px 8px 0 !important; max-width: 100% !important; }}
         .gi-auth-hero-title {{ font-size: 1.5rem !important; }}
         .gi-auth-hero-sub {{ font-size: 0.85rem !important; padding: 0 6px; }}
-        body:has(.gi-auth-tabs-marker) [data-baseweb="tab-list"] {{
+        body:has(.gi-auth-tabs-marker) [role="tablist"] {{
+            position: static !important;
             justify-content: flex-start !important;
             gap: 1.25rem !important;
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 0 12px !important;
             border-bottom: 1px solid #E5E5E5 !important;
-        }}
-        body:has(.gi-auth-tabs-marker) [data-baseweb="tab-list"]::before {{
-            display: none !important;
         }}
         section[data-testid="stSidebar"] [data-testid="stImage"] img {{ max-width: 170px !important; }}
         .gi-brand-row {{ gap: 8px; }}
