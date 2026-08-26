@@ -27,7 +27,9 @@ st.set_page_config(
     page_title="Generative Insight | AI Operations Copilot",
     page_icon="assets/generative-insight-gi-mark-transparent.png",
     layout="wide",
-    initial_sidebar_state="expanded",
+    # "auto" keeps the desktop sidebar visible while allowing Streamlit
+    # to start with a compact/collapsed navigation experience on phones.
+    initial_sidebar_state="auto",
 )
 
 
@@ -745,6 +747,16 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+
+# Final responsive layer. Keeping this as a small companion stylesheet makes
+# the large application file easier to maintain while ensuring these rules load
+# after the base theme and therefore win at laptop/tablet/phone breakpoints.
+RESPONSIVE_CSS_PATH = BASE_DIR / "responsive_ui_overrides.css"
+if RESPONSIVE_CSS_PATH.exists():
+    st.markdown(
+        f"<style>{RESPONSIVE_CSS_PATH.read_text(encoding='utf-8')}</style>",
+        unsafe_allow_html=True,
+    )
 
 
 
