@@ -442,6 +442,37 @@ st.markdown(
         font-size: 0.85rem;
     }}
 
+    /* ---------- Operations dashboard panels ---------- */
+    .gi-dashboard-heading {{
+        display:flex; align-items:flex-start; justify-content:space-between;
+        gap:1rem; padding:.25rem 0 1.25rem; margin-bottom:.25rem;
+        border-bottom:1px solid var(--border);
+    }}
+    .gi-dashboard-title {{
+        color:var(--ink); font-size:2rem; line-height:1.1;
+        font-weight:800; letter-spacing:-.035em;
+    }}
+    .gi-dashboard-subtitle {{ color:var(--muted); margin-top:.35rem; font-size:.95rem; }}
+    .gi-panel {{
+        background:var(--paper); border:1px solid var(--border);
+        border-radius:var(--radius-md); padding:1.25rem;
+        box-shadow:var(--shadow-card); min-height:100%;
+    }}
+    .gi-panel-title {{ font-size:1.08rem; font-weight:800; color:var(--ink); }}
+    .gi-panel-subtitle {{ color:var(--muted); font-size:.84rem; margin:.2rem 0 1rem; }}
+    .gi-risk-alert {{
+        display:flex; justify-content:space-between; gap:.8rem;
+        border:1px solid var(--border); border-radius:12px;
+        padding:.85rem; margin-top:.7rem; background:#fff;
+    }}
+    .gi-risk-name {{ color:var(--ink); font-weight:700; font-size:.86rem; }}
+    .gi-risk-meta {{ color:var(--muted); font-size:.76rem; margin-top:.2rem; }}
+    .gi-risk-level {{
+        align-self:flex-start; background:var(--black); color:#fff;
+        border-radius:7px; padding:.22rem .5rem; font-size:.7rem;
+        white-space:nowrap;
+    }}
+
     /* ---------- Pricing / plan cards ---------- */
     .plan-card {{
         padding: 1.35rem;
@@ -737,6 +768,8 @@ st.markdown(
        ============================================================ */
     @media (max-width: 768px) {{
         .main-title {{ font-size: 1.6rem !important; }}
+        .gi-dashboard-heading {{ padding-top:.5rem; }}
+        .gi-dashboard-title {{ font-size:1.55rem; }}
         .hero {{ padding: 1.1rem 1rem !important; border-radius: 16px !important; }}
         .plan-card {{ min-height: auto !important; margin-bottom: .75rem !important; }}
         .gi-metric-card {{ margin-bottom: .6rem; }}
@@ -3508,15 +3541,13 @@ if st.session_state.user_plan == "Free" and not free_billing_is_active():
 # HEADER
 # ============================================================
 
-show_brand_header(compact=True)
-
 st.markdown(
-    '<div class="main-title">AI Operations Manager</div>',
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    """<div class="brand-subtitle" style="color:#52637A !important; -webkit-text-fill-color:#52637A !important;">Executive operational intelligence → risk detection → AI decisions → action plans → management reports</div>""",
+    """<div class="gi-dashboard-heading">
+<div>
+<div class="gi-dashboard-title">Operations Dashboard</div>
+<div class="gi-dashboard-subtitle">Turn operational data into management decisions</div>
+</div>
+</div>""",
     unsafe_allow_html=True,
 )
 
@@ -3931,51 +3962,14 @@ if (
 
 
 # ============================================================
-# EXECUTIVE HERO
-# ============================================================
-
-st.markdown(
-    f"""<div class="hero">
-<h3>Executive Health: {risk_level}</h3>
-<p class="small-muted">{company_name or "Your organization"} · {report_name}</p>
-<p class="small-muted">⏱️ Data fetched and analyzed in {_analysis_elapsed:.2f}s · {len(df)} row(s) processed</p>
-</div>""",
-    unsafe_allow_html=True,
-)
-
-
-# ============================================================
-# TOP EXECUTIVE METRICS
-# ============================================================
-
-r1, r2, r3, r4 = st.columns(4)
-
-with r1:
-    render_risk_card("🚦", "Operational Risk", risk_level)
-
-with r2:
-    render_metric_card(
-        "🎯", "KPI Breaches", breaches,
-        delta=f"{4 - breaches} on target",
-        delta_tone="good" if breaches == 0 else ("bad" if breaches >= 2 else "neutral"),
-    )
-
-with r3:
-    render_metric_card("✅", "Action Items", action_count)
-
-with r4:
-    render_metric_card(
-        "🔺", "High/Critical Actions", high_priority_count,
-        delta_tone="bad" if high_priority_count > 0 else "good",
-    )
-
-
-# ============================================================
 # KPI PERFORMANCE
 # ============================================================
 
-st.subheader(
-    "📊 KPI Performance vs Target"
+st.markdown(
+    f'<div class="small-muted" style="margin:.25rem 0 1rem;">'
+    f'{company_name or "Your organization"} · {report_name} · '
+    f'{len(df)} rows analyzed in {_analysis_elapsed:.2f}s</div>',
+    unsafe_allow_html=True,
 )
 
 k1, k2, k3, k4 = st.columns(4)
@@ -4007,6 +4001,83 @@ with k4:
         delta=f"{aht_gap:+.2f} vs target",
         delta_tone="bad" if aht_gap > 0 else "good",
     )
+
+
+# ============================================================
+# PERFORMANCE TREND + RISK ALERTS
+# ============================================================
+
+trend_data = pd.DataFrame()
+if "Date" in df.columns:
+    _trend_source = df.copy()
+    _trend_source["Date"] = pd.to_datetime(_trend_source["Date"], errors="coerce")
+    _trend_source = _trend_source.dropna(subset=["Date"])
+    if not _trend_source.empty:
+        _trend_source["Period"] = _trend_source["Date"].dt.to_period("W").astype(str)
+        _trend_rows = []
+        for _period, _group in _trend_source.groupby("Period", sort=True):
+            _row = {"Period": _period}
+            if "Production" in _group.columns and "Target" in _group.columns:
+                _target_sum = pd.to_numeric(_group["Target"], errors="coerce").sum()
+                _production_sum = pd.to_numeric(_group["Production"], errors="coerce").sum()
+                if _target_sum:
+                    _row["Productivity"] = (_production_sum / _target_sum) * 100
+            if "Quality_%" in _group.columns:
+                _row["Quality"] = pd.to_numeric(_group["Quality_%"], errors="coerce").mean()
+            if "SLA_%" in _group.columns:
+                _row["SLA"] = pd.to_numeric(_group["SLA_%"], errors="coerce").mean()
+            _trend_rows.append(_row)
+        trend_data = pd.DataFrame(_trend_rows).set_index("Period") if _trend_rows else pd.DataFrame()
+
+# A stable current-period view keeps the dashboard useful when the uploaded
+# file has no Date column or contains only one reporting period.
+if trend_data.empty:
+    trend_data = pd.DataFrame(
+        {
+            "Productivity": [productivity] * 6,
+            "Quality": [quality] * 6,
+            "SLA": [sla] * 6,
+        },
+        index=[f"Wk {i}" for i in range(1, 7)],
+    )
+
+trend_col, alerts_col = st.columns([2.15, 1])
+
+with trend_col:
+    with st.container(border=True):
+        st.markdown('<div class="gi-panel-title">KPI Performance Trend</div>', unsafe_allow_html=True)
+        st.markdown('<div class="gi-panel-subtitle">Productivity, quality and SLA over time</div>', unsafe_allow_html=True)
+        st.line_chart(trend_data, use_container_width=True, height=330)
+
+with alerts_col:
+    with st.container(border=True):
+        st.markdown('<div class="gi-panel-title">⚠ Risk Alerts</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="gi-panel-subtitle">{breaches} active signal(s)</div>',
+            unsafe_allow_html=True,
+        )
+
+        _alerts = []
+        if productivity < productivity_target:
+            _alerts.append(("Productivity below target", f"{productivity:.1f}% vs {productivity_target}%", "High"))
+        if quality < quality_target:
+            _alerts.append(("Quality below target", f"{quality:.1f}% vs {quality_target}%", "High"))
+        if sla < sla_target:
+            _alerts.append(("SLA below target", f"{sla:.1f}% vs {sla_target}%", "Medium"))
+        if aht > aht_target:
+            _alerts.append(("Average AHT rising", f"{aht:.1f} vs {aht_target}", "Medium"))
+
+        if not _alerts:
+            st.success("All monitored KPIs are within target.")
+        else:
+            for _name, _meta, _level in _alerts:
+                st.markdown(
+                    f'''<div class="gi-risk-alert">
+<div><div class="gi-risk-name">{_name}</div><div class="gi-risk-meta">{_meta}</div></div>
+<div class="gi-risk-level">{_level}</div>
+</div>''',
+                    unsafe_allow_html=True,
+                )
 
 
 # ============================================================
