@@ -282,9 +282,7 @@ st.markdown(
     }}
 
     body:has(.gi-auth-tabs-marker) [role="tablist"] {{
-        position: absolute !important;
-        top: 1.15rem !important;
-        right: 1rem !important;
+        position: relative !important;
         z-index: 20 !important;
         justify-content: flex-end !important;
         align-items: center !important;
@@ -292,7 +290,8 @@ st.markdown(
         width: max-content !important;
         max-width: 68%;
         min-height: 42px;
-        margin: 0 !important;
+        margin: 0 0 -42px auto !important;
+        transform: translateY(-63px) !important;
         padding: 0 !important;
         border-bottom: 0 !important;
         background: transparent !important;
@@ -857,6 +856,7 @@ st.markdown(
         .gi-auth-hero-sub {{ font-size: 0.85rem !important; padding: 0 6px; }}
         body:has(.gi-auth-tabs-marker) [role="tablist"] {{
             position: static !important;
+            transform: none !important;
             justify-content: flex-start !important;
             gap: 1.25rem !important;
             width: 100% !important;
@@ -2998,21 +2998,11 @@ if not st.session_state.authenticated:
     # switch, this is a plain informational line instead.) Rendered as one
     # flex row (not st.columns) so the note stays close to the logo
     # instead of drifting to the far edge on a wide monitor.
-    if HEADER_LOGO_PATH.exists():
-        _auth_logo_uri = _header_logo_data_uri()
-        _auth_logo_html = (
-            f'<img src="{_auth_logo_uri}" alt="Generative Insight" style="width:230px; max-width:55vw; height:auto; display:block;" />'
-            if _auth_logo_uri else ""
-        )
-        st.markdown(
-            f"""<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding-bottom:8px; border-bottom:1px solid #E5E5E5; margin-bottom:8px;">
-{_auth_logo_html}
-</div>""",
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f"""<div class="gi-auth-topbar">
+    # The horizontal source image contains generous transparent padding, which
+    # makes the header unnecessarily tall. Use the compact mark + live text in
+    # the app bar; the full horizontal asset remains available elsewhere.
+    st.markdown(
+        f"""<div class="gi-auth-topbar">
 <div class="gi-brand-row">
 <div class="gi-auth-icon-sm" style="background:transparent;">{logo_mark_html(40, 12, 18)}</div>
 <div>
@@ -3021,8 +3011,8 @@ if not st.session_state.authenticated:
 </div>
 </div>
 </div>""",
-            unsafe_allow_html=True,
-        )
+        unsafe_allow_html=True,
+    )
 
     # Use the real horizontal brand logo inside the selected auth view. This
     # avoids displaying an empty black square when the mark asset is missing.
