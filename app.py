@@ -275,6 +275,36 @@ st.markdown(
         object-fit: contain;
     }}
 
+    /* Authentication navigation sits directly beneath the brand header. */
+    body:has(.gi-auth-tabs-marker) [data-baseweb="tab-list"] {{
+        justify-content: flex-end !important;
+        gap: 1.65rem !important;
+        min-height: 48px;
+        padding: 0 .25rem !important;
+        border-bottom: 1px solid #E5E5E5 !important;
+        background: #FFFFFF !important;
+    }}
+
+    body:has(.gi-auth-tabs-marker) button[data-baseweb="tab"] {{
+        min-height: 48px !important;
+        padding: 0 .15rem !important;
+        border-radius: 0 !important;
+        color: #737373 !important;
+        font-size: .88rem !important;
+        font-weight: 600 !important;
+    }}
+
+    body:has(.gi-auth-tabs-marker) button[data-baseweb="tab"][aria-selected="true"],
+    body:has(.gi-auth-tabs-marker) button[data-baseweb="tab"][aria-selected="true"] * {{
+        color: #0A0A0A !important;
+        -webkit-text-fill-color: #0A0A0A !important;
+    }}
+
+    body:has(.gi-auth-tabs-marker) [data-baseweb="tab-highlight"] {{
+        height: 2px !important;
+        background: #0A0A0A !important;
+    }}
+
     .gi-brand {{
         font-size: 1.3rem;
         font-weight: 800;
@@ -724,6 +754,10 @@ st.markdown(
         .gi-auth-shell {{ padding: 1.25rem !important; margin: 6px 8px 0 !important; max-width: 100% !important; }}
         .gi-auth-hero-title {{ font-size: 1.5rem !important; }}
         .gi-auth-hero-sub {{ font-size: 0.85rem !important; padding: 0 6px; }}
+        body:has(.gi-auth-tabs-marker) [data-baseweb="tab-list"] {{
+            justify-content: flex-start !important;
+            gap: 1.25rem !important;
+        }}
         section[data-testid="stSidebar"] [data-testid="stImage"] img {{ max-width: 170px !important; }}
         .gi-brand-row {{ gap: 8px; }}
         header[data-testid="stHeader"] {{ height: 2.75rem; }}
@@ -2886,8 +2920,8 @@ if not st.session_state.authenticated:
             unsafe_allow_html=True,
         )
 
-    # Use the real horizontal brand logo in the hero. This avoids displaying
-    # an empty black square when the optional square-mark asset is unavailable.
+    # Use the real horizontal brand logo inside the selected auth view. This
+    # avoids displaying an empty black square when the mark asset is missing.
     _hero_logo_uri = _header_logo_data_uri()
     if _hero_logo_uri:
         _hero_icon_html = (
@@ -2899,15 +2933,6 @@ if not st.session_state.authenticated:
             '<div class="gi-brand" style="text-align:center; margin-bottom:14px;">'
             'Generative <span>Insight</span></div>'
         )
-    st.markdown(
-        f"""<div class="gi-auth-hero" style="margin-top:2px;">
-{_hero_icon_html}
-<div class="gi-auth-hero-title">AI-powered operational intelligence</div>
-<div class="gi-auth-hero-sub">Turn operational data into management decisions. Create your account, upload Excel/CSV operational data, identify KPI risks, investigate team and employee performance, ask the AI Operations Copilot questions, and generate management-ready reports.</div>
-</div>""",
-        unsafe_allow_html=True,
-    )
-
     if (
         not secret("SUPABASE_URL")
         or not secret("SUPABASE_ANON_KEY")
@@ -2919,11 +2944,13 @@ if not st.session_state.authenticated:
         )
         st.stop()
 
+    st.markdown('<span class="gi-auth-tabs-marker"></span>', unsafe_allow_html=True)
+
     signup_tab, login_tab, pricing_tab = st.tabs(
         [
-            "🆕 Create Account",
-            "🔐 Sign In",
-            "💳 Plans",
+            "Create account",
+            "Sign in",
+            "Plans",
         ]
     )
 
@@ -2938,9 +2965,10 @@ if not st.session_state.authenticated:
 
         st.markdown(
             """<div class="gi-auth-hero" style="margin:4px 0 18px;">
+{hero_logo}
 <div class="gi-auth-hero-title" style="font-size:1.5rem;">Create your account</div>
 <div class="gi-auth-hero-sub">Set up your operational intelligence workspace.</div>
-</div>""",
+</div>""".format(hero_logo=_hero_icon_html),
             unsafe_allow_html=True,
         )
 
@@ -3122,9 +3150,10 @@ Your data is protected with enterprise-grade security. By creating an account, y
 
         st.markdown(
             """<div class="gi-auth-hero" style="margin:4px 0 18px;">
+{hero_logo}
 <div class="gi-auth-hero-title" style="font-size:1.5rem;">Welcome back</div>
 <div class="gi-auth-hero-sub">Sign in to continue to your operational intelligence workspace.</div>
-</div>""",
+</div>""".format(hero_logo=_hero_icon_html),
             unsafe_allow_html=True,
         )
 
