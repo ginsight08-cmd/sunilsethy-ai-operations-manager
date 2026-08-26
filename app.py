@@ -278,15 +278,29 @@ st.markdown(
     /* Authentication navigation sits directly beneath the brand header. */
     body:has(.gi-auth-tabs-marker) [data-baseweb="tab-list"] {{
         justify-content: flex-end !important;
-        gap: 1.65rem !important;
-        min-height: 48px;
-        padding: 0 .25rem !important;
-        border-bottom: 1px solid #E5E5E5 !important;
-        background: #FFFFFF !important;
+        align-items: center !important;
+        gap: 1.25rem !important;
+        width: max-content !important;
+        max-width: 72%;
+        min-height: 42px;
+        margin-left: auto !important;
+        margin-top: -58px !important;
+        margin-bottom: 16px !important;
+        padding: 0 !important;
+        border-bottom: 0 !important;
+        background: transparent !important;
+    }}
+
+    body:has(.gi-auth-tabs-marker) [data-baseweb="tab-list"]::before {{
+        content: "Already have an account?";
+        color: #737373;
+        font-size: .84rem;
+        font-weight: 400;
+        white-space: nowrap;
     }}
 
     body:has(.gi-auth-tabs-marker) button[data-baseweb="tab"] {{
-        min-height: 48px !important;
+        min-height: 42px !important;
         padding: 0 .15rem !important;
         border-radius: 0 !important;
         color: #737373 !important;
@@ -757,6 +771,13 @@ st.markdown(
         body:has(.gi-auth-tabs-marker) [data-baseweb="tab-list"] {{
             justify-content: flex-start !important;
             gap: 1.25rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 0 12px !important;
+            border-bottom: 1px solid #E5E5E5 !important;
+        }}
+        body:has(.gi-auth-tabs-marker) [data-baseweb="tab-list"]::before {{
+            display: none !important;
         }}
         section[data-testid="stSidebar"] [data-testid="stImage"] img {{ max-width: 170px !important; }}
         .gi-brand-row {{ gap: 8px; }}
@@ -2901,7 +2922,6 @@ if not st.session_state.authenticated:
         st.markdown(
             f"""<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding-bottom:8px; border-bottom:1px solid #E5E5E5; margin-bottom:8px;">
 {_auth_logo_html}
-<div style="color:#737373; font-size:0.85rem; text-align:right;">Already have an account? <b style="color:#0A0A0A;">Use the Sign In tab below</b></div>
 </div>""",
             unsafe_allow_html=True,
         )
@@ -2915,7 +2935,6 @@ if not st.session_state.authenticated:
 <div class="gi-tagline">AI Operations Copilot</div>
 </div>
 </div>
-<div style="color:#737373; font-size:0.85rem;">Use the tabs below to sign in or create an account</div>
 </div>""",
             unsafe_allow_html=True,
         )
