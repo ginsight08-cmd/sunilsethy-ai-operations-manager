@@ -7,6 +7,7 @@ from pathlib import Path
 from email.message import EmailMessage
 
 import pandas as pd
+import altair as alt
 import requests
 import streamlit as st
 from supabase import create_client, Client
@@ -471,6 +472,15 @@ st.markdown(
         align-self:flex-start; background:var(--black); color:#fff;
         border-radius:7px; padding:.22rem .5rem; font-size:.7rem;
         white-space:nowrap;
+    }}
+    .stApp .gi-risk-level,
+    .stApp .gi-risk-level * {{
+        color:#FFFFFF !important;
+        -webkit-text-fill-color:#FFFFFF !important;
+    }}
+    .stApp [data-testid="stVegaLiteChart"] {{
+        background:#FFFFFF !important;
+        border-radius:10px;
     }}
 
     /* ---------- Pricing / plan cards ---------- */
@@ -4046,8 +4056,79 @@ trend_col, alerts_col = st.columns([2.15, 1])
 with trend_col:
     with st.container(border=True):
         st.markdown('<div class="gi-panel-title">KPI Performance Trend</div>', unsafe_allow_html=True)
-        st.markdown('<div class="gi-panel-subtitle">Productivity, quality and SLA over time</div>', unsafe_allow_html=True)
-        st.line_chart(trend_data, use_container_width=True, height=330)
+        _has_real_trend = len(trend_data.index) >= 2
+        _chart_subtitle = (
+            "Productivity, quality and SLA over time"
+            if _has_real_trend
+            else "Current KPI position — add multiple dates to display a trend"
+        )
+        st.markdown(
+            f'<div class="gi-panel-subtitle">{_chart_subtitle}</div>',
+            unsafe_allow_html=True,
+        )
+
+        if _has_real_trend:
+            _chart_frame = (
+                trend_data.reset_index()
+                .melt(id_vars=[trend_data.index.name or "index"], var_name="KPI", value_name="Value")
+            )
+            _period_column = trend_data.index.name or "index"
+            _chart = (
+                alt.Chart(_chart_frame)
+                .mark_line(point=alt.OverlayMarkDef(size=55), strokeWidth=2.5)
+                .encode(
+                    x=alt.X(f"{_period_column}:N", title=None, axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(domain=[0, 100])),
+                    color=alt.Color(
+                        "KPI:N",
+                        scale=alt.Scale(
+                            domain=["Productivity", "Quality", "SLA"],
+                            range=["#0EA5E9", "#0F766E", "#EF4444"],
+                        ),
+                        legend=alt.Legend(orient="bottom", title=None),
+                    ),
+                    tooltip=[_period_column, "KPI", alt.Tooltip("Value:Q", format=".1f")],
+                )
+            )
+        else:
+            _current_kpis = pd.DataFrame(
+                {
+                    "KPI": ["Productivity", "Quality", "SLA"],
+                    "Value": [productivity, quality, sla],
+                }
+            )
+            _chart = (
+                alt.Chart(_current_kpis)
+                .mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6, size=54)
+                .encode(
+                    x=alt.X("KPI:N", title=None, sort=None, axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(domain=[0, 100])),
+                    color=alt.Color(
+                        "KPI:N",
+                        scale=alt.Scale(
+                            domain=["Productivity", "Quality", "SLA"],
+                            range=["#0EA5E9", "#0F766E", "#EF4444"],
+                        ),
+                        legend=None,
+                    ),
+                    tooltip=["KPI", alt.Tooltip("Value:Q", format=".1f")],
+                )
+            )
+
+        _chart = _chart.properties(height=300).configure(
+            background="#FFFFFF"
+        ).configure_view(
+            stroke=None
+        ).configure_axis(
+            labelColor="#52525B",
+            titleColor="#52525B",
+            domainColor="#E5E7EB",
+            tickColor="#E5E7EB",
+            gridColor="#EEF0F3",
+        ).configure_legend(
+            labelColor="#27272A"
+        )
+        st.altair_chart(_chart, use_container_width=True, theme=None)
 
 with alerts_col:
     with st.container(border=True):
