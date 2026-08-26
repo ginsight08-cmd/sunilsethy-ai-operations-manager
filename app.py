@@ -25,7 +25,7 @@ APP_VERSION = "1.0.0"
 
 st.set_page_config(
     page_title="Generative Insight | AI Operations Copilot",
-    page_icon="assets/Generative_insight.png",
+    page_icon="assets/generative-insight-gi-mark-transparent.png",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -37,9 +37,11 @@ st.set_page_config(
 
 BASE_DIR = Path(__file__).resolve().parent
 
-# Add your logo here:
-# assets/Generative_insight.png
-LOGO_PATH = BASE_DIR / "assets" / "Generative_insight.png"
+# Brand image assets — keep BOTH files inside the assets/ folder.
+# Horizontal wordmark: headers, auth topbar, sidebar.
+# Square GI mark: favicon/page icon and 40–56 px badges.
+HEADER_LOGO_PATH = BASE_DIR / "assets" / "generative-insight-logo-header-transparent.png"
+MARK_LOGO_PATH = BASE_DIR / "assets" / "generative-insight-gi-mark-transparent.png"
 
 WEBSITE_URL = "https://generativeinsight.in"
 
@@ -183,7 +185,7 @@ st.markdown(
         visibility: visible !important;
     }}
 
-    /* ---------- Logo mark (real logo image when assets/Generative_insight.png
+    /* ---------- Logo mark (dedicated GI mark when assets/generative-insight-gi-mark-transparent.png
        exists — see logo_mark_html(); falls back to a CSS-drawn black
        rounded-square sparkle icon only when no logo file is present). ---------- */
     .gi-logo-mark {{
@@ -751,34 +753,33 @@ st.markdown(
 # ============================================================
 
 @st.cache_data(show_spinner=False)
-def _logo_data_uri():
-    """
-    Base64 data-URI for the real Generative Insight logo, used inside every
-    small badge/icon mark (auth screen icons, sidebar mark, header mark) so
-    the actual logo renders there instead of a plain black square whenever
-    assets/Generative_insight.png is present. Cached so the file is only
-    read/encoded once per session.
-    """
-    if LOGO_PATH.exists():
+def _image_data_uri(path):
+    """Return a cached PNG data-URI for a local brand asset."""
+    if path.exists():
         try:
             import base64
-            encoded = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
+            encoded = base64.b64encode(path.read_bytes()).decode("ascii")
             return f"data:image/png;base64,{encoded}"
         except Exception:
             return None
     return None
 
 
+def _header_logo_data_uri():
+    return _image_data_uri(HEADER_LOGO_PATH)
+
+
+def _mark_logo_data_uri():
+    return _image_data_uri(MARK_LOGO_PATH)
+
+
 def logo_mark_html(size=40, radius=11, font_size=18):
     """
-    HTML for one logo badge. Renders the real logo, fully visible
-    (object-fit: contain, not cover — the logo PNG is wider than it is
-    tall, so 'cover' was cropping the wordmark down to a sliver). Falls
-    back to the CSS-drawn black sparkle square only when no logo file
-    exists — keeping every badge in the app (auth page, sidebar, main
-    header) visually consistent.
+    HTML for a small square brand badge. Uses the dedicated GI mark so the
+    horizontal wordmark is never squeezed into 40–56 px icon containers.
+    Falls back to the CSS sparkle badge only if the mark file is missing.
     """
-    uri = _logo_data_uri()
+    uri = _mark_logo_data_uri()
     if uri:
         return (
             f'<div style="width:{size}px;height:{size}px;border-radius:{radius}px;'
@@ -904,7 +905,7 @@ def show_brand_header(compact=False):
 
     logo_width = 230 if compact else 420
     logo_html = ""
-    uri = _logo_data_uri()
+    uri = _header_logo_data_uri()
     if uri:
         logo_html = f'<img src="{uri}" alt="Generative Insight" style="width:{logo_width}px; max-width:60vw; height:auto; display:block;" />'
     else:
@@ -2823,8 +2824,8 @@ if not st.session_state.authenticated:
     # switch, this is a plain informational line instead.) Rendered as one
     # flex row (not st.columns) so the note stays close to the logo
     # instead of drifting to the far edge on a wide monitor.
-    if LOGO_PATH.exists():
-        _auth_logo_uri = _logo_data_uri()
+    if HEADER_LOGO_PATH.exists():
+        _auth_logo_uri = _header_logo_data_uri()
         _auth_logo_html = (
             f'<img src="{_auth_logo_uri}" alt="Generative Insight" style="width:230px; max-width:55vw; height:auto; display:block;" />'
             if _auth_logo_uri else ""
@@ -2851,10 +2852,8 @@ if not st.session_state.authenticated:
             unsafe_allow_html=True,
         )
 
-    # Only draw the hero icon badge when there's no real logo image above
-    # (st.image already rendered it in the topbar) — avoids showing the
-    # logo twice, once big and once small, on the same screen.
-    _hero_icon_html = "" if LOGO_PATH.exists() else (
+    # Hero badge uses the dedicated square GI mark (56 px).
+    _hero_icon_html = (
         f'<div class="gi-auth-icon-lg" style="background:transparent; box-shadow:none;">'
         f'{logo_mark_html(56, 16, 26)}</div>'
     )
@@ -3191,10 +3190,10 @@ plan_config = get_plan_config(
 
 with st.sidebar:
 
-    if LOGO_PATH.exists():
+    if HEADER_LOGO_PATH.exists():
 
         st.image(
-            str(LOGO_PATH),
+            str(HEADER_LOGO_PATH),
             use_container_width=True,
         )
 
