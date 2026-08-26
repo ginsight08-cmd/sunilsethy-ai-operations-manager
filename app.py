@@ -473,10 +473,16 @@ st.markdown(
         border-radius:7px; padding:.22rem .5rem; font-size:.7rem;
         white-space:nowrap;
     }}
-    .stApp .gi-risk-level,
-    .stApp .gi-risk-level * {{
+    .stApp [data-testid="stMarkdownContainer"] .gi-risk-level,
+    .stApp [data-testid="stMarkdownContainer"] .gi-risk-level *,
+    .stApp [data-testid="stMarkdownContainer"] .plan-badge-popular,
+    .stApp [data-testid="stMarkdownContainer"] .plan-badge-popular *,
+    .stApp [data-testid="stMarkdownContainer"] .gi-check-circle,
+    .stApp [data-testid="stMarkdownContainer"] .gi-check-circle * {{
         color:#FFFFFF !important;
         -webkit-text-fill-color:#FFFFFF !important;
+        opacity:1 !important;
+        visibility:visible !important;
     }}
     .stApp [data-testid="stVegaLiteChart"] {{
         background:#FFFFFF !important;
@@ -569,9 +575,40 @@ st.markdown(
         border: none;
     }}
 
+    /* Dark controls need an explicit descendant override because Streamlit
+       renders labels inside nested p/span elements and host styles may set
+       those children back to dark text. */
+    .stApp .stButton > button[kind="primary"],
+    .stApp .stButton > button[kind="primary"] *,
+    .stApp [data-testid="stFormSubmitButton"] button[kind="primary"],
+    .stApp [data-testid="stFormSubmitButton"] button[kind="primary"] *,
+    .stApp [data-testid="stDownloadButton"] button[kind="primary"],
+    .stApp [data-testid="stDownloadButton"] button[kind="primary"] * {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+
+    .stApp [data-testid="stLinkButton"] a[style*="background"],
+    .stApp [data-testid="stLinkButton"] a[style*="background"] *,
+    .stApp [data-testid="stLinkButton"] a[kind="primary"],
+    .stApp [data-testid="stLinkButton"] a[kind="primary"] * {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+
     .stButton > button[kind="primary"]:hover {{
         background: var(--black-hover);
         color: #FFFFFF;
+    }}
+
+    .stApp .stButton > button[kind="primary"]:hover *,
+    .stApp [data-testid="stFormSubmitButton"] button[kind="primary"]:hover * {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
     }}
 
     [data-testid="stLinkButton"] a {{
