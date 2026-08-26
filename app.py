@@ -253,6 +253,28 @@ st.markdown(
         box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }}
 
+    /* Compact, centered account panel on laptop screens. The marker is
+       rendered only inside the Create Account tab, so pricing remains wide. */
+    [role="tabpanel"]:has(.gi-signup-marker) {{
+        width: min(100%, 480px);
+        margin-inline: auto;
+        padding-top: 1rem;
+    }}
+
+    [role="tabpanel"]:has(.gi-signup-marker) [data-testid="stVerticalBlockBorderWrapper"] {{
+        background: #FFFFFF;
+        border-radius: 16px;
+        box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }}
+
+    .gi-auth-hero-logo {{
+        width: clamp(104px, 10vw, 142px);
+        height: auto;
+        display: block;
+        margin: 0 auto 14px;
+        object-fit: contain;
+    }}
+
     .gi-brand {{
         font-size: 1.3rem;
         font-weight: 800;
@@ -2864,11 +2886,19 @@ if not st.session_state.authenticated:
             unsafe_allow_html=True,
         )
 
-    # Hero badge uses the dedicated square GI mark (56 px).
-    _hero_icon_html = (
-        f'<div class="gi-auth-icon-lg" style="background:transparent; box-shadow:none;">'
-        f'{logo_mark_html(56, 16, 26)}</div>'
-    )
+    # Use the real horizontal brand logo in the hero. This avoids displaying
+    # an empty black square when the optional square-mark asset is unavailable.
+    _hero_logo_uri = _header_logo_data_uri()
+    if _hero_logo_uri:
+        _hero_icon_html = (
+            f'<img class="gi-auth-hero-logo" src="{_hero_logo_uri}" '
+            f'alt="Generative Insight" />'
+        )
+    else:
+        _hero_icon_html = (
+            '<div class="gi-brand" style="text-align:center; margin-bottom:14px;">'
+            'Generative <span>Insight</span></div>'
+        )
     st.markdown(
         f"""<div class="gi-auth-hero" style="margin-top:2px;">
 {_hero_icon_html}
@@ -2902,6 +2932,9 @@ if not st.session_state.authenticated:
     # --------------------------------------------------------
 
     with signup_tab:
+
+        # CSS hook used to constrain only this tab to a comfortable form width.
+        st.markdown('<span class="gi-signup-marker"></span>', unsafe_allow_html=True)
 
         st.markdown(
             """<div class="gi-auth-hero" style="margin:4px 0 18px;">
