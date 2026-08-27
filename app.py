@@ -700,6 +700,48 @@ st.markdown(
     .stApp [data-baseweb="select"] > div {{
         border-radius: var(--radius-sm) !important;
         border-color: var(--border) !important;
+        background-color: #FFFFFF !important;
+    }}
+
+    /* Force a consistent light surface when the host/browser supplies a
+       dark color scheme. This prevents black text appearing on dark widget
+       backgrounds. Intentional primary buttons are overridden separately. */
+    .stApp,
+    .stApp [data-testid="stAppViewContainer"],
+    .stApp [data-testid="stMain"],
+    .stApp [data-testid="stMainBlockContainer"] {{
+        background-color: var(--bg) !important;
+        color: var(--ink) !important;
+    }}
+    .stApp input,
+    .stApp textarea,
+    .stApp [data-baseweb="input"] > div,
+    .stApp [data-baseweb="textarea"] > div,
+    .stApp [data-baseweb="select"] > div,
+    .stApp [data-baseweb="popover"] > div,
+    .stApp [role="listbox"],
+    .stApp [role="option"],
+    .stApp [data-testid="stExpander"] details,
+    .stApp [data-testid="stFileUploaderDropzone"],
+    .stApp [data-testid="stDataFrame"],
+    .stApp [data-testid="stTable"] {{
+        background-color: #FFFFFF !important;
+        color: var(--ink) !important;
+    }}
+    .stApp [role="option"]:hover,
+    .stApp [role="option"][aria-selected="true"] {{
+        background-color: #F3F4F6 !important;
+        color: var(--ink) !important;
+    }}
+    .stApp [data-testid="stAlert"] {{
+        color: var(--ink) !important;
+    }}
+    .stApp [data-testid="stDownloadButton"] button:not([kind="primary"]),
+    .stApp [data-testid="stFormSubmitButton"] button:not([kind="primary"]),
+    .stApp .stButton > button:not([kind="primary"]) {{
+        background-color: #FFFFFF !important;
+        color: var(--ink) !important;
+        border-color: var(--border) !important;
     }}
     .stApp [data-testid="stDataFrame"] *,
     .stApp [data-testid="stTable"] * {{
@@ -1947,7 +1989,29 @@ def render_searchable_procurement_table(df, table_key, download_name):
         filtered_df = df.loc[mask]
 
     st.caption(f"Showing {len(filtered_df):,} of {len(df):,} rows")
-    st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+
+    # Keep procurement reports readable even when the Streamlit deployment
+    # or browser is using a dark theme.
+    light_table = filtered_df.style.set_properties(
+        **{
+            "background-color": "#FFFFFF",
+            "color": "#111111",
+            "border-color": "#E5E7EB",
+        }
+    ).set_table_styles(
+        [
+            {
+                "selector": "th",
+                "props": [
+                    ("background-color", "#F3F4F6"),
+                    ("color", "#111111"),
+                    ("border-color", "#D1D5DB"),
+                    ("font-weight", "600"),
+                ],
+            }
+        ]
+    )
+    st.dataframe(light_table, use_container_width=True, hide_index=True)
     st.download_button(
         "⬇️ Download displayed table (CSV)",
         data=filtered_df.to_csv(index=False).encode("utf-8-sig"),
