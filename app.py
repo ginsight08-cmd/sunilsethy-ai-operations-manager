@@ -1910,6 +1910,54 @@ def render_coming_soon_flow(industry_key):
     render_footer()
 
 
+def render_searchable_procurement_table(df, table_key, download_name):
+    """Show a procurement table with column-aware search and CSV export."""
+
+    if not isinstance(df, pd.DataFrame) or df.empty:
+        st.info("No data available.")
+        return
+
+    search_col, search_text_col = st.columns([1, 2])
+    with search_col:
+        selected_column = st.selectbox(
+            "Search column",
+            ["All columns", *df.columns.tolist()],
+            key=f"{table_key}_search_column",
+        )
+    with search_text_col:
+        search_text = st.text_input(
+            "Search",
+            placeholder="Type a value to filter the table...",
+            key=f"{table_key}_search_text",
+        )
+
+    filtered_df = df
+    if search_text.strip():
+        query = search_text.strip()
+        if selected_column == "All columns":
+            mask = df.astype(str).apply(
+                lambda column: column.str.contains(
+                    query, case=False, na=False, regex=False
+                )
+            ).any(axis=1)
+        else:
+            mask = df[selected_column].astype(str).str.contains(
+                query, case=False, na=False, regex=False
+            )
+        filtered_df = df.loc[mask]
+
+    st.caption(f"Showing {len(filtered_df):,} of {len(df):,} rows")
+    st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+    st.download_button(
+        "⬇️ Download displayed table (CSV)",
+        data=filtered_df.to_csv(index=False).encode("utf-8-sig"),
+        file_name=download_name,
+        mime="text/csv",
+        use_container_width=True,
+        key=f"{table_key}_download",
+    )
+
+
 def render_manufacturing_flow(plan_config):
     """
     Manufacturing industry flow: upload a Price Comparative Sheet workbook
@@ -2069,7 +2117,11 @@ def render_manufacturing_flow(plan_config):
         st.subheader("Purchase Requisition Summary")
         pr_df = pd.DataFrame(result["pr_rows"])
         if not pr_df.empty:
-            st.dataframe(pr_df, use_container_width=True, hide_index=True)
+            render_searchable_procurement_table(
+                pr_df,
+                "procurement_pr_summary",
+                "procurement_pr_summary.csv",
+            )
         else:
             st.info("No PR-level data available.")
 
@@ -2077,7 +2129,11 @@ def render_manufacturing_flow(plan_config):
         st.subheader("Item-Level Comparison")
         item_df = pd.DataFrame(result["item_rows"])
         if not item_df.empty:
-            st.dataframe(item_df, use_container_width=True, hide_index=True)
+            render_searchable_procurement_table(
+                item_df,
+                "procurement_item_detail",
+                "procurement_item_detail.csv",
+            )
         else:
             st.info("No item-level data available.")
 
@@ -2087,7 +2143,11 @@ def render_manufacturing_flow(plan_config):
         if not item_df.empty:
             risk_df = item_df[item_df["Risk Flags"].astype(str).str.len() > 0]
             if not risk_df.empty:
-                st.dataframe(risk_df, use_container_width=True, hide_index=True)
+                render_searchable_procurement_table(
+                    risk_df,
+                    "procurement_risk_items",
+                    "procurement_risk_items.csv",
+                )
             else:
                 st.success("✅ No flagged items — every item has multiple quotes with no unusual price movement.")
         else:
