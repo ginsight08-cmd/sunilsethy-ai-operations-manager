@@ -748,6 +748,29 @@ st.markdown(
     .stApp [data-testid="stTable"] * {{
         color: var(--ink) !important;
     }}
+
+    /* File uploader's Browse files button needs explicit descendant colors.
+       Streamlit renders its text inside nested elements, so inherited host
+       styles can otherwise make the label match the button background. */
+    .stApp [data-testid="stFileUploaderDropzone"] button {{
+        background-color: var(--black) !important;
+        border: 1px solid var(--black) !important;
+        color: #FFFFFF !important;
+        border-radius: var(--radius-sm) !important;
+        font-weight: 700 !important;
+    }}
+    .stApp [data-testid="stFileUploaderDropzone"] button *,
+    .stApp [data-testid="stFileUploaderDropzone"] button p,
+    .stApp [data-testid="stFileUploaderDropzone"] button span {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+    .stApp [data-testid="stFileUploaderDropzone"] button:hover {{
+        background-color: var(--black-hover) !important;
+        border-color: var(--black-hover) !important;
+    }}
     .plan-card, .plan-card * {{
         color: var(--ink) !important;
     }}
