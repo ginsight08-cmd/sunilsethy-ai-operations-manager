@@ -5,6 +5,7 @@ import smtplib
 from datetime import datetime, timedelta
 from pathlib import Path
 from email.message import EmailMessage
+from urllib.parse import urlparse
 
 import pandas as pd
 import altair as alt
@@ -1499,6 +1500,47 @@ def normalize_n8n_response(response):
         data = data[0]
 
     return data if isinstance(data, dict) else {"answer": data}
+
+
+def normalize_webhook_url(value):
+    """Return a clean HTTP(S) webhook URL, or an empty string if invalid."""
+    url = str(value or "").strip().strip('"\'')
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return url
+
+
+def n8n_failure_message(response, workflow_name="n8n workflow"):
+    """Turn n8n/hosting failures into safe, actionable UI messages."""
+    body = (response.text or "").lower()
+
+    if response.status_code == 404:
+        if "no workspace here" in body:
+            return (
+                f"{workflow_name} endpoint was not found (HTTP 404). The configured "
+                "URL points to an unavailable workspace or the wrong hosting domain. "
+                "Update the webhook URL in Streamlit Secrets."
+            )
+        return (
+            f"{workflow_name} endpoint was not found (HTTP 404). Confirm that the n8n "
+            "workflow is active and copy its production URL (/webhook/..., not "
+            "/webhook-test/...) into Streamlit Secrets."
+        )
+
+    if response.status_code in {401, 403}:
+        return f"{workflow_name} rejected the request. Check its authentication settings."
+
+    return f"{workflow_name} failed (HTTP {response.status_code})."
+
+
+def safe_n8n_error_detail(response):
+    """Avoid rendering an entire hosting-provider HTML error page in the app."""
+    content_type = response.headers.get("Content-Type", "").lower()
+    body = (response.text or "").strip()
+    if not body or "text/html" in content_type or body.lower().startswith("<!doctype html"):
+        return ""
+    return body[:1000]
 
 
 def parse_ai_answer(data):
@@ -3883,13 +3925,22 @@ if st.session_state.file_name != uploaded.name:
 # N8N SETTINGS
 # ============================================================
 
-n8n_url = secret(
+n8n_url_raw = secret(
     "N8N_WEBHOOK_URL"
 )
 
-copilot_url = secret(
+copilot_url_raw = secret(
     "N8N_COPILOT_WEBHOOK_URL"
 )
+
+n8n_url = normalize_webhook_url(n8n_url_raw)
+copilot_url = normalize_webhook_url(copilot_url_raw)
+
+if n8n_url_raw and not n8n_url:
+    st.error("❌ N8N_WEBHOOK_URL is not a valid HTTP(S) URL in Streamlit Secrets.")
+
+if copilot_url_raw and not copilot_url:
+    st.error("❌ N8N_COPILOT_WEBHOOK_URL is not a valid HTTP(S) URL in Streamlit Secrets.")
 
 if n8n_url and "/webhook-test/" in n8n_url:
 
@@ -4445,15 +4496,10 @@ if n8n_url and not st.session_state.n8n_sent:
 
             else:
 
-                st.error(
-                    f"❌ n8n workflow failed: "
-                    f"HTTP {response.status_code}"
-                )
-
-                st.code(
-                    response.text,
-                    language="text",
-                )
+                st.error("❌ " + n8n_failure_message(response, "n8n workflow"))
+                error_detail = safe_n8n_error_detail(response)
+                if error_detail:
+                    st.code(error_detail, language="text")
 
         except requests.exceptions.Timeout:
 
@@ -4800,15 +4846,10 @@ with tabs[4]:
 
                     st.session_state.copilot_answer = None
 
-                    st.error(
-                        "❌ Copilot workflow failed: "
-                        f"HTTP {copilot_response.status_code}"
-                    )
-
-                    st.code(
-                        copilot_response.text,
-                        language="text",
-                    )
+                    st.error("❌ " + n8n_failure_message(copilot_response, "Copilot workflow"))
+                    error_detail = safe_n8n_error_detail(copilot_response)
+                    if error_detail:
+                        st.code(error_detail, language="text")
 
             except requests.exceptions.Timeout:
 
