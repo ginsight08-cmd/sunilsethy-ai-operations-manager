@@ -15,6 +15,8 @@ from supabase import create_client, Client
 
 from engine import analyze_data, make_ai_prompt
 import procurement_engine
+import case_management_engine
+import vakil_case_manager
 
 
 # ============================================================
@@ -63,6 +65,8 @@ DEFAULT_STATE = {
     "authenticated": False,
     "user_email": "",
     "user_id": "",
+    "supabase_access_token": "",
+    "supabase_refresh_token": "",
     "user_name": "",
     "company_name": "",
     "user_plan": "Free",
@@ -93,6 +97,9 @@ DEFAULT_STATE = {
     "manufacturing_result": None,
     "manufacturing_report_bytes": None,
     "manufacturing_report_generated_at": None,
+    "case_file_name": "",
+    "case_working_df": None,
+    "case_audit_log": [],
 }
 
 # Free plan trial length. After this many days on the Free plan,
@@ -112,12 +119,13 @@ FREE_TRIAL_DAYS = 15
 INDUSTRY_LABELS = {
     "BPO": "BPO / Call Center Operations",
     "Manufacturing": "Manufacturing (Procurement)",
+    "CaseManagement": "Vakil / Legal Case Management",
     "Retail": "Retail / E-commerce",
     "Logistics": "Logistics / Delivery",
     "Healthcare": "Healthcare / Clinics",
 }
 
-BUILT_INDUSTRIES = {"BPO", "Manufacturing"}
+BUILT_INDUSTRIES = {"BPO", "Manufacturing", "CaseManagement"}
 
 for key, value in DEFAULT_STATE.items():
     if key not in st.session_state:
@@ -1189,6 +1197,21 @@ def get_supabase_client() -> Client:
     return create_client(url, anon_key)
 
 
+def get_authenticated_supabase_client() -> Client:
+    """Create a Supabase client carrying the logged-in user's RLS identity."""
+    access_token = st.session_state.get("supabase_access_token", "")
+    refresh_token = st.session_state.get("supabase_refresh_token", "")
+    if not access_token or not refresh_token:
+        raise RuntimeError("Your login session is missing. Sign out and sign in again.")
+    client = get_supabase_client()
+    auth_response = client.auth.set_session(access_token, refresh_token)
+    refreshed = getattr(auth_response, "session", None)
+    if refreshed:
+        st.session_state.supabase_access_token = refreshed.access_token
+        st.session_state.supabase_refresh_token = refreshed.refresh_token
+    return client
+
+
 def get_supabase_admin_client() -> Client:
     url = secret("SUPABASE_URL")
     service_role_key = secret("SUPABASE_SERVICE_ROLE_KEY")
@@ -1417,6 +1440,9 @@ def set_authenticated_user(response):
     st.session_state.authenticated = True
     st.session_state.user_email = (user.email or "").lower()
     st.session_state.user_id = user.id
+    session = getattr(response, "session", None)
+    st.session_state.supabase_access_token = getattr(session, "access_token", "") or ""
+    st.session_state.supabase_refresh_token = getattr(session, "refresh_token", "") or ""
     st.session_state.user_name = metadata.get("full_name", "")
     st.session_state.company_name = metadata.get("company_name", "")
     st.session_state.user_plan = metadata.get("plan", "Free") or "Free"
@@ -1437,6 +1463,8 @@ def clear_authentication():
     st.session_state.authenticated = False
     st.session_state.user_email = ""
     st.session_state.user_id = ""
+    st.session_state.supabase_access_token = ""
+    st.session_state.supabase_refresh_token = ""
     st.session_state.user_name = ""
     st.session_state.company_name = ""
     st.session_state.user_plan = "Free"
@@ -1972,6 +2000,208 @@ Insights today. Intelligence tomorrow.
 </div>""",
         unsafe_allow_html=True,
     )
+
+
+def render_case_management_flow(plan_config):
+    """Persistent, login-scoped Vakil client and legal case workflow."""
+    show_brand_header(compact=True)
+    try:
+        db = get_authenticated_supabase_client()
+        vakil_case_manager.render(
+            db,
+            st.session_state.user_id,
+            notification_webhook_url=normalize_webhook_url(
+                secret("N8N_VAKIL_NOTIFICATION_WEBHOOK_URL")
+            ),
+            sender_email=st.session_state.user_email,
+        )
+    except Exception as exc:
+        st.error(f"Could not open the Vakil workspace: {exc}")
+    render_footer()
+    return
+
+    # Legacy spreadsheet-based case flow retained below for migration
+    # reference. The persistent Vakil workflow above is now authoritative.
+    st.markdown('<div class="main-title">Case Management</div>', unsafe_allow_html=True)
+    st.caption("Configure, assign, track, update, and export operational cases from one workspace.")
+
+    with st.expander("⚙️ Case workflow configuration", expanded=False):
+        cfg1, cfg2 = st.columns(2)
+        due_soon_hours = cfg1.number_input("Due-soon warning window (hours)", 1, 168, 4)
+        stale_hours = cfg2.number_input("Stale-case threshold (hours)", 1, 720, 24)
+        st.caption("Closed statuses: Resolved, Closed, Cancelled. Dates are interpreted as UTC.")
+
+    template = case_management_engine.sample_cases()
+    template_buffer = io.BytesIO()
+    with pd.ExcelWriter(template_buffer, engine="openpyxl") as writer:
+        template.to_excel(writer, sheet_name="Cases", index=False)
+    st.download_button(
+        "⬇️ Download case template",
+        template_buffer.getvalue(),
+        "case_management_template.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+    uploaded = st.file_uploader(
+        f"📁 Upload case register (.xlsx or .csv) — max {plan_config['max_mb']} MB",
+        type=["xlsx", "csv"], key="case_management_uploader",
+    )
+
+    if uploaded and uploaded.name != st.session_state.case_file_name:
+        try:
+            source = pd.read_csv(uploaded) if uploaded.name.lower().endswith(".csv") else pd.read_excel(uploaded)
+            normalized = case_management_engine.normalize_cases(source)
+            source_columns = case_management_engine.REQUIRED_COLUMNS + case_management_engine.OPTIONAL_COLUMNS
+            st.session_state.case_working_df = normalized[source_columns].copy()
+            st.session_state.case_file_name = uploaded.name
+            st.session_state.case_audit_log = []
+        except Exception as exc:
+            st.error(f"❌ Could not load the case register: {exc}")
+            render_footer()
+            return
+
+    if st.session_state.case_working_df is None:
+        st.info("Upload your case register or download the template to start the workflow.")
+        render_footer()
+        return
+
+    with st.expander("➕ Create a new case", expanded=False):
+        with st.form("create_case_form", clear_on_submit=True):
+            c1, c2, c3 = st.columns(3)
+            new_id = c1.text_input("Case ID")
+            new_priority = c2.selectbox("Priority", case_management_engine.PRIORITY_OPTIONS, index=2)
+            new_status = c3.selectbox("Status", case_management_engine.STATUS_OPTIONS)
+            c4, c5, c6 = st.columns(3)
+            new_owner = c4.text_input("Owner", value="Unassigned")
+            new_category = c5.text_input("Category")
+            new_customer = c6.text_input("Customer")
+            c7, c8 = st.columns(2)
+            new_sla_date = c7.date_input("SLA due date")
+            new_sla_time = c8.time_input("SLA due time")
+            new_description = st.text_area("Description", height=70)
+            create_case = st.form_submit_button("Create case", type="primary")
+
+        if create_case:
+            existing_ids = set(st.session_state.case_working_df["Case_ID"].astype(str))
+            if not new_id.strip():
+                st.error("Case ID is required.")
+            elif new_id.strip() in existing_ids:
+                st.error("Case ID already exists.")
+            else:
+                now = pd.Timestamp.now(tz="UTC").tz_localize(None)
+                row = {column: "" for column in case_management_engine.REQUIRED_COLUMNS + case_management_engine.OPTIONAL_COLUMNS}
+                row.update({
+                    "Case_ID": new_id.strip(), "Created_At": now, "Status": new_status,
+                    "Priority": new_priority, "Owner": new_owner.strip() or "Unassigned",
+                    "Category": new_category.strip(),
+                    "SLA_Due_At": pd.Timestamp(datetime.combine(new_sla_date, new_sla_time)),
+                    "Customer": new_customer.strip(), "Description": new_description.strip(),
+                    "Last_Updated_At": now, "Resolution_At": pd.NaT,
+                })
+                st.session_state.case_working_df = pd.concat(
+                    [st.session_state.case_working_df, pd.DataFrame([row])], ignore_index=True
+                )
+                st.session_state.case_audit_log.append({
+                    "Updated_At": now, "Case_ID": new_id.strip(), "Field": "Case",
+                    "Old_Value": "", "New_Value": "Created",
+                })
+                st.success(f"Created {new_id.strip()}.")
+
+    st.subheader("📝 Case register")
+    editable_columns = case_management_engine.REQUIRED_COLUMNS + case_management_engine.OPTIONAL_COLUMNS
+    previous = st.session_state.case_working_df[editable_columns].copy()
+    edited = st.data_editor(
+        previous,
+        use_container_width=True,
+        hide_index=True,
+        num_rows="fixed",
+        disabled=["Case_ID", "Created_At", "Last_Updated_At"],
+        column_config={
+            "Status": st.column_config.SelectboxColumn("Status", options=case_management_engine.STATUS_OPTIONS, required=True),
+            "Priority": st.column_config.SelectboxColumn("Priority", options=case_management_engine.PRIORITY_OPTIONS, required=True),
+            "Description": st.column_config.TextColumn("Description", width="large"),
+            "Resolution_Notes": st.column_config.TextColumn("Resolution notes", width="large"),
+        },
+        key="case_register_editor",
+    )
+
+    if len(edited) == len(previous):
+        now = pd.Timestamp.now(tz="UTC").tz_localize(None)
+        tracked = ["Status", "Priority", "Owner", "Category", "SLA_Due_At", "Customer", "Description", "Resolution_At", "Resolution_Notes"]
+        changed_rows = set()
+        for row_index in edited.index:
+            for field in tracked:
+                old_value, new_value = previous.at[row_index, field], edited.at[row_index, field]
+                old_text = "" if pd.isna(old_value) else str(old_value)
+                new_text = "" if pd.isna(new_value) else str(new_value)
+                if old_text != new_text:
+                    changed_rows.add(row_index)
+                    st.session_state.case_audit_log.append({
+                        "Updated_At": now, "Case_ID": edited.at[row_index, "Case_ID"],
+                        "Field": field, "Old_Value": old_text, "New_Value": new_text,
+                    })
+        if changed_rows:
+            edited.loc[list(changed_rows), "Last_Updated_At"] = now
+        st.session_state.case_working_df = edited.copy()
+
+    try:
+        result = case_management_engine.analyze_cases(
+            st.session_state.case_working_df,
+            due_soon_hours=due_soon_hours,
+            stale_hours=stale_hours,
+        )
+    except Exception as exc:
+        st.error(f"❌ Case validation failed: {exc}")
+        render_footer()
+        return
+
+    overall = result["overall"]
+    metric_columns = st.columns(6)
+    metric_columns[0].metric("Total", overall["total"])
+    metric_columns[1].metric("Open", overall["open"])
+    metric_columns[2].metric("SLA breached", overall["breached"])
+    metric_columns[3].metric("Due soon", overall["due_soon"])
+    metric_columns[4].metric("Unassigned", overall["unassigned"])
+    metric_columns[5].metric("SLA compliance", f"{overall['sla_compliance_pct']}%")
+
+    st.subheader("🔎 Work queue")
+    f1, f2, f3 = st.columns(3)
+    status_filter = f1.multiselect("Status", sorted(result["cases"]["Status"].unique()))
+    owner_filter = f2.multiselect("Owner", sorted(result["cases"]["Owner"].unique()))
+    risk_filter = f3.multiselect("Risk", ["Critical", "High", "Watch", "Normal"])
+    queue = result["cases"]
+    if status_filter:
+        queue = queue[queue["Status"].isin(status_filter)]
+    if owner_filter:
+        queue = queue[queue["Owner"].isin(owner_filter)]
+    if risk_filter:
+        queue = queue[queue["Risk_Level"].isin(risk_filter)]
+    queue = queue.sort_values(["Risk_Score", "SLA_Hours_Remaining"], ascending=[False, True])
+    st.dataframe(queue, use_container_width=True, hide_index=True)
+
+    chart1, chart2 = st.columns(2)
+    with chart1:
+        st.markdown("#### Cases by status")
+        st.bar_chart(result["cases"].groupby("Status").size())
+    with chart2:
+        st.markdown("#### Open workload by owner")
+        st.bar_chart(result["cases"][result["cases"]["Is_Open"]].groupby("Owner").size())
+
+    export_buffer = io.BytesIO()
+    with pd.ExcelWriter(export_buffer, engine="openpyxl") as writer:
+        result["cases"].to_excel(writer, sheet_name="Cases", index=False)
+        pd.DataFrame(st.session_state.case_audit_log).to_excel(writer, sheet_name="Audit_Log", index=False)
+    d1, d2 = st.columns(2)
+    d1.download_button("⬇️ Download updated case register", export_buffer.getvalue(), "case_register_updated.xlsx")
+    d2.download_button(
+        "⬇️ Download audit log",
+        pd.DataFrame(st.session_state.case_audit_log).to_csv(index=False).encode("utf-8"),
+        "case_audit_log.csv", "text/csv",
+    )
+
+    with st.expander("🤖 AI-ready case context"):
+        st.code(case_management_engine.make_ai_prompt(result), language="text")
+    render_footer()
 
 
 def render_coming_soon_flow(industry_key):
@@ -3793,6 +4023,10 @@ st.markdown(
 
 if st.session_state.industry == "Manufacturing":
     render_manufacturing_flow(plan_config)
+    st.stop()
+
+elif st.session_state.industry == "CaseManagement":
+    render_case_management_flow(plan_config)
     st.stop()
 
 elif st.session_state.industry not in BUILT_INDUSTRIES:
