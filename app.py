@@ -17,6 +17,7 @@ from engine import analyze_data, make_ai_prompt
 import procurement_engine
 import case_management_engine
 import vakil_case_manager
+from operations_excellence import render_operations_excellence
 
 
 # ============================================================
@@ -1530,6 +1531,9 @@ def clear_authentication():
     st.session_state.manufacturing_report_bytes = None
     st.session_state.manufacturing_report_generated_at = None
 
+    for key in list(st.session_state):
+        if key.startswith("ox_"):
+            del st.session_state[key]
     clear_analysis()
 
 
@@ -4080,6 +4084,17 @@ elif st.session_state.industry == "CaseManagement":
 
 elif st.session_state.industry not in BUILT_INDUSTRIES:
     render_coming_soon_flow(st.session_state.industry)
+    st.stop()
+
+
+bpo_workspace = st.radio(
+    "BPO workspace",
+    ["Performance Dashboard", "Operations Excellence"],
+    horizontal=True,
+    key="bpo_workspace",
+)
+if bpo_workspace == "Operations Excellence":
+    render_operations_excellence()
     st.stop()
 
 
