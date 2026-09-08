@@ -71,8 +71,9 @@ def _portfolio(projects, result):
         options = findings.to_dict('records')
         choice = st.selectbox('Use a finding as a project starting point', range(len(options)),
                               format_func=lambda i: f"{options[i].get('Team', '')}: {options[i].get('Finding', '')}")
-        if st.button('Use this gap in the project form', key='ox_seed'):
-            st.session_state.ox_seed = str(options[choice].get('Finding', ''))
+        if st.button('Use this gap in the project form', key='ox_seed_button'):
+            st.session_state.ox_gap_seed = str(options[choice].get('Finding', ''))
+            st.session_state['ox_New project_problem'] = st.session_state.ox_gap_seed
             st.success('Finding copied. Select New project in RCA & CAPA to continue.')
     else:
         st.info('Analyze a file in Performance Dashboard to bring measured gaps here, or create a project manually.')
@@ -163,7 +164,7 @@ def _project_editor(projects):
         st.markdown('#### Define — customer need and process scope')
         text('title', 'Project title')
         text('owner', 'Accountable owner')
-        text('problem', 'Measured problem / gap', True, st.session_state.get('ox_seed', ''))
+        text('problem', 'Measured problem / gap', True, st.session_state.get('ox_gap_seed', ''))
         text('customer_need', 'Voice of customer → critical-to-quality requirement', True)
         text('scope', 'Scope and boundaries', True)
         text('sipoc', 'SIPOC: suppliers → inputs → process → outputs → customers', True)
