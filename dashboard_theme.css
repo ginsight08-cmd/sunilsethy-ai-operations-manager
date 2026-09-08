@@ -1,0 +1,172 @@
+/* Shared authenticated workspace theme. Auth screens and native sidebar
+   expansion geometry are intentionally owned by app.py. */
+body:has(.gi-workspace-marker) {
+    --workspace-border: #DCE4EF;
+    --workspace-blue: #0757B8;
+    --workspace-soft: #EDF4FF;
+}
+body:has(.gi-workspace-marker) .stApp,
+body:has(.gi-workspace-marker) [data-testid="stAppViewContainer"],
+body:has(.gi-workspace-marker) [data-testid="stMain"],
+body:has(.gi-workspace-marker) [data-testid="stMainBlockContainer"] {
+    background: #F5F7FB !important;
+}
+body:has(.gi-workspace-marker) [data-testid="stMainBlockContainer"] {
+    max-width: 1440px;
+    padding: 2rem 2.25rem 3rem;
+}
+body:has(.gi-workspace-marker) .gi-dashboard-heading {
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--workspace-border);
+    border-radius: 18px;
+    background: linear-gradient(115deg, #FFFFFF 55%, #EAF2FF);
+}
+body:has(.gi-workspace-marker) .gi-dashboard-title {
+    font-size: clamp(1.45rem, 2.2vw, 2rem);
+    letter-spacing: -.035em;
+}
+body:has(.gi-workspace-marker) .gi-dashboard-subtitle {
+    font-size: .92rem;
+    line-height: 1.5;
+}
+body:has(.gi-workspace-marker) h2 { font-size: 1.45rem; letter-spacing: -.025em; }
+body:has(.gi-workspace-marker) h3 { font-size: 1.12rem; letter-spacing: -.015em; }
+body:has(.gi-workspace-marker) h4 { font-size: 1rem; }
+body:has(.gi-workspace-marker) .gi-panel,
+body:has(.gi-workspace-marker) .gi-metric-card,
+body:has(.gi-workspace-marker) .gi-check-card,
+body:has(.gi-workspace-marker) [data-testid="stMetric"] {
+    border: 1px solid var(--workspace-border);
+    border-radius: 16px;
+    background: #FFFFFF;
+    box-shadow: 0 2px 8px #18365B05;
+}
+body:has(.gi-workspace-marker) .gi-metric-card,
+body:has(.gi-workspace-marker) [data-testid="stMetric"] { padding: 1.25rem; }
+body:has(.gi-workspace-marker) .gi-metric-label { font-size: .83rem; }
+body:has(.gi-workspace-marker) .gi-metric-value { font-size: 1.8rem; }
+body:has(.gi-workspace-marker) .gi-metric-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--workspace-soft);
+}
+/* Selected sections remain recognizable without relying on color alone. */
+body:has(.gi-workspace-marker) [role="tablist"] {
+    gap: 5px !important;
+    padding: 5px !important;
+    border: 1px solid var(--workspace-border) !important;
+    border-radius: 12px;
+    background: #EEF2F8 !important;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+}
+body:has(.gi-workspace-marker) [role="tab"] {
+    min-height: 44px;
+    padding: 9px 14px !important;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+body:has(.gi-workspace-marker) [role="tab"][aria-selected="true"] {
+    background: #FFFFFF !important;
+    box-shadow: 0 1px 4px #18365B14;
+    font-weight: 700;
+}
+body:has(.gi-workspace-marker) [role="tab"][aria-selected="true"],
+body:has(.gi-workspace-marker) [role="tab"][aria-selected="true"] * {
+    color: #0757B8 !important;
+    -webkit-text-fill-color: #0757B8 !important;
+}
+body:has(.gi-workspace-marker) [data-testid="stRadio"] label {
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+}
+body:has(.gi-workspace-marker) [data-testid="stRadio"] label:has(input:checked) {
+    background: #E8F0FD;
+    border-color: #BDD2F2;
+}
+body:has(.gi-workspace-marker) [data-testid="stRadio"] label:hover { background: #EDF2FA; }
+body:has(.gi-workspace-marker) button[kind^="primary"] {
+    background: #0757B8 !important;
+    border-color: #0757B8 !important;
+    min-height: 44px;
+    border-radius: 10px;
+}
+body:has(.gi-workspace-marker) button[kind^="primary"]:hover { background: #064896 !important; }
+body:has(.gi-workspace-marker) .stButton button,
+body:has(.gi-workspace-marker) [data-testid="stDownloadButton"] button,
+body:has(.gi-workspace-marker) [data-testid="stFormSubmitButton"] button { min-height: 44px; }
+body:has(.gi-workspace-marker) [data-testid="stWidgetLabel"] { font-size: .85rem; }
+body:has(.gi-workspace-marker) input:not([type="checkbox"]):not([type="radio"]),
+body:has(.gi-workspace-marker) [role="combobox"] { min-height: 42px; }
+body:has(.gi-workspace-marker) [data-testid="stForm"],
+body:has(.gi-workspace-marker) [data-testid="stExpander"] details {
+    border: 1px solid var(--workspace-border) !important;
+    border-radius: 14px !important;
+    background: #FFFFFF !important;
+}
+body:has(.gi-workspace-marker) [data-testid="stForm"] { padding: 1.5rem; }
+body:has(.gi-workspace-marker) [data-testid="stExpander"] summary { min-height: 48px; }
+body:has(.gi-workspace-marker) [data-testid="stDataFrame"],
+body:has(.gi-workspace-marker) [data-testid="stTable"] {
+    border-radius: 12px;
+    border: 1px solid var(--workspace-border);
+    overflow: hidden;
+}
+body:has(.gi-workspace-marker) [data-testid="stFileUploaderDropzone"] {
+    border: 1px dashed #A5BBD8;
+    border-radius: 14px;
+    padding: 1.2rem;
+}
+body:has(.gi-workspace-marker) .stApp [data-testid="stFileUploaderDropzone"] button {
+    background: #0757B8 !important;
+    border-color: #0757B8 !important;
+}
+body:has(.gi-workspace-marker) .stApp [data-testid="stFileUploaderDropzone"] button,
+body:has(.gi-workspace-marker) .stApp [data-testid="stFileUploaderDropzone"] button * {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+/* A compact, scrollable navigation rail; native collapse/reopen is retained. */
+body:has(.gi-workspace-marker) section[data-testid="stSidebar"] {
+    background: #FFFFFF !important;
+    border-right: 1px solid var(--workspace-border);
+    box-shadow: 3px 0 16px #18365B04;
+}
+body:has(.gi-workspace-marker) [data-testid="stSidebarUserContent"] { padding: 0 1.1rem 1.5rem; }
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] .gi-brand-row { margin: 0 0 12px; }
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] .gi-brand { font-size: 1.05rem; }
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] .gi-pill {
+    padding: 8px 10px;
+    font-size: .76rem;
+    line-height: 1.5;
+    border-radius: 9px;
+}
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] hr { margin: .6rem 0; }
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] h3 { font-size: .92rem; }
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] [data-testid="stRadio"] label { width: 100%; }
+body:has(.gi-workspace-marker) [data-testid="stSidebarCollapseButton"] button,
+body:has(.gi-workspace-marker) [data-testid="stExpandSidebarButton"] {
+    width: 40px;
+    height: 40px;
+    background: #EAF1FB !important;
+    border: 1px solid #CDDCEF;
+    border-radius: 10px;
+}
+@media (max-width: 768px) {
+    body:has(.gi-workspace-marker) [data-testid="stMainBlockContainer"] {
+        padding: 3.5rem 1rem 2rem !important;
+    }
+    body:has(.gi-workspace-marker) .gi-dashboard-heading { padding: 1.1rem; margin-bottom: 1rem; }
+    body:has(.gi-workspace-marker) [data-testid="stForm"] { padding: 1rem; }
+    body:has(.gi-workspace-marker) [data-testid="stRadio"] [role="radiogroup"] { flex-wrap: wrap; }
+    body:has(.gi-workspace-marker) [data-testid="stSidebarCollapseButton"] { visibility: visible; }
+}
+@media (prefers-reduced-motion: reduce) {
+    body:has(.gi-workspace-marker) section[data-testid="stSidebar"] { transition: none !important; }
+}
