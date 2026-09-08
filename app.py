@@ -585,7 +585,7 @@ st.markdown(
         border-color: var(--ink);
     }}
 
-    .stButton > button[kind="primary"] {{
+    .stButton > button[kind^="primary"] {{
         background: var(--black);
         color: #FFFFFF;
         border: none;
@@ -594,12 +594,12 @@ st.markdown(
     /* Dark controls need an explicit descendant override because Streamlit
        renders labels inside nested p/span elements and host styles may set
        those children back to dark text. */
-    .stApp .stButton > button[kind="primary"],
-    .stApp .stButton > button[kind="primary"] *,
-    .stApp [data-testid="stFormSubmitButton"] button[kind="primary"],
-    .stApp [data-testid="stFormSubmitButton"] button[kind="primary"] *,
-    .stApp [data-testid="stDownloadButton"] button[kind="primary"],
-    .stApp [data-testid="stDownloadButton"] button[kind="primary"] * {{
+    .stApp .stButton > button[kind^="primary"],
+    .stApp .stButton > button[kind^="primary"] *,
+    .stApp [data-testid="stFormSubmitButton"] button[kind^="primary"],
+    .stApp [data-testid="stFormSubmitButton"] button[kind^="primary"] *,
+    .stApp [data-testid="stDownloadButton"] button[kind^="primary"],
+    .stApp [data-testid="stDownloadButton"] button[kind^="primary"] * {{
         color: #FFFFFF !important;
         -webkit-text-fill-color: #FFFFFF !important;
         opacity: 1 !important;
@@ -608,21 +608,21 @@ st.markdown(
 
     .stApp [data-testid="stLinkButton"] a[style*="background"],
     .stApp [data-testid="stLinkButton"] a[style*="background"] *,
-    .stApp [data-testid="stLinkButton"] a[kind="primary"],
-    .stApp [data-testid="stLinkButton"] a[kind="primary"] * {{
+    .stApp [data-testid="stLinkButton"] a[kind^="primary"],
+    .stApp [data-testid="stLinkButton"] a[kind^="primary"] * {{
         color: #FFFFFF !important;
         -webkit-text-fill-color: #FFFFFF !important;
         opacity: 1 !important;
         visibility: visible !important;
     }}
 
-    .stButton > button[kind="primary"]:hover {{
+    .stButton > button[kind^="primary"]:hover {{
         background: var(--black-hover);
         color: #FFFFFF;
     }}
 
-    .stApp .stButton > button[kind="primary"]:hover *,
-    .stApp [data-testid="stFormSubmitButton"] button[kind="primary"]:hover * {{
+    .stApp .stButton > button[kind^="primary"]:hover *,
+    .stApp [data-testid="stFormSubmitButton"] button[kind^="primary"]:hover * {{
         color: #FFFFFF !important;
         -webkit-text-fill-color: #FFFFFF !important;
     }}
@@ -746,9 +746,9 @@ st.markdown(
     .stApp [data-testid="stAlert"] {{
         color: var(--ink) !important;
     }}
-    .stApp [data-testid="stDownloadButton"] button:not([kind="primary"]),
-    .stApp [data-testid="stFormSubmitButton"] button:not([kind="primary"]),
-    .stApp .stButton > button:not([kind="primary"]) {{
+    .stApp [data-testid="stDownloadButton"] button:not([kind^="primary"]),
+    .stApp [data-testid="stFormSubmitButton"] button:not([kind^="primary"]),
+    .stApp .stButton > button:not([kind^="primary"]) {{
         background-color: #FFFFFF !important;
         color: var(--ink) !important;
         border-color: var(--border) !important;
@@ -1032,18 +1032,18 @@ st.markdown(
 
     /* Pair foreground and background for controls. Native theme handles
        canvas tables and portal popovers; these rules match the brand buttons. */
-    .stApp button[kind="primary"],
-    .stApp button[kind="primary"] *,
+    .stApp button[kind^="primary"],
+    .stApp button[kind^="primary"] *,
     .stApp [data-testid="stFileUploaderDropzone"] button * {{
         color: #FFFFFF !important;
         -webkit-text-fill-color: #FFFFFF !important;
     }}
-    .stApp button[kind="primary"] {{
+    .stApp button[kind^="primary"] {{
         background: var(--black) !important;
         border-color: var(--black) !important;
     }}
-    .stApp button:not([kind="primary"]):not(:disabled),
-    .stApp button:not([kind="primary"]):not(:disabled) * {{
+    .stApp button:not([kind^="primary"]):not(:disabled),
+    .stApp button:not([kind^="primary"]):not(:disabled) * {{
         color: var(--ink) !important;
         -webkit-text-fill-color: var(--ink) !important;
     }}
@@ -1059,6 +1059,105 @@ st.markdown(
     .stApp button:focus-visible, .stApp a:focus-visible {{
         outline: 2px solid #0757B8 !important;
         outline-offset: 2px;
+    }}
+
+    /* Account screens: one aligned card and a clear primary action. */
+    body:has(.gi-auth-tabs-marker) [data-testid="stMainBlockContainer"] {{
+        max-width: 1120px !important;
+        padding-top: 1.25rem !important;
+        padding-bottom: 2rem !important;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-topbar {{
+        padding: 12px 0 20px;
+        margin-bottom: 28px;
+    }}
+    body:has(.gi-auth-tabs-marker) [role="tablist"] {{
+        position: static !important;
+        transform: none !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        width: fit-content !important;
+        max-width: 100% !important;
+        margin: 0 auto 24px !important;
+        padding: 5px !important;
+        background: #EAF0F8 !important;
+        border: 0 !important;
+        border-radius: 14px;
+    }}
+    body:has(.gi-auth-tabs-marker) [role="tab"] {{
+        padding: 10px 20px !important;
+        min-height: 44px !important;
+        border-radius: 10px !important;
+        color: #44546A !important;
+    }}
+    body:has(.gi-auth-tabs-marker) [role="tab"][aria-selected="true"] {{
+        background: #FFFFFF !important;
+        box-shadow: 0 2px 6px #071A3D14;
+    }}
+    body:has(.gi-auth-tabs-marker) [role="tab"][aria-selected="true"]::after {{
+        display: none !important;
+    }}
+    [role="tabpanel"]:has(.gi-signup-marker),
+    [role="tabpanel"]:has(.gi-login-marker) {{
+        box-sizing: border-box;
+        width: min(100%, 520px) !important;
+        margin-inline: auto;
+        padding: 28px 32px;
+        background: #FFFFFF;
+        border: 1px solid #DFE6F0;
+        border-radius: 22px;
+        box-shadow: 0 12px 40px #071A3D0D;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-hero-title {{
+        font-size: 1.85rem !important;
+        letter-spacing: -.035em;
+        line-height: 1.2;
+        margin-bottom: 10px;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-card-title {{
+        display: none;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-card-desc {{
+        text-align: center;
+        font-size: .88rem;
+        color: #4B5262;
+        margin-bottom: 18px;
+    }}
+    body:has(.gi-auth-tabs-marker) [data-testid="stForm"] {{
+        border: 0 !important;
+        padding: 0 !important;
+    }}
+    body:has(.gi-auth-tabs-marker) [role="tabpanel"]:has(.gi-signup-marker) [data-testid="stVerticalBlockBorderWrapper"],
+    body:has(.gi-auth-tabs-marker) [role="tabpanel"]:has(.gi-login-marker) [data-testid="stVerticalBlockBorderWrapper"] {{
+        border: 0 !important;
+        box-shadow: none !important;
+    }}
+    body:has(.gi-auth-tabs-marker) [data-testid="stTextInput"] input {{
+        min-height: 46px;
+        font-size: .95rem;
+    }}
+    body:has(.gi-auth-tabs-marker) [data-testid="stFormSubmitButton"] button[kind^="primary"] {{
+        background: #0757B8 !important;
+        border-color: #0757B8 !important;
+        min-height: 48px;
+        border-radius: 12px;
+        font-size: 1rem;
+    }}
+    body:has(.gi-auth-tabs-marker) [data-testid="stFormSubmitButton"] button[kind^="primary"]:hover {{
+        background: #064896 !important;
+    }}
+    @media (max-width: 600px) {{
+        body:has(.gi-auth-tabs-marker) [data-testid="stMainBlockContainer"] {{
+            padding-inline: 16px !important;
+        }}
+        [role="tabpanel"]:has(.gi-signup-marker),
+        [role="tabpanel"]:has(.gi-login-marker) {{
+            padding: 22px 18px;
+            border-radius: 16px;
+        }}
+        body:has(.gi-auth-tabs-marker) [role="tab"] {{
+            padding: 8px 12px !important;
+        }}
     }}
 </style>
 """,
@@ -3562,65 +3661,59 @@ if not st.session_state.authenticated:
 
         st.markdown(
             """<div class="gi-auth-hero" style="margin:4px 0 18px;">
-{hero_logo}
 <div class="gi-auth-hero-title" style="font-size:1.5rem;">Create your account</div>
-<div class="gi-auth-hero-sub">Set up your operational intelligence workspace.</div>
+<div class="gi-auth-hero-sub">Bring your operations, quality and improvement work together.</div>
 </div>""".format(hero_logo=_hero_icon_html),
             unsafe_allow_html=True,
         )
 
         st.markdown(
             """<div class="gi-auth-card-title">Get started with Generative Insight</div>
-<div class="gi-auth-card-desc">Enter your details to create your workspace account. Starts on the Free plan — upgrade anytime.</div>""",
+<div class="gi-auth-card-desc">Start your 15-day free trial. Choose a subscription when your trial ends.</div>""",
             unsafe_allow_html=True,
         )
 
-        with st.container(border=True):
+        with st.container(border=False):
 
             with st.form(
                 "signup_form",
                 clear_on_submit=False,
             ):
 
-                st.markdown('<div class="gi-field-label-row">👤 Full Name</div>', unsafe_allow_html=True)
                 signup_name = st.text_input(
                     "Full Name",
                     placeholder="e.g. Sunil Sethy",
-                    label_visibility="collapsed",
+                    label_visibility="visible",
                 )
 
-                st.markdown('<div class="gi-field-label-row">✉️ Work Email</div>', unsafe_allow_html=True)
                 signup_email = st.text_input(
                     "Work Email",
                     placeholder="name@company.com",
-                    label_visibility="collapsed",
+                    label_visibility="visible",
                 )
 
-                st.markdown('<div class="gi-field-label-row">🏢 Company / Organization</div>', unsafe_allow_html=True)
                 signup_company = st.text_input(
                     "Company / Organization",
                     placeholder="e.g. ABC Technologies",
-                    label_visibility="collapsed",
+                    label_visibility="visible",
                 )
 
-                st.markdown('<div class="gi-field-label-row">🔒 Create Password</div>', unsafe_allow_html=True)
                 signup_password = st.text_input(
                     "Password",
                     type="password",
                     placeholder="Create a secure password",
-                    label_visibility="collapsed",
+                    label_visibility="visible",
                 )
                 st.caption(
-                    "Use at least 6 characters. Supabase enforces the "
+                    "Use at least 6 characters. Your password must meet the "
                     "configured password policy."
                 )
 
-                st.markdown('<div class="gi-field-label-row">🔒 Confirm Password</div>', unsafe_allow_html=True)
                 signup_confirm = st.text_input(
                     "Confirm Password",
                     type="password",
                     placeholder="Re-enter your password",
-                    label_visibility="collapsed",
+                    label_visibility="visible",
                 )
 
                 signup_terms_agreed = st.checkbox(
@@ -3628,7 +3721,7 @@ if not st.session_state.authenticated:
                 )
 
                 signup_submitted = st.form_submit_button(
-                    "Create account   →",
+                    "Create account →",
                     type="primary",
                     use_container_width=True,
                 )
@@ -3745,49 +3838,48 @@ Your data is protected with enterprise-grade security. By creating an account, y
 
     with login_tab:
 
+        st.markdown('<span class="gi-login-marker"></span>', unsafe_allow_html=True)
+
         st.markdown(
             """<div class="gi-auth-hero" style="margin:4px 0 18px;">
-{hero_logo}
 <div class="gi-auth-hero-title" style="font-size:1.5rem;">Welcome back</div>
-<div class="gi-auth-hero-sub">Sign in to continue to your operational intelligence workspace.</div>
+<div class="gi-auth-hero-sub">Your operations workspace, ready when you are.</div>
 </div>""".format(hero_logo=_hero_icon_html),
             unsafe_allow_html=True,
         )
 
         st.markdown(
             """<div class="gi-auth-card-title">Sign in to your account</div>
-<div class="gi-auth-card-desc">Enter your work credentials below.</div>""",
+<div class="gi-auth-card-desc">Enter your work email and password to continue.</div>""",
             unsafe_allow_html=True,
         )
 
-        with st.container(border=True):
+        with st.container(border=False):
 
             with st.form("login_form"):
 
-                st.markdown('<div class="gi-field-label-row">✉️ Work Email</div>', unsafe_allow_html=True)
                 login_email = st.text_input(
                     "Email",
                     placeholder="name@company.com",
-                    label_visibility="collapsed",
+                    label_visibility="visible",
                 )
 
-                st.markdown('<div class="gi-field-label-row">🔒 Password</div>', unsafe_allow_html=True)
                 login_password = st.text_input(
                     "Password",
                     type="password",
                     placeholder="Enter your password",
-                    label_visibility="collapsed",
+                    label_visibility="visible",
                 )
 
                 login_submitted = st.form_submit_button(
-                    "🔐 Sign In   →",
+                    "Sign in →",
                     type="primary",
                     use_container_width=True,
                 )
 
         st.markdown(
             """<div class="gi-auth-footer-note">
-If email confirmation is enabled in Supabase, verify your email before signing in.
+If you received a verification email, confirm your address before signing in.
 </div>""",
             unsafe_allow_html=True,
         )
