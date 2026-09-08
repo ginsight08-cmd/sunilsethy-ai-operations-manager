@@ -3951,29 +3951,19 @@ plan_config = get_plan_config(
     st.session_state.user_plan
 )
 
+st.markdown('<span class="gi-workspace-marker"></span>', unsafe_allow_html=True)
+st.markdown(
+    "<style>" + (BASE_DIR / "dashboard_theme.css").read_text(encoding="utf-8") + "</style>",
+    unsafe_allow_html=True,
+)
+
 with st.sidebar:
-
-    if HEADER_LOGO_PATH.exists():
-
-        st.image(
-            str(HEADER_LOGO_PATH),
-            use_container_width=True,
-        )
-
-    else:
-
-        st.markdown(
-            f"""<div class="gi-brand-row">
-{logo_mark_html(40, 11, 18)}
-<div class="gi-brand">Generative <span>Insight</span></div>
-</div>""",
-            unsafe_allow_html=True,
-        )
-
-    st.caption("AI Operations Copilot")
-
     st.markdown(
-        f"""<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">🌐 Visit Generative Insight</a>""",
+        f"""<div class="gi-brand-row">
+{logo_mark_html(40, 11, 18)}
+<div><div class="gi-brand">Generative <span>Insight</span></div>
+<div class="gi-tagline">Operations workspace</div></div>
+</div>""",
         unsafe_allow_html=True,
     )
 
@@ -4031,7 +4021,7 @@ with st.sidebar:
 
     st.divider()
 
-    st.header("🏭 Industry")
+    st.subheader("Workspace")
 
     _current_industry = st.session_state.get("industry", "BPO")
     _selected_label = st.selectbox(
@@ -4056,47 +4046,52 @@ with st.sidebar:
 
     if st.session_state.industry == "BPO":
 
-        st.header("⚙️ KPI Controls")
-
-        productivity_target = st.number_input(
-            "Productivity target %",
-            min_value=1,
-            max_value=200,
-            value=90,
+        st.radio(
+            "BPO workspace",
+            ["Performance Dashboard", "Operations Excellence"],
+            key="bpo_workspace",
         )
+        with st.expander("KPI targets", expanded=False):
+            st.caption("Set the thresholds used by your operational analysis.")
+            productivity_target = st.number_input(
+                "Productivity target %",
+                min_value=1,
+                max_value=200,
+                value=90,
+            )
 
-        quality_target = st.number_input(
-            "Quality target %",
-            min_value=1,
-            max_value=100,
-            value=95,
-        )
+            quality_target = st.number_input(
+                "Quality target %",
+                min_value=1,
+                max_value=100,
+                value=95,
+            )
 
-        sla_target = st.number_input(
-            "SLA target %",
-            min_value=1,
-            max_value=100,
-            value=97,
-        )
+            sla_target = st.number_input(
+                "SLA target %",
+                min_value=1,
+                max_value=100,
+                value=97,
+            )
 
-        aht_target = st.number_input(
-            "AHT target",
-            min_value=1,
-            max_value=1000,
-            value=50,
-        )
+            aht_target = st.number_input(
+                "AHT target",
+                min_value=1,
+                max_value=1000,
+                value=50,
+            )
 
         st.divider()
 
     if st.button(
-        "💳 View Plans",
+        "View plans",
         use_container_width=True,
         key="sidebar_view_plans",
     ):
         st.session_state.show_plans = True
 
     if st.button(
-        "🔄 Reset Analysis",
+        "Reset analysis",
         use_container_width=True,
         key="sidebar_reset_analysis",
     ):
@@ -4104,7 +4099,7 @@ with st.sidebar:
         st.rerun()
 
     if st.button(
-        "🚪 Sign Out",
+        "Sign out",
         use_container_width=True,
         key="sidebar_sign_out",
     ):
@@ -4210,13 +4205,7 @@ elif st.session_state.industry not in BUILT_INDUSTRIES:
     st.stop()
 
 
-bpo_workspace = st.radio(
-    "BPO workspace",
-    ["Performance Dashboard", "Operations Excellence"],
-    horizontal=True,
-    key="bpo_workspace",
-)
-if bpo_workspace == "Operations Excellence":
+if st.session_state.get("bpo_workspace") == "Operations Excellence":
     render_operations_excellence()
     st.stop()
 
