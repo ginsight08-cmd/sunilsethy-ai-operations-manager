@@ -15,6 +15,17 @@ class ExcellenceUITests(unittest.TestCase):
         self.assertFalse(self.app.exception)
         self.assertEqual(self.app.metric[1].value, '8,000')
 
+    def test_gap_opens_prefilled_project(self):
+        import pandas as pd
+        self.app.session_state['analysis_result'] = {'findings': pd.DataFrame([
+            {'Team': 'A', 'Finding': 'Quality 90% below 95%', 'Severity': 'High'}])}
+        self.app.run()
+        next(b for b in self.app.button if b.label == 'Use this gap in the project form').click().run()
+        self.assertFalse(self.app.exception)
+        self.app.radio[0].set_value('RCA & CAPA').run()
+        problem = next(w for w in self.app.text_area if w.label == 'Measured problem / gap')
+        self.assertEqual(problem.value, 'Quality 90% below 95%')
+
     def test_project_save_and_incomplete_closure_blocked(self):
         self.app.radio[0].set_value('RCA & CAPA').run()
         values = {'Project title': 'Improve FCR', 'Accountable owner': 'QA lead',

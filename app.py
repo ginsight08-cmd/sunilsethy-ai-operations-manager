@@ -1029,6 +1029,37 @@ st.markdown(
             margin-right: auto;
         }}
     }}
+
+    /* Pair foreground and background for controls. Native theme handles
+       canvas tables and portal popovers; these rules match the brand buttons. */
+    .stApp button[kind="primary"],
+    .stApp button[kind="primary"] *,
+    .stApp [data-testid="stFileUploaderDropzone"] button * {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }}
+    .stApp button[kind="primary"] {{
+        background: var(--black) !important;
+        border-color: var(--black) !important;
+    }}
+    .stApp button:not([kind="primary"]):not(:disabled),
+    .stApp button:not([kind="primary"]):not(:disabled) * {{
+        color: var(--ink) !important;
+        -webkit-text-fill-color: var(--ink) !important;
+    }}
+    .stApp [data-testid="stFileUploaderDropzone"] button,
+    .stApp [data-testid="stFileUploaderDropzone"] button * {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }}
+    .stApp input::placeholder, .stApp textarea::placeholder {{
+        color: #6B7280 !important;
+        -webkit-text-fill-color: #6B7280 !important;
+    }}
+    .stApp button:focus-visible, .stApp a:focus-visible {{
+        outline: 2px solid #0757B8 !important;
+        outline-offset: 2px;
+    }}
 </style>
 """,
     unsafe_allow_html=True,
