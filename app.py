@@ -870,6 +870,15 @@ st.markdown(
     #MainMenu {{ visibility: hidden !important; }}
     [data-testid="StyledFullScreenButton"] {{ display: none !important; }}
     header [data-testid="stToolbar"] {{ display: none !important; visibility: hidden !important; }}
+    /* Newer Streamlit versions put the sidebar toggle inside the toolbar.
+       Keep only the branch containing that control when it is present. */
+    header [data-testid="stToolbar"]:has([data-testid="stExpandSidebarButton"]) {{
+        display: flex !important;
+        visibility: visible !important;
+    }}
+    header [data-testid="stToolbar"]:has([data-testid="stExpandSidebarButton"]) > :not(:has([data-testid="stExpandSidebarButton"])) {{
+        display: none !important;
+    }}
     footer {{ visibility: hidden !important; }}
     [data-testid="stDecoration"] {{ display: none !important; }}
     a[href*="github.com"] {{ display: none !important; }}
@@ -894,6 +903,47 @@ st.markdown(
        touch-sized (≥44px) controls at phone width.
        ============================================================ */
     @media (max-width: 768px) {{
+        /* Keep the mobile drawer out of the main layout. Translate its
+           actual width: Streamlit's pixel offset cannot hide a wider panel. */
+        section[data-testid="stSidebar"] {{
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            height: 100vh;
+            height: 100dvh;
+            width: min(88vw, 360px) !important;
+            min-width: 0 !important;
+            max-width: 100vw !important;
+            margin-left: 0 !important;
+            transition: transform 0.3s ease !important;
+        }}
+        section[data-testid="stSidebar"][aria-expanded="true"] {{
+            transform: translateX(0) !important;
+        }}
+        section[data-testid="stSidebar"][aria-expanded="false"] {{
+            transform: translateX(-100%) !important;
+            pointer-events: none;
+        }}
+        [data-testid="stMain"],
+        div[data-testid="stAppViewContainer"] > .main {{
+            width: 100% !important;
+            min-width: 0 !important;
+            margin-left: 0 !important;
+        }}
+        [data-testid="stMainBlockContainer"],
+        .main .block-container {{
+            max-width: 100% !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }}
+        /* The native reopen control lives in the header, outside the drawer. */
+        [data-testid="stExpandSidebarButton"],
+        [data-testid="stSidebarCollapsedControl"] button,
+        [data-testid="collapsedControl"] button {{
+            min-width: 44px;
+            min-height: 44px;
+        }}
         .main-title {{ font-size: 1.6rem !important; }}
         .gi-dashboard-heading {{ padding-top:.5rem; }}
         .gi-dashboard-title {{ font-size:1.55rem; }}
@@ -950,7 +1000,6 @@ st.markdown(
         .gi-metric-value {{ font-size: 1.3rem !important; }}
         div[data-testid="stMetricValue"] {{ font-size: 1.35rem !important; }}
         .plan-card {{ padding: 1.05rem !important; }}
-        section[data-testid="stSidebar"] {{ min-width: 100% !important; }}
         .gi-auth-icon-lg {{ width: 48px !important; height: 48px !important; }}
         .gi-auth-icon-lg img {{ width: 48px !important; height: 48px !important; }}
         .gi-auth-icon-sm {{ width: 34px !important; height: 34px !important; }}
