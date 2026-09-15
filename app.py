@@ -1641,6 +1641,8 @@ def set_authenticated_user(response):
 def clear_authentication():
     sign_out_user()
 
+    st.session_state.pop("account_access", None)
+    st.session_state.pop("owner_area", None)
     st.session_state.authenticated = False
     st.session_state.user_email = ""
     st.session_state.user_id = ""
@@ -1670,6 +1672,11 @@ def clear_authentication():
 
 def trial_days_remaining():
     """Days left in the Free trial, or None if unknown (e.g. not signed in)."""
+    access = st.session_state.get("account_access")
+    if access:
+        import math
+        expires = datetime.fromisoformat(access["trial_expires_at"].replace("Z", "+00:00"))
+        return math.ceil((expires - datetime.now(expires.tzinfo)).total_seconds() / 86400)
     raw = st.session_state.get("account_created_at", "")
     if not raw:
         return None
@@ -1693,11 +1700,11 @@ def require_trial_analysis(uploaded, industry, settings=None):
         st.error("We couldn't verify your trial allowance. Please try again shortly.")
         st.stop()
     if not admission["allowed"]:
-        st.warning("Your 3-day trial has ended." if admission.get("reason") == "expired"
-                   else "You've used your 5 trial analyses. Subscribe to analyse more data.")
+        st.warning("Your trial has ended." if admission.get("reason") == "expired"
+                   else "You've used your trial analysis allowance. Subscribe to analyse more data.")
         show_pricing("analysis_limit")
         st.stop()
-    st.caption(f"Trial: {admission['remaining']} of 5 new analyses remaining. PDF reports included.")
+    st.caption(f"Trial: {admission['remaining']} new analyses remaining. PDF reports included.")
 
 
 def get_plan_config(plan):
@@ -1708,7 +1715,7 @@ def get_plan_config(plan):
             "pdf": True,
             "email": False,
             "automation": False,
-            "price": "₹299/mo (3 days free)",
+            "price": f"₹299/mo ({FREE_TRIAL_DAYS} days free)",
         },
         "Professional": {
             "max_mb": 25,
@@ -3332,7 +3339,7 @@ def show_pricing(section_id="default"):
             "Free",
             "₹299/mo",
             [
-                "3-day trial: 5 analyses total",
+                f"{FREE_TRIAL_DAYS}-day trial: {FREE_TRIAL_ANALYSES} analyses total",
                 "5 MB file limit",
                 "Dashboard analytics",
                 "AI Copilot",
@@ -3375,7 +3382,7 @@ def show_pricing(section_id="default"):
     for col, name, price, features, button in plans:
         with col:
             plan_visuals = {
-                "Free": ("🌱", "3 days free, then ₹299/mo"),
+                "Free": ("🌱", f"{FREE_TRIAL_DAYS} days free, then ₹299/mo"),
                 "Professional": ("🚀", "Advanced intelligence & automation"),
                 "Business": ("🏢", "Scale AI operations across teams"),
             }
@@ -3612,6 +3619,14 @@ def show_pricing(section_id="default"):
 # AUTHENTICATION PAGE
 # ============================================================
 
+try:
+    _offer = get_supabase_client().rpc("public_trial_offer", {}).execute().data
+    FREE_TRIAL_DAYS = int(_offer["trial_days"])
+    FREE_TRIAL_ANALYSES = int(_offer["analysis_limit"])
+except Exception:
+    st.error("Account settings are temporarily unavailable. Please try again shortly.")
+    st.stop()
+
 if not st.session_state.authenticated:
 
     # Topbar: logo + wordmark/tagline left, matching the reference design.
@@ -3688,8 +3703,8 @@ if not st.session_state.authenticated:
         )
 
         st.markdown(
-            """<div class="gi-auth-card-title">Get started with Generative Insight</div>
-<div class="gi-auth-card-desc">Start your 3-day free trial: 5 analyses total, uploads up to 5 MB, and PDF reports. Then continue from ₹299/month.</div>""",
+            f"""<div class="gi-auth-card-title">Get started with Generative Insight</div>
+<div class="gi-auth-card-desc">Start your {FREE_TRIAL_DAYS}-day free trial: {FREE_TRIAL_ANALYSES} analyses total, uploads up to 5 MB, and PDF reports. Then continue from ₹299/month.</div>""",
             unsafe_allow_html=True,
         )
 
@@ -3963,6 +3978,33 @@ border-top:1px solid var(--border); color:#737373; font-size:0.85rem;">
     st.stop()
 
 
+# Owner permission and suspension are rechecked on every app rerun.
+try:
+    _access_db = get_authenticated_supabase_client()
+    _access = _access_db.rpc("my_app_access", {}).execute().data
+    st.session_state.account_access = _access
+except Exception:
+    st.error("We couldn't verify your account access. Please sign in again.")
+    if st.button("Return to sign in", key="access_signout"):
+        clear_authentication()
+        st.rerun()
+    st.stop()
+if _access["blocked"]:
+    st.error("Your app access is suspended. Contact the account owner for assistance.")
+    if st.button("Sign out", key="blocked_signout"):
+        clear_authentication()
+        st.rerun()
+    st.stop()
+if _access["is_owner"]:
+    _owner_view = st.sidebar.radio("Account area", ["My workspace", "Owner dashboard"], key="owner_area")
+    if _owner_view == "Owner dashboard":
+        from owner_admin import owner_snapshot, render_owner_admin
+        try:
+            render_owner_admin(_access_db, owner_snapshot(_access_db))
+        except Exception:
+            st.error("Owner access could not be verified. Sign in again and retry.")
+        st.stop()
+
 # ============================================================
 # SIDEBAR
 # ============================================================
@@ -4005,7 +4047,7 @@ with st.sidebar:
             if remaining is not None:
                 if remaining <= 0:
                     st.markdown(
-                        f'<div class="gi-pill red">Your {FREE_TRIAL_DAYS}-day free trial has ended. '
+                        '<div class="gi-pill red">Your free trial has ended. '
                         'Continue for ₹299/mo to keep using AI Operations Manager.</div>',
                         unsafe_allow_html=True,
                     )
@@ -4158,7 +4200,7 @@ if st.session_state.user_plan == "Free" and not free_billing_is_active():
         )
 
         st.warning(
-            f"Your {FREE_TRIAL_DAYS}-day free trial ended "
+            "Your free trial ended "
             f"{abs(_trial_remaining)} day(s) ago. Continue on Free for "
             "₹299/mo, or upgrade to Professional or Business, to keep "
             "analyzing operational data."
