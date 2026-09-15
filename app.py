@@ -1618,6 +1618,8 @@ def set_authenticated_user(response):
 
     metadata = getattr(user, "user_metadata", {}) or {}
 
+    st.session_state.industry_selected_this_login = False
+    st.session_state.pop("owner_area", None)
     st.session_state.authenticated = True
     st.session_state.user_email = (user.email or "").lower()
     st.session_state.user_id = user.id
@@ -1643,6 +1645,7 @@ def clear_authentication():
 
     st.session_state.pop("account_access", None)
     st.session_state.pop("owner_area", None)
+    st.session_state.pop("industry_selected_this_login", None)
     st.session_state.authenticated = False
     st.session_state.user_email = ""
     st.session_state.user_id = ""
@@ -3995,14 +3998,23 @@ if _access["blocked"]:
         clear_authentication()
         st.rerun()
     st.stop()
+if not st.session_state.get("industry_selected_this_login", False):
+    from industry_onboarding import render_industry_choice
+    render_industry_choice(INDUSTRY_LABELS, update_user_industry)
+    st.stop()
+
 if _access["is_owner"]:
     _owner_view = st.sidebar.radio("Account area", ["My workspace", "Owner dashboard"], key="owner_area")
     if _owner_view == "Owner dashboard":
         from owner_admin import owner_snapshot, render_owner_admin
         try:
-            render_owner_admin(_access_db, owner_snapshot(_access_db))
+            _owner_data = owner_snapshot(_access_db)
         except Exception:
-            st.error("Owner access could not be verified. Sign in again and retry.")
+            st.error("Your owner account is recognised, but dashboard data could not load. Please retry.")
+            if st.button("Retry dashboard", key="owner_retry"):
+                st.rerun()
+        else:
+            render_owner_admin(_access_db, _owner_data)
         st.stop()
 
 # ============================================================
