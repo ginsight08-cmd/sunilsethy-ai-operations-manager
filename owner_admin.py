@@ -1,5 +1,6 @@
 """Owner console. Every request is authorized again by PostgreSQL."""
 import streamlit as st
+import json
 
 
 def owner_snapshot(db):
@@ -50,7 +51,9 @@ def render_owner_admin(db, snapshot):
     else:
         st.info('No matching accounts.')
     st.subheader('Recent admin changes')
-    st.dataframe(snapshot['audit'], hide_index=True, use_container_width=True)
+    audit_rows = [dict(row, details=json.dumps(row.get('details', {}), ensure_ascii=False, default=str))
+                  for row in snapshot['audit']]
+    st.dataframe(audit_rows, hide_index=True, use_container_width=True)
     st.caption('Latest 100 changes. This page does not expose passwords, API keys or customer document contents.')
 
 
