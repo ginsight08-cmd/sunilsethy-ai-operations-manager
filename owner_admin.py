@@ -9,6 +9,8 @@ def owner_snapshot(db):
 
 def render_owner_admin(db, snapshot):
     st.header('Owner dashboard')
+    if st.session_state.get('owner_save_notice'):
+        st.success(st.session_state.pop('owner_save_notice'))
     st.caption('Manage trial access. Changes are recorded in your audit history.')
     settings = snapshot['settings']
     st.metric('Registered accounts', snapshot['total_users'])
@@ -35,14 +37,17 @@ def render_owner_admin(db, snapshot):
         labels = {u['id']:u['email'] for u in users}
         selected = st.selectbox('Account to manage', list(labels), format_func=labels.get)
         user = next(u for u in users if u['id']==selected)
+        own_account = selected == st.session_state.get('user_id')
+        if own_account:
+            st.info('This is your owner account. Trial extensions, credits and suspension cannot be changed here. Select a customer account to manage its access.')
         with st.form(f'owner_access_{selected}'):
-            blocked = st.checkbox('Suspend app access', value=user['blocked'])
-            extra_days = st.number_input('Add trial days', 0, 90, 0)
-            extra_analyses = st.number_input('Add analysis credits', 0, 100, 0)
-            reason = st.text_input('Reason for this change', max_chars=500)
+            blocked = st.checkbox('Suspend app access', value=user['blocked'], disabled=own_account)
+            extra_days = st.number_input('Add trial days', 0, 90, 0, disabled=own_account)
+            extra_analyses = st.number_input('Add analysis credits', 0, 100, 0, disabled=own_account)
+            reason = st.text_input('Reason for this change', max_chars=500, disabled=own_account)
             st.caption('Suspension takes effect on the next app interaction. Existing login credentials remain unchanged.')
-            submit = st.form_submit_button('Save access change')
-        if submit:
+            submit = st.form_submit_button('Save access change', disabled=own_account)
+        if submit and not own_account:
             if not reason.strip():
                 st.error('Enter a reason for the audit history.')
             else:
@@ -60,7 +65,17 @@ def render_owner_admin(db, snapshot):
 def _change(db, action, payload):
     try:
         db.rpc('owner_console', {'p_action':action,'p_payload':payload}).execute()
-    except Exception:
-        st.error('The change was not confirmed. Reload before retrying; check your owner access.')
+    except Exception as exc:
+        # Only map known server messages; never expose raw database details.
+        message = str(getattr(exc, 'message', ''))
+        if 'Owner access cannot be edited here' in message:
+            st.error('Owner accounts cannot be changed here. Select a customer account.')
+        elif 'Owner access required' in message:
+            st.error('Your session is not authorised for this change. Sign in with your owner account again.')
+        elif 'Invalid access change' in message or 'Invalid defaults' in message:
+            st.error('Check the entered limits and provide a reason before saving.')
+        else:
+            st.error('Save could not be confirmed. Reload and check the account values and admin history before retrying, to avoid adding the same credits twice.')
         return
+    st.session_state.owner_save_notice = 'Access change saved.' if action == 'access' else 'Trial defaults saved.'
     st.rerun()

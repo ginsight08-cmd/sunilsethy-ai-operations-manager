@@ -16,6 +16,14 @@ render_owner_admin(DB(),snapshot)
 '''
 
 class OwnerUITests(unittest.TestCase):
+    def test_owner_cannot_submit_self_access_change(self):
+        app=AppTest.from_file('preview_owner_admin.py')
+        app.session_state['user_id']='example'
+        app.run()
+        self.assertFalse(app.exception)
+        self.assertTrue(next(w for w in app.button if w.label=='Save access change').disabled)
+        self.assertTrue(any('your owner account' in w.value for w in app.info))
+
     def test_defaults_submission(self):
         app=AppTest.from_file('preview_owner_admin.py').run()
         self.assertFalse(app.exception)
