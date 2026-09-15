@@ -85,7 +85,7 @@ DEFAULT_STATE = {
     "razorpay_checkout_url": "",
     "razorpay_subscription_id": "",
     "account_created_at": "",
-    # Free-tier (₹299/mo, post 15-day trial) billing — tracked
+    # Free-tier (₹299/mo, post 3-day trial) billing — tracked
     # separately from the Professional Razorpay fields above so the
     # two subscriptions never collide.
     "free_billing_status": "",
@@ -106,7 +106,7 @@ DEFAULT_STATE = {
 
 # Free plan trial length. After this many days on the Free plan,
 # the dashboard is locked and the user is shown an upgrade-only screen.
-FREE_TRIAL_DAYS = 15
+FREE_TRIAL_DAYS = 3
 
 # ============================================================
 # INDUSTRY REGISTRY
@@ -1421,7 +1421,7 @@ def update_user_plan(plan, subscription_id="", razorpay_status=""):
 
 def update_free_billing_status(status, subscription_id=""):
     """
-    Tracks the ₹299/mo Free-tier subscription (post 15-day trial) WITHOUT
+    Tracks the ₹299/mo Free-tier subscription (post 3-day trial) WITHOUT
     changing the user's 'plan' field — someone on this billing plan is
     still logically on 'Free' feature limits, just paying to keep access
     past the trial window.
@@ -1682,6 +1682,24 @@ def trial_days_remaining():
     return FREE_TRIAL_DAYS - elapsed_days
 
 
+def require_trial_analysis(uploaded, industry, settings=None):
+    if st.session_state.user_plan != "Free" or free_billing_is_active():
+        return
+    from trial_access import admit_analysis
+    try:
+        admission = admit_analysis(get_supabase_admin_client(), st.session_state.user_id,
+                                   uploaded.getvalue(), industry, settings)
+    except Exception:
+        st.error("We couldn't verify your trial allowance. Please try again shortly.")
+        st.stop()
+    if not admission["allowed"]:
+        st.warning("Your 3-day trial has ended." if admission.get("reason") == "expired"
+                   else "You've used your 5 trial analyses. Subscribe to analyse more data.")
+        show_pricing("analysis_limit")
+        st.stop()
+    st.caption(f"Trial: {admission['remaining']} of 5 new analyses remaining. PDF reports included.")
+
+
 def get_plan_config(plan):
     configs = {
         "Free": {
@@ -1690,7 +1708,7 @@ def get_plan_config(plan):
             "pdf": True,
             "email": False,
             "automation": False,
-            "price": "₹299/mo (15 days free)",
+            "price": "₹299/mo (3 days free)",
         },
         "Professional": {
             "max_mb": 25,
@@ -2584,6 +2602,7 @@ def render_manufacturing_flow(plan_config):
                 )
                 render_footer()
                 return
+        require_trial_analysis(uploaded, "Manufacturing")
         with st.spinner("🧠 Comparing vendor quotes and flagging risk..."):
             result = procurement_engine.analyze_procurement(prs)
     except Exception as e:
@@ -3313,7 +3332,7 @@ def show_pricing(section_id="default"):
             "Free",
             "₹299/mo",
             [
-                "Free for first 15 days",
+                "3-day trial: 5 analyses total",
                 "5 MB file limit",
                 "Dashboard analytics",
                 "AI Copilot",
@@ -3356,7 +3375,7 @@ def show_pricing(section_id="default"):
     for col, name, price, features, button in plans:
         with col:
             plan_visuals = {
-                "Free": ("🌱", "15 days free, then ₹299/mo"),
+                "Free": ("🌱", "3 days free, then ₹299/mo"),
                 "Professional": ("🚀", "Advanced intelligence & automation"),
                 "Business": ("🏢", "Scale AI operations across teams"),
             }
@@ -3670,7 +3689,7 @@ if not st.session_state.authenticated:
 
         st.markdown(
             """<div class="gi-auth-card-title">Get started with Generative Insight</div>
-<div class="gi-auth-card-desc">Start your 15-day free trial. Choose a subscription when your trial ends.</div>""",
+<div class="gi-auth-card-desc">Start your 3-day free trial: 5 analyses total, uploads up to 5 MB, and PDF reports. Then continue from ₹299/month.</div>""",
             unsafe_allow_html=True,
         )
 
@@ -4121,7 +4140,7 @@ if st.session_state.get("show_plans"):
 
 # ============================================================
 # FREE TRIAL GATE
-# 15 days of Free access, then the dashboard is locked until
+# 3 days of Free access, then the dashboard is locked until
 # the user upgrades to a paid plan.
 # ============================================================
 
@@ -4488,6 +4507,8 @@ if missing_columns:
 # ============================================================
 # LOCAL ANALYSIS
 # ============================================================
+
+require_trial_analysis(uploaded, st.session_state.industry, {"productivity": productivity_target, "quality": quality_target, "sla": sla_target, "aht": aht_target})
 
 with st.spinner("🧠 Analyzing operational data against your KPI targets..."):
 
