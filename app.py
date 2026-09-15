@@ -17,6 +17,7 @@ from engine import analyze_data, make_ai_prompt
 import procurement_engine
 import case_management_engine
 import vakil_case_manager
+from work_hub import render_work_hub
 from operations_excellence import render_operations_excellence
 
 
@@ -1662,7 +1663,7 @@ def clear_authentication():
     st.session_state.manufacturing_report_generated_at = None
 
     for key in list(st.session_state):
-        if key.startswith("ox_"):
+        if key.startswith(("ox_", "hub_")):
             del st.session_state[key]
     clear_analysis()
 
@@ -4021,6 +4022,8 @@ with st.sidebar:
 
     st.divider()
 
+    st.radio("Workspace view", ["Industry tools", "Shared work hub"], key="workspace_view")
+
     st.subheader("Workspace")
 
     _current_industry = st.session_state.get("industry", "BPO")
@@ -4191,6 +4194,15 @@ st.markdown(
 # analysis, tabs) is BPO-only and assumes productivity_target etc.
 # exist, which they only do when industry == "BPO".
 # ============================================================
+
+if st.session_state.get("workspace_view") == "Shared work hub":
+    try:
+        hub_db = get_authenticated_supabase_client()
+    except Exception:
+        st.error("Could not open your workspace. Please sign out and sign in again.")
+        st.stop()
+    render_work_hub(hub_db, st.session_state.user_id, st.session_state.industry)
+    st.stop()
 
 if st.session_state.industry == "Manufacturing":
     render_manufacturing_flow(plan_config)
