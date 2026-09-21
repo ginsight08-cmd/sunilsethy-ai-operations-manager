@@ -26,11 +26,17 @@ from operations_excellence import render_operations_excellence
 # Complete Streamlit application
 # ============================================================
 
-APP_NAME = "Generative Insight"
+from product_deployment import PRODUCTS, validate_deployment
+from bpo_trends import render_bpo_trends
+
+PRODUCT_ID = globals().get("DEPLOYMENT_PRODUCT")
+PRODUCT = PRODUCTS[PRODUCT_ID] if PRODUCT_ID else None
+PRODUCT_NAME = PRODUCT["name"] if PRODUCT else "AI Operations Copilot"
+APP_NAME = f"Generative Insight | {PRODUCT_NAME}"
 APP_VERSION = "1.0.0"
 
 st.set_page_config(
-    page_title="Generative Insight | AI Operations Copilot",
+    page_title=APP_NAME,
     page_icon="assets/generative-insight-gi-mark-transparent.png",
     layout="wide",
     # "auto" keeps the desktop sidebar visible while allowing Streamlit
@@ -1322,6 +1328,18 @@ def secret(name, default=""):
         return default
 
 
+# Fail closed before any authentication or database request in dedicated apps.
+if PRODUCT:
+    try:
+        validate_deployment(PRODUCT_ID, {key: secret(key) for key in
+            ("PRODUCT_ID", "PRODUCT_PROJECTS", "SUPABASE_URL", "APP_PUBLIC_URL")})
+    except ValueError as error:
+        st.error(str(error))
+        st.stop()
+    st.session_state.industry = PRODUCT["industry"]
+    st.session_state.industry_selected_this_login = True
+
+
 def show_brand_header(compact=False):
     """
     Display the Generative Insight logo and website branding. Rendered as
@@ -1349,7 +1367,7 @@ def show_brand_header(compact=False):
     st.markdown(
         f"""<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:2px;">
 {logo_html}
-<div style="color:#737373; font-size:0.85rem;">AI Operations Copilot</div>
+<div style="color:#737373; font-size:0.85rem;">{PRODUCT_NAME}</div>
 </div>""",
         unsafe_allow_html=True,
     )
@@ -1576,6 +1594,7 @@ def sign_up_user(full_name, company_name, email, password):
             "email": email.strip().lower(),
             "password": password,
             "options": {
+                "email_redirect_to": secret("APP_PUBLIC_URL", "https://generative-insight-ops.streamlit.app/"),
                 "data": {
                     "full_name": full_name.strip(),
                     "company_name": company_name.strip(),
@@ -1618,7 +1637,7 @@ def set_authenticated_user(response):
 
     metadata = getattr(user, "user_metadata", {}) or {}
 
-    st.session_state.industry_selected_this_login = False
+    st.session_state.industry_selected_this_login = bool(PRODUCT)
     st.session_state.pop("owner_area", None)
     st.session_state.authenticated = True
     st.session_state.user_email = (user.email or "").lower()
@@ -1632,7 +1651,7 @@ def set_authenticated_user(response):
     st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
     st.session_state.free_billing_status = metadata.get("free_billing_status", "")
     st.session_state.free_subscription_id = metadata.get("free_subscription_id", "")
-    st.session_state.industry = metadata.get("industry", "BPO") or "BPO"
+    st.session_state.industry = PRODUCT["industry"] if PRODUCT else (metadata.get("industry", "BPO") or "BPO")
 
     # Supabase sets this automatically when the account is created — used
     # to work out how many days are left in the Free trial.
@@ -3647,7 +3666,7 @@ if not st.session_state.authenticated:
 <div class="gi-auth-icon-sm" style="background:transparent;">{logo_mark_html(40, 12, 18)}</div>
 <div>
 <div class="gi-brand">Generative <span>Insight</span></div>
-<div class="gi-tagline">AI Operations Copilot</div>
+<div class="gi-tagline">{PRODUCT_NAME}</div>
 </div>
 </div>
 </div>""",
@@ -3706,7 +3725,7 @@ if not st.session_state.authenticated:
         )
 
         st.markdown(
-            f"""<div class="gi-auth-card-title">Get started with Generative Insight</div>
+            f"""<div class="gi-auth-card-title">Get started with {PRODUCT_NAME}</div>
 <div class="gi-auth-card-desc">Start your {FREE_TRIAL_DAYS}-day free trial: {FREE_TRIAL_ANALYSES} analyses total, uploads up to 5 MB, and PDF reports. Then continue from ₹299/month.</div>""",
             unsafe_allow_html=True,
         )
@@ -4099,24 +4118,27 @@ with st.sidebar:
 
     st.subheader("Workspace")
 
-    _current_industry = st.session_state.get("industry", "BPO")
-    _selected_label = st.selectbox(
-        "Analyze data for",
-        options=list(INDUSTRY_LABELS.values()),
-        index=list(INDUSTRY_LABELS.keys()).index(_current_industry)
-        if _current_industry in INDUSTRY_LABELS else 0,
-        key="industry_selector",
-    )
-    _selected_industry = next(
-        k for k, v in INDUSTRY_LABELS.items() if v == _selected_label
-    )
-    if _selected_industry != _current_industry:
-        update_user_industry(_selected_industry)
-        clear_analysis()
-        st.session_state.manufacturing_file_name = ""
-        st.session_state.manufacturing_result = None
-        st.session_state.manufacturing_report_bytes = None
-        st.rerun()
+    if PRODUCT:
+        st.caption(PRODUCT_NAME)
+    else:
+        _current_industry = st.session_state.get("industry", "BPO")
+        _selected_label = st.selectbox(
+            "Analyze data for",
+            options=list(INDUSTRY_LABELS.values()),
+            index=list(INDUSTRY_LABELS.keys()).index(_current_industry)
+            if _current_industry in INDUSTRY_LABELS else 0,
+            key="industry_selector",
+        )
+        _selected_industry = next(
+            k for k, v in INDUSTRY_LABELS.items() if v == _selected_label
+        )
+        if _selected_industry != _current_industry:
+            update_user_industry(_selected_industry)
+            clear_analysis()
+            st.session_state.manufacturing_file_name = ""
+            st.session_state.manufacturing_result = None
+            st.session_state.manufacturing_report_bytes = None
+            st.rerun()
 
     st.divider()
 
@@ -4771,11 +4793,11 @@ if "Date" in df.columns:
 if trend_data.empty:
     trend_data = pd.DataFrame(
         {
-            "Productivity": [productivity] * 6,
-            "Quality": [quality] * 6,
-            "SLA": [sla] * 6,
+            "Productivity": [productivity],
+            "Quality": [quality],
+            "SLA": [sla],
         },
-        index=[f"Wk {i}" for i in range(1, 7)],
+        index=["Current upload"],
     )
 
 trend_col, alerts_col = st.columns([2.15, 1])
@@ -4805,7 +4827,7 @@ with trend_col:
                 .mark_line(point=alt.OverlayMarkDef(size=55), strokeWidth=2.5)
                 .encode(
                     x=alt.X(f"{_period_column}:N", title=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(domain=[0, 100])),
+                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(zero=True)),
                     color=alt.Color(
                         "KPI:N",
                         scale=alt.Scale(
@@ -4829,7 +4851,7 @@ with trend_col:
                 .mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6, size=54)
                 .encode(
                     x=alt.X("KPI:N", title=None, sort=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(domain=[0, 100])),
+                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(zero=True)),
                     color=alt.Color(
                         "KPI:N",
                         scale=alt.Scale(
@@ -5047,6 +5069,7 @@ tabs = st.tabs(
         "🤖 Management Copilot",
         "📄 Reports",
         "💳 Billing",
+        "📈 Performance Trends",
     ]
 )
 
@@ -5794,3 +5817,9 @@ Insights today. Intelligence tomorrow.
 </div>""",
     unsafe_allow_html=True,
 )
+
+
+
+with tabs[7]:
+    render_bpo_trends(df, {"Productivity": productivity_target,
+        "Quality": quality_target, "SLA": sla_target, "AHT": aht_target})
