@@ -1167,6 +1167,30 @@ st.markdown(
             padding: 8px 12px !important;
         }}
     }}
+
+    /* Center the identity above the account card on every product. */
+    body:has(.gi-auth-tabs-marker) [data-testid="stAppViewContainer"] {{
+        background: radial-gradient(ellipse at 12% 12%, #dceeff 0, transparent 45%), radial-gradient(ellipse at 90% 85%, #e0f4f2 0, transparent 42%), #f3f6fb !important;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-topbar {{
+        display: flex !important; justify-content: center !important;
+        width: 100%; margin: 0 auto 12px !important; padding: 18px 0 12px !important;
+        border: 0 !important; background: transparent !important;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-brand-row {{
+        display: flex; align-items: center; justify-content: center; gap: 14px;
+        margin: 0; max-width: 100%;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-icon-sm {{
+        display: flex; align-items: center; justify-content: center;
+        flex: 0 0 48px; width: 48px; height: 48px; margin: 0 !important;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-brand {{ color: #102b4e; line-height: 1.2; }}
+    body:has(.gi-auth-tabs-marker) .gi-tagline {{ color: #52677c; margin-top: 4px; }}
+    body:has(.gi-auth-tabs-marker) [role="tabpanel"]:has(.gi-signup-marker),
+    body:has(.gi-auth-tabs-marker) [role="tabpanel"]:has(.gi-login-marker) {{
+        box-shadow: 0 18px 54px rgba(24,55,95,.10); border-color: #dbe5f0;
+    }}
 </style>
 """,
     unsafe_allow_html=True,
