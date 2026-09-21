@@ -7,7 +7,8 @@ from product_deployment import validate_deployment, PRODUCTS
 class ProductTests(unittest.TestCase):
     def config(self, product='bpo'):
         return dict(PRODUCT_ID=product, PRODUCT_PROJECTS=dict(bpo='aaa',procurement='bbb',vakil='ccc'),
-                    SUPABASE_URL=f'https://{dict(bpo="aaa",procurement="bbb",vakil="ccc")[product]}.supabase.co',
+                    NEON_AUTH_URL='https://ep-test.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth',
+                    NEON_DATABASE_URL='postgresql://test:test@ep-test-pooler.ap-southeast-1.aws.neon.tech/neondb',
                     APP_PUBLIC_URL='https://example.streamlit.app/')
 
     def test_each_product(self):
@@ -15,7 +16,7 @@ class ProductTests(unittest.TestCase):
             self.assertEqual(validate_deployment(product,self.config(product)),PRODUCTS[product])
 
     def test_wrong_product_and_database_fail_closed(self):
-        for changes in [dict(PRODUCT_ID='vakil'),dict(SUPABASE_URL='https://ccc.supabase.co'),
+        for changes in [dict(PRODUCT_ID='vakil'),dict(NEON_DATABASE_URL='postgresql://test:test@ep-other.neon.tech/neondb'),
                         dict(PRODUCT_PROJECTS=dict(bpo='aaa',procurement='aaa',vakil='ccc')),
                         dict(PRODUCT_PROJECTS=''),
                         dict(APP_PUBLIC_URL='http://localhost:3000')]:

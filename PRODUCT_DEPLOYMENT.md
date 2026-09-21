@@ -1,5 +1,7 @@
 # Three dedicated products
 
+SUPERSEDED for dedicated deployments: use NEON_DEPLOYMENT.md. The owner selected a strict ₹0 budget and three free Neon projects now exist. The three-Supabase-project plan below is historical and MUST NOT be provisioned.
+
 Status: code prepared; new apps, databases, website links and DNS are NOT provisioned by this change.
 
 | Product | Streamlit entry point | Proposed branded address (not live) |
@@ -14,7 +16,7 @@ Each entry point fixes the industry on the server and hides industry switching. 
 
 1. Obtain approval for the hosting cost first. Supabase Free supports two active projects; three independent projects may require a paid plan. Do not upgrade automatically.
 2. Create three projects, or explicitly choose which product retains the existing mixed-industry project. Do not automatically migrate existing users or data. Back up and review industry ownership before any migration; the existing project contains mixed-industry records.
-3. Install the existing schema files in dependency order: supabase_vakil_schema.sql, supabase_work_hub.sql, supabase_trial_limits.sql, supabase_owner_admin.sql, then fix_owner_audit.sql. Follow OWNER_ADMIN_ROLLOUT.md for owner enrollment. Verify migrations against each new project's SQL editor before onboarding users.
+3. Install the existing schema files in dependency order: supabase_vakil_schema.sql, supabase_work_hub.sql, supabase_trial_limits.sql, supabase_owner_admin.sql. Follow OWNER_ADMIN_ROLLOUT.md for owner enrollment. Verify migrations against each new project's SQL editor before onboarding users.
 4. Create three Streamlit deployments with the entry points above. Each gets its own project URL, anonymous key and service-role key through private Streamlit secrets. Never put credentials in GitHub. Keep the same PRODUCT_PROJECTS map in all three deployments. The app refuses mismatched or duplicate project bindings.
 5. Set PRODUCT_ID to bpo, procurement or vakil. Set APP_PUBLIC_URL to the actual HTTPS app address. Example non-secret settings:
 

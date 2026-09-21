@@ -32,6 +32,7 @@ from bpo_trends import render_bpo_trends
 PRODUCT_ID = globals().get("DEPLOYMENT_PRODUCT")
 PRODUCT = PRODUCTS[PRODUCT_ID] if PRODUCT_ID else None
 PRODUCT_NAME = PRODUCT["name"] if PRODUCT else "AI Operations Copilot"
+USE_NEON = bool(PRODUCT)
 APP_NAME = f"Generative Insight | {PRODUCT_NAME}"
 APP_VERSION = "1.0.0"
 
@@ -1332,7 +1333,7 @@ def secret(name, default=""):
 if PRODUCT:
     try:
         validate_deployment(PRODUCT_ID, {key: secret(key) for key in
-            ("PRODUCT_ID", "PRODUCT_PROJECTS", "SUPABASE_URL", "APP_PUBLIC_URL")})
+            ("PRODUCT_ID", "PRODUCT_PROJECTS", "NEON_AUTH_URL", "NEON_DATABASE_URL", "APP_PUBLIC_URL")})
     except ValueError as error:
         st.error(str(error))
         st.stop()
@@ -1382,7 +1383,17 @@ AI / ML &nbsp; | &nbsp; Annotation &nbsp; | &nbsp; Web & App Development
     )
 
 
+def get_neon_client():
+    from neon_backend import NeonClient
+    if "neon_client" not in st.session_state or st.session_state.neon_client.product != PRODUCT_ID:
+        st.session_state.neon_client = NeonClient(secret("NEON_AUTH_URL"),
+            secret("NEON_DATABASE_URL"), secret("APP_PUBLIC_URL"), PRODUCT_ID)
+    return st.session_state.neon_client
+
+
 def get_supabase_client() -> Client:
+    if USE_NEON:
+        return get_neon_client()
     """Create the Supabase client from Streamlit Secrets."""
     url = secret("SUPABASE_URL")
     anon_key = secret("SUPABASE_ANON_KEY")
@@ -1412,6 +1423,8 @@ def get_authenticated_supabase_client() -> Client:
 
 
 def get_supabase_admin_client() -> Client:
+    if USE_NEON:
+        return get_neon_client()
     url = secret("SUPABASE_URL")
     service_role_key = secret("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not service_role_key:
@@ -1509,7 +1522,7 @@ def get_razorpay_subscription(subscription_id):
 def razorpay_activation_ready(plan_id_secret="RAZORPAY_PROFESSIONAL_PLAN_ID", plan_label="Professional"):
     if not st.session_state.get("authenticated") or not st.session_state.get("user_id"):
         return False, f"Please create an account or sign in before starting a {plan_label} subscription."
-    if not secret("SUPABASE_SERVICE_ROLE_KEY"):
+    if not (secret("NEON_DATABASE_URL") if USE_NEON else secret("SUPABASE_SERVICE_ROLE_KEY")):
         return False, "Secure plan activation is not configured. Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets."
     if not razorpay_is_configured(plan_id_secret):
         return False, f"Razorpay is not fully configured. Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and {plan_id_secret} to Streamlit Secrets."
@@ -1665,6 +1678,7 @@ def clear_authentication():
     st.session_state.pop("account_access", None)
     st.session_state.pop("owner_area", None)
     st.session_state.pop("industry_selected_this_login", None)
+    st.session_state.pop("neon_client", None)
     st.session_state.authenticated = False
     st.session_state.user_email = ""
     st.session_state.user_id = ""
