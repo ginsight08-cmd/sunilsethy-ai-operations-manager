@@ -7,3 +7,4 @@ reportlab
 supabase
 razorpay
 psycopg[binary]>=3.2,<4
+certifi

@@ -33,6 +33,22 @@ class NeonTests(unittest.TestCase):
             'options':{'data':{'full_name':'Test'}}})
         self.assertIsNone(result.session)
 
+    def test_verification_uses_provider_and_does_not_create_session(self):
+        self.client.request=Mock(return_value={'status':True})
+        self.assertIsNone(self.client.auth.verify_email(' Test@example.com ',' 123456 '))
+        self.client.request.assert_called_with('POST','/email-otp/verify-email',{'email':'test@example.com','otp':'123456'})
+
+    def test_empty_code_is_rejected_without_provider_request(self):
+        self.client.request=Mock()
+        with self.assertRaises(BackendError): self.client.auth.verify_email('test@example.com','')
+        self.client.request.assert_not_called()
+
+    def test_resend_is_email_verification_only(self):
+        self.client.request=Mock()
+        self.client.auth.resend_verification('test@example.com')
+        self.client.request.assert_called_with('POST','/email-otp/send-verification-otp',
+            {'email':'test@example.com','type':'email-verification'})
+
     def test_cross_user_privileged_actions_rejected(self):
         self.client.identity=Mock(return_value={'id':'user-a'})
         with self.assertRaises(BackendError):

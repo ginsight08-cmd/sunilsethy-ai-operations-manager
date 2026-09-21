@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from datetime import date, datetime
 import re
 import requests
+import certifi
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
@@ -77,7 +78,7 @@ class NeonClient:
         # The per-project marker catches accidentally swapped database secrets.
         try:
             with psycopg.connect(self.database_url, row_factory=dict_row,
-                                  connect_timeout=15, sslmode='verify-full', sslrootcert='system') as conn:
+                                  connect_timeout=15, sslmode='verify-full', sslrootcert=certifi.where()) as conn:
                 marker = conn.execute('select product from gi_auth.deployment where singleton').fetchone()
                 if not marker or marker['product'] != self.product:
                     raise BackendError('Database configuration does not match this product.')
@@ -93,12 +94,15 @@ class NeonClient:
             # Never display SQL, DSNs, authentication cookies, or provider errors.
             raise BackendError('The database request could not be confirmed. Reload before retrying.') from None
 
-    def profile(self, user):
+    def profile(self, user, initial=None):
+        metadata={'full_name':user.get('name',''),'plan':'Free'}
+        if initial:
+            metadata['company_name']=str(initial.get('company_name',''))[:300]
         with self.connection(privileged=True) as conn:
             row = conn.execute('''insert into gi_auth.users(id,email,created_at,raw_user_meta_data)
                 values(%s,%s,%s,%s) on conflict(id) do update set email=excluded.email
                 returning *''', (user['id'], user['email'], user['createdAt'],
-                                  Jsonb({'full_name':user.get('name',''),'plan':'Free'}))).fetchone()
+                                  Jsonb(metadata))).fetchone()
         return Obj(id=row['id'],email=row['email'],created_at=row['created_at'],
                    user_metadata=row['raw_user_meta_data'])
 
@@ -123,6 +127,11 @@ class NeonAuth:
         result=self.client.request('POST','/sign-up/email',
             {'name':fields.get('full_name',''), 'email':payload['email'],
              'password':payload['password'], 'callbackURL':self.client.public_url})
+        created=result.get('user') or {}
+        if all(created.get(key) for key in ('id','email','createdAt')):
+            # Preserve signup business details from the provider-confirmed record.
+            # This grants no session; verified sign-in is still required below.
+            self.client.profile(created,fields)
         # Always require the normal verified sign-in flow; never grant app access
         # based solely on a signup response or submitted email address.
         return Obj(user=Obj(id=(result.get('user') or {}).get('id','')),session=None)
@@ -131,6 +140,16 @@ class NeonAuth:
         self.client.request('POST','/sign-in/email',
             {'email':payload['email'],'password':payload['password']})
         return self.set_session('', '')
+
+    def verify_email(self, email, code):
+        if not email.strip() or not code.strip():
+            raise BackendError('Enter your email and verification code.')
+        self.client.request('POST','/email-otp/verify-email',{'email':email.strip().lower(),'otp':code.strip()})
+
+    def resend_verification(self, email):
+        if not email.strip(): raise BackendError('Enter your email address.')
+        self.client.request('POST','/email-otp/send-verification-otp',
+                            {'email':email.strip().lower(),'type':'email-verification'})
 
     def set_session(self, access_token, refresh_token):
         user=self.client.profile(self.client.identity())

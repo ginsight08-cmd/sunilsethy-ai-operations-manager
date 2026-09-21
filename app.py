@@ -3882,12 +3882,11 @@ Your data is protected with enterprise-grade security. By creating an account, y
                         st.rerun()
 
                     elif signup_user is not None:
-
-                        st.success(
-                            "✅ Account created. Please check your "
-                            "email and click the verification link "
-                            "before signing in."
-                        )
+                        if USE_NEON:
+                            st.session_state.neon_pending_email = signup_email.strip().lower()
+                            st.success("Account created. Enter the code from your email below, then sign in.")
+                        else:
+                            st.success("Account created. Check your email and click the verification link before signing in.")
 
                     else:
 
@@ -3903,11 +3902,18 @@ Your data is protected with enterprise-grade security. By creating an account, y
                         + friendly_auth_error(e)
                     )
 
+        if USE_NEON:
+            from neon_verification import render_verification
+            render_verification(get_neon_client().auth, "signup_email_verification")
+
     # --------------------------------------------------------
     # LOGIN
     # --------------------------------------------------------
 
     with login_tab:
+        if USE_NEON:
+            from neon_verification import render_verification
+            render_verification(get_neon_client().auth, "login_email_verification")
 
         st.markdown('<span class="gi-login-marker"></span>', unsafe_allow_html=True)
 
