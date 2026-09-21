@@ -378,7 +378,2193 @@ st.markdown(
     }}
 
     /* ---------- st.metric cards ---------- */
-    div[data-testid="stMetric"]industry flow: upload a Price Comparative Sheet workbook
+    div[data-testid="stMetric"] {{
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1rem 1.1rem;
+        box-shadow: var(--shadow-card);
+    }}
+
+    div[data-testid="stMetricLabel"] {{
+        color: var(--muted) !important;
+        font-weight: 600 !important;
+    }}
+
+    div[data-testid="stMetricValue"] {{
+        color: var(--ink) !important;
+        font-weight: 800 !important;
+    }}
+
+    div[data-testid="stMetricDelta"] svg {{
+        display: inline;
+    }}
+
+    /* ---------- Custom metric-card component (used via
+       render_metric_card()) — icon + label + big value + colored
+       delta chip, matching the mockup's stat cards more closely
+       than st.metric's default layout allows. ---------- */
+    .gi-metric-card {{
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1.1rem 1.2rem;
+        box-shadow: var(--shadow-card);
+        height: 100%;
+    }}
+    .gi-metric-icon {{
+        font-size: 1.05rem;
+        margin-bottom: 0.55rem;
+        opacity: 0.85;
+    }}
+    .gi-metric-label {{
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+    }}
+    .gi-metric-value {{
+        color: var(--ink);
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        line-height: 1.1;
+        margin-bottom: 0.4rem;
+    }}
+    .gi-metric-delta {{
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+    }}
+    .gi-metric-delta.good {{ background: var(--green-bg); color: var(--green-ink); }}
+    .gi-metric-delta.bad {{ background: var(--red-bg); color: var(--red-ink); }}
+    .gi-metric-delta.neutral {{ background: var(--border-soft); color: var(--ink-soft); }}
+
+    /* ---------- Check-cards ("What you get" rows) — bordered card,
+       bold label, filled black check-circle. Presentational only. ---------- */
+    .gi-check-card {{
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1.1rem 1.2rem;
+        box-shadow: var(--shadow-card);
+        height: 100%;
+    }}
+    .gi-check-card .gi-check-label {{
+        font-weight: 700;
+        color: var(--ink);
+        font-size: 0.95rem;
+        margin-bottom: 0.7rem;
+    }}
+    .gi-check-card .gi-check-circle {{
+        width: 26px; height: 26px; border-radius: 50%;
+        background: var(--black); color: #FFFFFF;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.85rem;
+    }}
+
+    /* ---------- Operations dashboard panels ---------- */
+    .gi-dashboard-heading {{
+        display:flex; align-items:flex-start; justify-content:space-between;
+        gap:1rem; padding:.25rem 0 1.25rem; margin-bottom:.25rem;
+        border-bottom:1px solid var(--border);
+    }}
+    .gi-dashboard-title {{
+        color:var(--ink); font-size:2rem; line-height:1.1;
+        font-weight:800; letter-spacing:-.035em;
+    }}
+    .gi-dashboard-subtitle {{ color:var(--muted); margin-top:.35rem; font-size:.95rem; }}
+    .gi-panel {{
+        background:var(--paper); border:1px solid var(--border);
+        border-radius:var(--radius-md); padding:1.25rem;
+        box-shadow:var(--shadow-card); min-height:100%;
+    }}
+    .gi-panel-title {{ font-size:1.08rem; font-weight:800; color:var(--ink); }}
+    .gi-panel-subtitle {{ color:var(--muted); font-size:.84rem; margin:.2rem 0 1rem; }}
+    .gi-risk-alert {{
+        display:flex; justify-content:space-between; gap:.8rem;
+        border:1px solid var(--border); border-radius:12px;
+        padding:.85rem; margin-top:.7rem; background:#fff;
+    }}
+    .gi-risk-name {{ color:var(--ink); font-weight:700; font-size:.86rem; }}
+    .gi-risk-meta {{ color:var(--muted); font-size:.76rem; margin-top:.2rem; }}
+    .gi-risk-level {{
+        align-self:flex-start; background:var(--black); color:#fff;
+        border-radius:7px; padding:.22rem .5rem; font-size:.7rem;
+        white-space:nowrap;
+    }}
+    .stApp [data-testid="stMarkdownContainer"] .gi-risk-level,
+    .stApp [data-testid="stMarkdownContainer"] .gi-risk-level *,
+    .stApp [data-testid="stMarkdownContainer"] .plan-badge-popular,
+    .stApp [data-testid="stMarkdownContainer"] .plan-badge-popular *,
+    .stApp [data-testid="stMarkdownContainer"] .gi-check-circle,
+    .stApp [data-testid="stMarkdownContainer"] .gi-check-circle * {{
+        color:#FFFFFF !important;
+        -webkit-text-fill-color:#FFFFFF !important;
+        opacity:1 !important;
+        visibility:visible !important;
+    }}
+    .stApp [data-testid="stVegaLiteChart"] {{
+        background:#FFFFFF !important;
+        border-radius:10px;
+    }}
+
+    /* ---------- Pricing / plan cards ---------- */
+    .plan-card {{
+        padding: 1.35rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        background: var(--paper);
+        min-height: 260px;
+        box-shadow: var(--shadow-card);
+        color: var(--ink) !important;
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        position: relative;
+    }}
+
+    .plan-card:hover {{
+        border-color: var(--ink);
+        box-shadow: 0 4px 8px rgba(15,17,21,0.06), 0 16px 32px rgba(15,17,21,0.08);
+        transform: translateY(-3px);
+    }}
+
+    .plan-card .plan-badge-popular {{
+        position: absolute; top: -11px; right: 18px;
+        background: var(--black); color: #FFFFFF;
+        font-size: 0.68rem; font-weight: 700;
+        padding: 4px 12px; border-radius: 999px;
+        letter-spacing: 0.02em;
+    }}
+
+    .plan-card .plan-icon-badge {{
+        width: 56px; height: 56px; border-radius: 16px;
+        background: #F2F2F4;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.7rem; margin-bottom: .9rem;
+    }}
+
+    .plan-card .plan-name, .plan-card .plan-price {{
+        color: var(--ink) !important;
+    }}
+    .plan-card .plan-description, .plan-card .plan-feature {{
+        color: var(--muted) !important;
+    }}
+    .plan-card .plan-feature {{
+        font-weight: 500 !important;
+    }}
+
+    /* ---------- Sidebar ---------- */
+    section[data-testid="stSidebar"] {{
+        background: var(--paper);
+        border-right: 1px solid var(--border);
+    }}
+
+    /* Status pills used in the sidebar (plan badge, trial notice) */
+    .gi-pill {{
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        line-height: 1.4;
+        margin-bottom: 10px;
+    }}
+    .gi-pill.green {{ background: var(--green-bg); color: var(--green-ink); }}
+    .gi-pill.amber {{ background: var(--amber-bg); color: var(--amber-ink); }}
+    .gi-pill.red {{ background: var(--red-bg); color: var(--red-ink); }}
+    .gi-pill.neutral {{ background: var(--border-soft); color: var(--ink-soft); }}
+
+    /* ---------- Buttons ---------- */
+    .stButton > button {{
+        border-radius: var(--radius-sm);
+        font-weight: 700;
+        border: 1px solid var(--border);
+        color: var(--ink);
+        background: var(--paper);
+    }}
+
+    .stButton > button:hover {{
+        border-color: var(--ink);
+    }}
+
+    .stButton > button[kind^="primary"] {{
+        background: var(--black);
+        color: #FFFFFF;
+        border: none;
+    }}
+
+    /* Dark controls need an explicit descendant override because Streamlit
+       renders labels inside nested p/span elements and host styles may set
+       those children back to dark text. */
+    .stApp .stButton > button[kind^="primary"],
+    .stApp .stButton > button[kind^="primary"] *,
+    .stApp [data-testid="stFormSubmitButton"] button[kind^="primary"],
+    .stApp [data-testid="stFormSubmitButton"] button[kind^="primary"] *,
+    .stApp [data-testid="stDownloadButton"] button[kind^="primary"],
+    .stApp [data-testid="stDownloadButton"] button[kind^="primary"] * {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+
+    .stApp [data-testid="stLinkButton"] a[style*="background"],
+    .stApp [data-testid="stLinkButton"] a[style*="background"] *,
+    .stApp [data-testid="stLinkButton"] a[kind^="primary"],
+    .stApp [data-testid="stLinkButton"] a[kind^="primary"] * {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+
+    .stButton > button[kind^="primary"]:hover {{
+        background: var(--black-hover);
+        color: #FFFFFF;
+    }}
+
+    .stApp .stButton > button[kind^="primary"]:hover *,
+    .stApp [data-testid="stFormSubmitButton"] button[kind^="primary"]:hover * {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }}
+
+    [data-testid="stLinkButton"] a {{
+        border-radius: var(--radius-sm) !important;
+        font-weight: 700 !important;
+    }}
+
+    /* ---------- Tabs ---------- */
+    button[data-baseweb="tab"] {{
+        font-weight: 700;
+    }}
+
+    button[data-baseweb="tab"][aria-selected="true"] {{
+        color: var(--ink);
+    }}
+
+    .stApp [data-baseweb="tab-list"] {{
+        background: transparent !important;
+        border-bottom: 1px solid var(--border) !important;
+    }}
+    .stApp button[data-baseweb="tab"],
+    .stApp button[data-baseweb="tab"] span,
+    .stApp button[data-baseweb="tab"] div {{
+        color: var(--muted) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: var(--muted) !important;
+        font-weight: 700 !important;
+    }}
+    .stApp button[data-baseweb="tab"][aria-selected="true"],
+    .stApp button[data-baseweb="tab"][aria-selected="true"] span,
+    .stApp button[data-baseweb="tab"][aria-selected="true"] div {{
+        color: var(--ink) !important;
+        -webkit-text-fill-color: var(--ink) !important;
+    }}
+    .stApp [data-baseweb="tab-highlight"] {{
+        background-color: var(--ink) !important;
+    }}
+
+    a {{
+        color: var(--blue-link);
+    }}
+    .stApp a {{
+        color: var(--blue-link) !important;
+        text-decoration: none;
+    }}
+    .stApp a:hover {{
+        text-decoration: underline;
+    }}
+
+    .gi-footer {{
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.82rem;
+        padding: 1.5rem 0;
+    }}
+
+    /* ============================================================
+       EMBED-SAFE TYPOGRAPHY — explicit dark text prevents host-page
+       CSS from making Streamlit content white/invisible in an iframe.
+       ============================================================ */
+    .stApp .stMarkdown, .stApp .stMarkdown p, .stApp .stMarkdown li,
+    .stApp .stMarkdown span, .stApp label,
+    .stApp [data-testid="stWidgetLabel"], .stApp [data-testid="stWidgetLabel"] * {{
+        color: var(--ink) !important;
+    }}
+    .stApp .stCaption, .stApp [data-testid="stCaptionContainer"],
+    .stApp [data-testid="stCaptionContainer"] * {{
+        color: var(--muted) !important;
+    }}
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{
+        color: var(--ink) !important;
+    }}
+    .stApp input, .stApp textarea, .stApp select,
+    .stApp input::placeholder, .stApp textarea::placeholder {{
+        color: var(--ink) !important;
+        -webkit-text-fill-color: var(--ink) !important;
+        opacity: 1 !important;
+    }}
+    .stApp [data-baseweb="select"] * {{
+        color: var(--ink) !important;
+    }}
+    .stApp [data-baseweb="select"] > div {{
+        border-radius: var(--radius-sm) !important;
+        border-color: var(--border) !important;
+        background-color: #FFFFFF !important;
+    }}
+
+    /* Force a consistent light surface when the host/browser supplies a
+       dark color scheme. This prevents black text appearing on dark widget
+       backgrounds. Intentional primary buttons are overridden separately. */
+    .stApp,
+    .stApp [data-testid="stAppViewContainer"],
+    .stApp [data-testid="stMain"],
+    .stApp [data-testid="stMainBlockContainer"] {{
+        background-color: var(--bg) !important;
+        color: var(--ink) !important;
+    }}
+    .stApp input,
+    .stApp textarea,
+    .stApp [data-baseweb="input"] > div,
+    .stApp [data-baseweb="textarea"] > div,
+    .stApp [data-baseweb="select"] > div,
+    .stApp [data-baseweb="popover"] > div,
+    .stApp [role="listbox"],
+    .stApp [role="option"],
+    .stApp [data-testid="stExpander"] details,
+    .stApp [data-testid="stFileUploaderDropzone"],
+    .stApp [data-testid="stDataFrame"],
+    .stApp [data-testid="stTable"] {{
+        background-color: #FFFFFF !important;
+        color: var(--ink) !important;
+    }}
+    .stApp [role="option"]:hover,
+    .stApp [role="option"][aria-selected="true"] {{
+        background-color: #F3F4F6 !important;
+        color: var(--ink) !important;
+    }}
+    .stApp [data-testid="stAlert"] {{
+        color: var(--ink) !important;
+    }}
+    .stApp [data-testid="stDownloadButton"] button:not([kind^="primary"]),
+    .stApp [data-testid="stFormSubmitButton"] button:not([kind^="primary"]),
+    .stApp .stButton > button:not([kind^="primary"]) {{
+        background-color: #FFFFFF !important;
+        color: var(--ink) !important;
+        border-color: var(--border) !important;
+    }}
+    .stApp [data-testid="stDataFrame"] *,
+    .stApp [data-testid="stTable"] * {{
+        color: var(--ink) !important;
+    }}
+
+    /* File uploader's Browse files button needs explicit descendant colors.
+       Streamlit renders its text inside nested elements, so inherited host
+       styles can otherwise make the label match the button background. */
+    .stApp [data-testid="stFileUploaderDropzone"] button {{
+        background-color: var(--black) !important;
+        border: 1px solid var(--black) !important;
+        color: #FFFFFF !important;
+        border-radius: var(--radius-sm) !important;
+        font-weight: 700 !important;
+    }}
+    .stApp [data-testid="stFileUploaderDropzone"] button *,
+    .stApp [data-testid="stFileUploaderDropzone"] button p,
+    .stApp [data-testid="stFileUploaderDropzone"] button span {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+    .stApp [data-testid="stFileUploaderDropzone"] button:hover {{
+        background-color: var(--black-hover) !important;
+        border-color: var(--black-hover) !important;
+    }}
+    .plan-card, .plan-card * {{
+        color: var(--ink) !important;
+    }}
+    .stApp [data-testid="stMarkdownContainer"],
+    .stApp [data-testid="stMarkdownContainer"] p,
+    .stApp [data-testid="stMarkdownContainer"] div,
+    .stApp [data-testid="stMarkdownContainer"] span,
+    .stApp [data-testid="stMarkdownContainer"] li,
+    .stApp [data-testid="stMarkdownContainer"] strong,
+    .stApp [data-testid="stMarkdownContainer"] em {{
+        color: var(--ink) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: var(--ink) !important;
+    }}
+    .stApp [data-testid="stMarkdownContainer"] h1,
+    .stApp [data-testid="stMarkdownContainer"] h2,
+    .stApp [data-testid="stMarkdownContainer"] h3,
+    .stApp [data-testid="stMarkdownContainer"] h4,
+    .stApp [data-testid="stMarkdownContainer"] h5,
+    .stApp [data-testid="stMarkdownContainer"] h6 {{
+        color: var(--ink) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: var(--ink) !important;
+    }}
+    .stApp .hero p {{
+        color: var(--ink-soft) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        -webkit-text-fill-color: var(--ink-soft) !important;
+        font-size: 0.96rem !important;
+        line-height: 1.65 !important;
+    }}
+    .stApp .hero .brand-subtitle {{
+        color: var(--blue-link) !important;
+        opacity: 1 !important;
+        -webkit-text-fill-color: var(--blue-link) !important;
+    }}
+    .stApp [data-testid="stHeader"] *,
+    .stApp [data-testid="stText"],
+    .stApp [data-testid="stCaptionContainer"] *,
+    .stApp [data-testid="stWidgetLabel"] *,
+    .stApp [data-testid="stForm"] label,
+    .stApp [data-testid="stForm"] p {{
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+    .stApp input,
+    .stApp textarea,
+    .stApp [role="textbox"],
+    .stApp [data-baseweb="input"] input,
+    .stApp [data-baseweb="textarea"] textarea {{
+        background-color: var(--paper) !important;
+        color: var(--ink) !important;
+        -webkit-text-fill-color: var(--ink) !important;
+        opacity: 1 !important;
+    }}
+    .stApp [data-baseweb="input"], .stApp [data-baseweb="textarea"] {{
+        border-radius: var(--radius-sm) !important;
+        border-color: var(--border) !important;
+    }}
+    .stApp input::placeholder,
+    .stApp textarea::placeholder {{
+        color: #9CA3AF !important;
+        -webkit-text-fill-color: #9CA3AF !important;
+        opacity: 1 !important;
+    }}
+    .stApp .stButton button,
+    .stApp [data-testid="stFormSubmitButton"] button,
+    .stApp [data-testid="stLinkButton"] a {{
+        opacity: 1 !important;
+        visibility: visible !important;
+    }}
+    .stApp .gi-brand, .stApp .gi-brand * {{ color:var(--ink) !important; -webkit-text-fill-color:var(--ink) !important; opacity:1 !important; visibility:visible !important; }}
+    .stApp .gi-brand span {{ color:var(--blue-link) !important; -webkit-text-fill-color:var(--blue-link) !important; }}
+    .stApp .gi-tagline {{ color:var(--muted) !important; -webkit-text-fill-color:var(--muted) !important; opacity:1 !important; }}
+    .stApp .website-link {{ color:var(--blue-link) !important; -webkit-text-fill-color:var(--blue-link) !important; font-weight:700 !important; text-decoration:none !important; }}
+    .stApp .plan-card, .stApp .plan-card * {{ opacity:1 !important; visibility:visible !important; }}
+
+    /* ============================================================
+       HIDE STREAMLIT CHROME — including the default header bar,
+       which otherwise renders as a solid black/opaque strip above
+       the app content on some hosts (mobile web view especially).
+       We keep the header ELEMENT (it still carries the sidebar
+       hamburger toggle on mobile) but make it fully transparent
+       and shrink it so no black bar is visible.
+       ============================================================ */
+    #MainMenu {{ visibility: hidden !important; }}
+    [data-testid="StyledFullScreenButton"] {{ display: none !important; }}
+    header [data-testid="stToolbar"] {{ display: none !important; visibility: hidden !important; }}
+    /* Newer Streamlit versions put the sidebar toggle inside the toolbar.
+       Keep only the branch containing that control when it is present. */
+    header [data-testid="stToolbar"]:has([data-testid="stExpandSidebarButton"]) {{
+        display: flex !important;
+        visibility: visible !important;
+    }}
+    header [data-testid="stToolbar"]:has([data-testid="stExpandSidebarButton"]) > :not(:has([data-testid="stExpandSidebarButton"])) {{
+        display: none !important;
+    }}
+    footer {{ visibility: hidden !important; }}
+    [data-testid="stDecoration"] {{ display: none !important; }}
+    a[href*="github.com"] {{ display: none !important; }}
+
+    header[data-testid="stHeader"] {{
+        background: transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        height: 3rem;
+    }}
+    header[data-testid="stHeader"]::before {{
+        content: none !important;
+    }}
+    div[data-testid="stAppViewContainer"] > .main {{
+        background: var(--bg) !important;
+    }}
+
+    /* ============================================================
+       RESPONSIVE — tablet (≤768px) and phone (≤480px). Every
+       card/button/grid below reflows to single-column with full-width,
+       touch-sized (≥44px) controls at phone width.
+       ============================================================ */
+    @media (max-width: 768px) {{
+        /* Keep the mobile drawer out of the main layout. Translate its
+           actual width: Streamlit's pixel offset cannot hide a wider panel. */
+        section[data-testid="stSidebar"] {{
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            height: 100vh;
+            height: 100dvh;
+            width: min(88vw, 360px) !important;
+            min-width: 0 !important;
+            max-width: 100vw !important;
+            margin-left: 0 !important;
+            transition: transform 0.3s ease !important;
+        }}
+        section[data-testid="stSidebar"][aria-expanded="true"] {{
+            transform: translateX(0) !important;
+        }}
+        section[data-testid="stSidebar"][aria-expanded="false"] {{
+            transform: translateX(-100%) !important;
+            pointer-events: none;
+        }}
+        [data-testid="stMain"],
+        div[data-testid="stAppViewContainer"] > .main {{
+            width: 100% !important;
+            min-width: 0 !important;
+            margin-left: 0 !important;
+        }}
+        [data-testid="stMainBlockContainer"],
+        .main .block-container {{
+            max-width: 100% !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }}
+        /* The native reopen control lives in the header, outside the drawer. */
+        [data-testid="stExpandSidebarButton"],
+        [data-testid="stSidebarCollapsedControl"] button,
+        [data-testid="collapsedControl"] button {{
+            min-width: 44px;
+            min-height: 44px;
+        }}
+        .main-title {{ font-size: 1.6rem !important; }}
+        .gi-dashboard-heading {{ padding-top:.5rem; }}
+        .gi-dashboard-title {{ font-size:1.55rem; }}
+        .hero {{ padding: 1.1rem 1rem !important; border-radius: 16px !important; }}
+        .plan-card {{ min-height: auto !important; margin-bottom: .75rem !important; }}
+        .gi-metric-card {{ margin-bottom: .6rem; }}
+        .gi-check-card {{ margin-bottom: .6rem; }}
+        .stApp .stButton > button,
+        .stApp [data-testid="stLinkButton"] a,
+        .stApp [data-testid="stFormSubmitButton"] button {{
+            width: 100% !important;
+            min-height: 44px !important;
+        }}
+        div[data-testid="column"] {{
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+        }}
+        /* Tabs: let them scroll sideways instead of wrapping/clipping */
+        .stApp [data-baseweb="tab-list"] {{
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }}
+        .stApp [data-baseweb="tab-list"]::-webkit-scrollbar {{ height: 3px; }}
+        .stApp button[data-baseweb="tab"] {{
+            padding: 8px 12px !important;
+            font-size: 0.85rem !important;
+            white-space: nowrap;
+        }}
+        .gi-auth-shell {{ padding: 1.25rem !important; margin: 6px 8px 0 !important; max-width: 100% !important; }}
+        .gi-auth-hero-title {{ font-size: 1.5rem !important; }}
+        .gi-auth-hero-sub {{ font-size: 0.85rem !important; padding: 0 6px; }}
+        body:has(.gi-auth-tabs-marker) [role="tablist"] {{
+            position: static !important;
+            transform: none !important;
+            justify-content: flex-start !important;
+            gap: 1.25rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 0 12px !important;
+            border-bottom: 1px solid #E5E5E5 !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stImage"] img {{ max-width: 170px !important; }}
+        .gi-brand-row {{ gap: 8px; }}
+        header[data-testid="stHeader"] {{ height: 2.75rem; }}
+    }}
+
+    @media (max-width: 480px) {{
+        .main-title {{ font-size: 1.35rem !important; }}
+        .brand-subtitle {{ font-size: 0.88rem !important; }}
+        .hero {{ padding: 0.9rem 0.85rem !important; border-radius: 14px !important; }}
+        .gi-metric-value {{ font-size: 1.3rem !important; }}
+        div[data-testid="stMetricValue"] {{ font-size: 1.35rem !important; }}
+        .plan-card {{ padding: 1.05rem !important; }}
+        .gi-auth-icon-lg {{ width: 48px !important; height: 48px !important; }}
+        .gi-auth-icon-lg img {{ width: 48px !important; height: 48px !important; }}
+        .gi-auth-icon-sm {{ width: 34px !important; height: 34px !important; }}
+        .gi-auth-icon-sm img {{ width: 34px !important; height: 34px !important; }}
+        section[data-testid="stSidebar"] [data-testid="stImage"] img {{ max-width: 140px !important; }}
+    }}
+
+    @media (max-width: 360px) {{
+        .main-title {{ font-size: 1.2rem !important; }}
+        .gi-auth-hero-title {{ font-size: 1.15rem !important; }}
+        .gi-auth-icon-lg {{ width: 44px !important; height: 44px !important; margin-bottom: 10px !important; }}
+    }}
+
+    /* ============================================================
+       WIDE MONITOR — on large screens Streamlit's default content
+       column stretches edge-to-edge, which was pulling the header
+       tag, hero text, and tabs out of visual alignment with each
+       other. Capping the column keeps everything (header, title,
+       tabs, cards) lined up under one consistent width, same as the
+       mockups. Sidebar and mobile breakpoints above are untouched.
+       ============================================================ */
+    @media (min-width: 1200px) {{
+        div[data-testid="stAppViewContainer"] .main .block-container {{
+            max-width: 1180px;
+            margin-left: auto;
+            margin-right: auto;
+        }}
+    }}
+
+    /* Pair foreground and background for controls. Native theme handles
+       canvas tables and portal popovers; these rules match the brand buttons. */
+    .stApp button[kind^="primary"],
+    .stApp button[kind^="primary"] *,
+    .stApp [data-testid="stFileUploaderDropzone"] button * {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }}
+    .stApp button[kind^="primary"] {{
+        background: var(--black) !important;
+        border-color: var(--black) !important;
+    }}
+    .stApp button:not([kind^="primary"]):not(:disabled),
+    .stApp button:not([kind^="primary"]):not(:disabled) * {{
+        color: var(--ink) !important;
+        -webkit-text-fill-color: var(--ink) !important;
+    }}
+    .stApp [data-testid="stFileUploaderDropzone"] button,
+    .stApp [data-testid="stFileUploaderDropzone"] button * {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }}
+    .stApp input::placeholder, .stApp textarea::placeholder {{
+        color: #6B7280 !important;
+        -webkit-text-fill-color: #6B7280 !important;
+    }}
+    .stApp button:focus-visible, .stApp a:focus-visible {{
+        outline: 2px solid #0757B8 !important;
+        outline-offset: 2px;
+    }}
+
+    /* Account screens: one aligned card and a clear primary action. */
+    body:has(.gi-auth-tabs-marker) [data-testid="stMainBlockContainer"] {{
+        max-width: 1120px !important;
+        padding-top: 1.25rem !important;
+        padding-bottom: 2rem !important;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-topbar {{
+        padding: 12px 0 20px;
+        margin-bottom: 28px;
+    }}
+    body:has(.gi-auth-tabs-marker) [role="tablist"] {{
+        position: static !important;
+        transform: none !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        width: fit-content !important;
+        max-width: 100% !important;
+        margin: 0 auto 24px !important;
+        padding: 5px !important;
+        background: #EAF0F8 !important;
+        border: 0 !important;
+        border-radius: 14px;
+    }}
+    body:has(.gi-auth-tabs-marker) [role="tab"] {{
+        padding: 10px 20px !important;
+        min-height: 44px !important;
+        border-radius: 10px !important;
+        color: #44546A !important;
+    }}
+    body:has(.gi-auth-tabs-marker) [role="tab"][aria-selected="true"] {{
+        background: #FFFFFF !important;
+        box-shadow: 0 2px 6px #071A3D14;
+    }}
+    body:has(.gi-auth-tabs-marker) [role="tab"][aria-selected="true"]::after {{
+        display: none !important;
+    }}
+    [role="tabpanel"]:has(.gi-signup-marker),
+    [role="tabpanel"]:has(.gi-login-marker) {{
+        box-sizing: border-box;
+        width: min(100%, 520px) !important;
+        margin-inline: auto;
+        padding: 28px 32px;
+        background: #FFFFFF;
+        border: 1px solid #DFE6F0;
+        border-radius: 22px;
+        box-shadow: 0 12px 40px #071A3D0D;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-hero-title {{
+        font-size: 1.85rem !important;
+        letter-spacing: -.035em;
+        line-height: 1.2;
+        margin-bottom: 10px;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-card-title {{
+        display: none;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-card-desc {{
+        text-align: center;
+        font-size: .88rem;
+        color: #4B5262;
+        margin-bottom: 18px;
+    }}
+    body:has(.gi-auth-tabs-marker) [data-testid="stForm"] {{
+        border: 0 !important;
+        padding: 0 !important;
+    }}
+    body:has(.gi-auth-tabs-marker) [role="tabpanel"]:has(.gi-signup-marker) [data-testid="stVerticalBlockBorderWrapper"],
+    body:has(.gi-auth-tabs-marker) [role="tabpanel"]:has(.gi-login-marker) [data-testid="stVerticalBlockBorderWrapper"] {{
+        border: 0 !important;
+        box-shadow: none !important;
+    }}
+    body:has(.gi-auth-tabs-marker) [data-testid="stTextInput"] input {{
+        min-height: 46px;
+        font-size: .95rem;
+    }}
+    body:has(.gi-auth-tabs-marker) [data-testid="stFormSubmitButton"] button[kind^="primary"] {{
+        background: #0757B8 !important;
+        border-color: #0757B8 !important;
+        min-height: 48px;
+        border-radius: 12px;
+        font-size: 1rem;
+    }}
+    body:has(.gi-auth-tabs-marker) [data-testid="stFormSubmitButton"] button[kind^="primary"]:hover {{
+        background: #064896 !important;
+    }}
+    @media (max-width: 600px) {{
+        body:has(.gi-auth-tabs-marker) [data-testid="stMainBlockContainer"] {{
+            padding-inline: 16px !important;
+        }}
+        [role="tabpanel"]:has(.gi-signup-marker),
+        [role="tabpanel"]:has(.gi-login-marker) {{
+            padding: 22px 18px;
+            border-radius: 16px;
+        }}
+        body:has(.gi-auth-tabs-marker) [role="tab"] {{
+            padding: 8px 12px !important;
+        }}
+    }}
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+# Final responsive layer. Keeping this as a small companion stylesheet makes
+# the large application file easier to maintain while ensuring these rules load
+# after the base theme and therefore win at laptop/tablet/phone breakpoints.
+RESPONSIVE_CSS_PATH = BASE_DIR / "responsive_ui_overrides.css"
+if RESPONSIVE_CSS_PATH.exists():
+    st.markdown(
+        f"<style>{RESPONSIVE_CSS_PATH.read_text(encoding='utf-8')}</style>",
+        unsafe_allow_html=True,
+    )
+
+
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+@st.cache_data(show_spinner=False)
+def _image_data_uri(path):
+    """Return a cached PNG data-URI for a local brand asset."""
+    if path.exists():
+        try:
+            import base64
+            encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+            return f"data:image/png;base64,{encoded}"
+        except Exception:
+            return None
+    return None
+
+
+def _header_logo_data_uri():
+    return _image_data_uri(HEADER_LOGO_PATH)
+
+
+def _mark_logo_data_uri():
+    return _image_data_uri(MARK_LOGO_PATH)
+
+
+def logo_mark_html(size=40, radius=11, font_size=18):
+    """
+    HTML for a small square brand badge. Uses the dedicated GI mark so the
+    horizontal wordmark is never squeezed into 40–56 px icon containers.
+    Falls back to the CSS sparkle badge only if the mark file is missing.
+    """
+    uri = _mark_logo_data_uri()
+    if uri:
+        return (
+            f'<div style="width:{size}px;height:{size}px;border-radius:{radius}px;'
+            f'background:#FFFFFF;display:flex;align-items:center;justify-content:center;'
+            f'flex-shrink:0;overflow:hidden;box-sizing:border-box;padding:3px;'
+            f'box-shadow:0 2px 6px rgba(17,17,20,0.18);">'
+            f'<img src="{uri}" alt="Generative Insight" '
+            f'style="width:100%;height:100%;object-fit:contain;display:block;" />'
+            f'</div>'
+        )
+    return (
+        f'<div style="width:{size}px;height:{size}px;border-radius:{radius}px;'
+        f'background:var(--black);display:flex;align-items:center;justify-content:center;'
+        f'font-size:{font_size}px;color:#FFFFFF;flex-shrink:0;'
+        f'box-shadow:0 2px 6px rgba(17,17,20,0.25);">✦</div>'
+    )
+
+
+def render_metric_card(icon, label, value, delta=None, delta_tone="neutral"):
+    """
+    Custom stat card: icon, label, big value, colored delta chip.
+    Visually closer to the approved mockups than st.metric's default
+    layout — purely presentational, carries no logic of its own.
+    delta_tone: "good" (green), "bad" (red), or "neutral" (gray).
+    """
+    delta_html = ""
+    if delta:
+        delta_html = f'<div class="gi-metric-delta {delta_tone}">{delta}</div>'
+    st.markdown(
+        f"""<div class="gi-metric-card">
+<div class="gi-metric-icon">{icon}</div>
+<div class="gi-metric-label">{label}</div>
+<div class="gi-metric-value">{value}</div>
+{delta_html}
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_check_card(label):
+    """
+    Bordered check-card used in every 'What you get' row — bold label on
+    top, filled black check-circle underneath. Matches the reference
+    mockup's feature cards. Presentational only, carries no logic.
+    """
+    st.markdown(
+        f"""<div class="gi-check-card">
+<div class="gi-check-label">{label}</div>
+<div class="gi-check-circle">✓</div>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_risk_card(icon, label, risk_text):
+    """
+    KPI card whose value is rendered as a colored severity pill instead
+    of plain text — matches the High/Medium/Low badge style in the
+    reference dashboard mockups. Strips the leading emoji from
+    risk_text and colors the pill by severity (bad=red, neutral=amber,
+    good=green). Purely presentational — risk_text is exactly what the
+    engine already computed.
+    """
+    clean = risk_text
+    for e in ["🔴", "🟠", "🟡", "🟢", "⚪"]:
+        clean = clean.replace(e, "").strip()
+    upper = clean.upper()
+    if "CRITICAL" in upper or "HIGH" in upper:
+        tone = "bad"
+    elif "MEDIUM" in upper:
+        tone = "neutral"
+    else:
+        tone = "good"
+    st.markdown(
+        f"""<div class="gi-metric-card">
+<div class="gi-metric-icon">{icon}</div>
+<div class="gi-metric-label">{label}</div>
+<div class="gi-metric-delta {tone}" style="font-size:0.95rem; padding:5px 16px; margin-top:2px;">{clean}</div>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_user_badge(name, email):
+    """Circular initials avatar + name/email, replacing plain-text caption lines."""
+    label = (name or email or "?").strip()
+    initial = label[0].upper() if label else "?"
+    display_name = name.strip() if name and name.strip() else email
+    st.markdown(
+        f"""<div style="display:flex; align-items:center; gap:10px; margin:4px 0 2px;">
+<div style="
+    width:36px; height:36px; border-radius:50%;
+    background:linear-gradient(135deg, {BRAND_BLUE}, {BRAND_CYAN});
+    color:#FFFFFF; font-weight:800; font-size:15px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+">{initial}</div>
+<div style="min-width:0;">
+<div style="font-weight:700; font-size:0.92rem; color:{BRAND_NAVY}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{display_name}</div>
+<div style="font-size:0.78rem; color:#667085; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{email}</div>
+</div>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def secret(name, default=""):
+    try:
+        return st.secrets.get(name, default)
+    except Exception:
+        return default
+
+
+# Fail closed before any authentication or database request in dedicated apps.
+if PRODUCT:
+    try:
+        validate_deployment(PRODUCT_ID, {key: secret(key) for key in
+            ("PRODUCT_ID", "PRODUCT_PROJECTS", "NEON_AUTH_URL", "NEON_DATABASE_URL", "APP_PUBLIC_URL")})
+    except ValueError as error:
+        st.error(str(error))
+        st.stop()
+    st.session_state.industry = PRODUCT["industry"]
+    st.session_state.industry_selected_this_login = True
+
+
+def show_brand_header(compact=False):
+    """
+    Display the Generative Insight logo and website branding. Rendered as
+    one flex row (not st.columns) so the logo and the "AI Operations
+    Copilot" tag stay close together and vertically tight regardless of
+    viewport width — st.columns stretches to the full container width on
+    a wide monitor, which was pushing the tag far right and adding extra
+    vertical space above the title below it.
+    """
+
+    logo_width = 230 if compact else 420
+    logo_html = ""
+    uri = _header_logo_data_uri()
+    if uri:
+        logo_html = f'<img src="{uri}" alt="Generative Insight" style="width:{logo_width}px; max-width:60vw; height:auto; display:block;" />'
+    else:
+        logo_html = f"""<div class="gi-brand-row">
+{logo_mark_html(40, 11, 18)}
+<div>
+<div class="gi-brand">Generative <span>Insight</span></div>
+<div class="gi-tagline">Insights today. Intelligence tomorrow.</div>
+</div>
+</div>"""
+
+    st.markdown(
+        f"""<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:2px;">
+{logo_html}
+<div style="color:#737373; font-size:0.85rem;">{PRODUCT_NAME}</div>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f"""<div style="margin-top:2px; margin-bottom:18px; color:#667085; font-size:0.85rem;">
+AI / ML &nbsp; | &nbsp; Annotation &nbsp; | &nbsp; Web & App Development
+&nbsp;&nbsp;·&nbsp;&nbsp;
+<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">Visit Website</a>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def get_neon_client():
+    from neon_backend import NeonClient
+    if "neon_client" not in st.session_state or st.session_state.neon_client.product != PRODUCT_ID:
+        st.session_state.neon_client = NeonClient(secret("NEON_AUTH_URL"),
+            secret("NEON_DATABASE_URL"), secret("APP_PUBLIC_URL"), PRODUCT_ID)
+    return st.session_state.neon_client
+
+
+def get_supabase_client() -> Client:
+    if USE_NEON:
+        return get_neon_client()
+    """Create the Supabase client from Streamlit Secrets."""
+    url = secret("SUPABASE_URL")
+    anon_key = secret("SUPABASE_ANON_KEY")
+
+    if not url or not anon_key:
+        raise RuntimeError(
+            "Supabase authentication is not configured. "
+            "Add SUPABASE_URL and SUPABASE_ANON_KEY to Streamlit Secrets."
+        )
+
+    return create_client(url, anon_key)
+
+
+def get_authenticated_supabase_client() -> Client:
+    """Create a Supabase client carrying the logged-in user's RLS identity."""
+    access_token = st.session_state.get("supabase_access_token", "")
+    refresh_token = st.session_state.get("supabase_refresh_token", "")
+    if not access_token or not refresh_token:
+        raise RuntimeError("Your login session is missing. Sign out and sign in again.")
+    client = get_supabase_client()
+    auth_response = client.auth.set_session(access_token, refresh_token)
+    refreshed = getattr(auth_response, "session", None)
+    if refreshed:
+        st.session_state.supabase_access_token = refreshed.access_token
+        st.session_state.supabase_refresh_token = refreshed.refresh_token
+    return client
+
+
+def get_supabase_admin_client() -> Client:
+    if USE_NEON:
+        return get_neon_client()
+    url = secret("SUPABASE_URL")
+    service_role_key = secret("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not service_role_key:
+        raise RuntimeError("Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets for secure plan activation.")
+    return create_client(url, service_role_key)
+
+
+def update_user_plan(plan, subscription_id="", razorpay_status=""):
+    if not st.session_state.get("user_id"):
+        raise RuntimeError("No authenticated user is available.")
+    admin = get_supabase_admin_client()
+    current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
+    user = getattr(current, "user", None)
+    metadata = dict(getattr(user, "user_metadata", {}) or {}) if user else {}
+    metadata.update({
+        "plan": plan,
+        "razorpay_subscription_id": subscription_id or metadata.get("razorpay_subscription_id", ""),
+        "razorpay_subscription_status": razorpay_status or metadata.get("razorpay_subscription_status", ""),
+        "plan_updated_at": datetime.utcnow().isoformat() + "Z",
+    })
+    admin.auth.admin.update_user_by_id(st.session_state.user_id, {"user_metadata": metadata})
+    st.session_state.user_plan = plan
+    st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
+
+
+def update_free_billing_status(status, subscription_id=""):
+    """
+    Tracks the ₹299/mo Free-tier subscription (post 3-day trial) WITHOUT
+    changing the user's 'plan' field — someone on this billing plan is
+    still logically on 'Free' feature limits, just paying to keep access
+    past the trial window.
+    """
+    if not st.session_state.get("user_id"):
+        raise RuntimeError("No authenticated user is available.")
+    admin = get_supabase_admin_client()
+    current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
+    user = getattr(current, "user", None)
+    metadata = dict(getattr(user, "user_metadata", {}) or {}) if user else {}
+    metadata.update({
+        "free_billing_status": status,
+        "free_subscription_id": subscription_id or metadata.get("free_subscription_id", ""),
+        "free_billing_updated_at": datetime.utcnow().isoformat() + "Z",
+    })
+    admin.auth.admin.update_user_by_id(st.session_state.user_id, {"user_metadata": metadata})
+    st.session_state.free_billing_status = status
+    st.session_state.free_subscription_id = metadata.get("free_subscription_id", "")
+
+
+def free_billing_is_active():
+    """True once the ₹299/mo Free-tier subscription is confirmed active."""
+    return st.session_state.get("free_billing_status", "") == "active"
+
+
+def update_user_industry(industry):
+    """Persist the selected industry (BPO / Manufacturing) to Supabase."""
+    if not st.session_state.get("user_id"):
+        st.session_state.industry = industry
+        return
+    try:
+        admin = get_supabase_admin_client()
+        current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
+        user = getattr(current, "user", None)
+        metadata = dict(getattr(user, "user_metadata", {}) or {}) if user else {}
+        metadata["industry"] = industry
+        admin.auth.admin.update_user_by_id(st.session_state.user_id, {"user_metadata": metadata})
+    except Exception:
+        pass  # Non-critical — session state still reflects the choice this session.
+    st.session_state.industry = industry
+
+
+def get_razorpay_subscription(subscription_id):
+    key_id, key_secret = secret("RAZORPAY_KEY_ID"), secret("RAZORPAY_KEY_SECRET")
+    if not key_id or not key_secret:
+        raise RuntimeError("Razorpay credentials are not configured.")
+    if not subscription_id:
+        raise RuntimeError("No Razorpay subscription ID is available.")
+    try:
+        response = requests.get(f"{RAZORPAY_API_BASE}/subscriptions/{subscription_id}", auth=(key_id, key_secret), timeout=30)
+    except requests.exceptions.Timeout as exc:
+        raise RuntimeError("Razorpay verification timed out. Please try again.") from exc
+    except requests.exceptions.RequestException as exc:
+        raise RuntimeError(f"Could not connect to Razorpay: {exc}") from exc
+    try:
+        data = response.json()
+    except ValueError:
+        data = {"error": response.text}
+    if response.status_code >= 300:
+        error = data.get("error", data) if isinstance(data, dict) else data
+        if isinstance(error, dict):
+            error = error.get("description") or error.get("reason") or str(error)
+        raise RuntimeError(f"Razorpay verification failed (HTTP {response.status_code}): {error}")
+    return data
+
+
+def razorpay_activation_ready(plan_id_secret="RAZORPAY_PROFESSIONAL_PLAN_ID", plan_label="Professional"):
+    if not st.session_state.get("authenticated") or not st.session_state.get("user_id"):
+        return False, f"Please create an account or sign in before starting a {plan_label} subscription."
+    if not (secret("NEON_DATABASE_URL") if USE_NEON else secret("SUPABASE_SERVICE_ROLE_KEY")):
+        return False, "Secure plan activation is not configured. Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets."
+    if not razorpay_is_configured(plan_id_secret):
+        return False, f"Razorpay is not fully configured. Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and {plan_id_secret} to Streamlit Secrets."
+    return True, ""
+
+
+def verify_professional_subscription():
+    ready, message = razorpay_activation_ready("RAZORPAY_PROFESSIONAL_PLAN_ID", "Professional")
+    if not ready:
+        raise RuntimeError(message)
+    subscription_id = st.session_state.get("razorpay_subscription_id", "")
+    if not subscription_id:
+        admin = get_supabase_admin_client()
+        current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
+        user = getattr(current, "user", None)
+        metadata = getattr(user, "user_metadata", {}) or {} if user else {}
+        subscription_id = metadata.get("razorpay_subscription_id", "")
+    if not subscription_id:
+        raise RuntimeError("No Razorpay subscription ID is available. Create the Professional checkout first.")
+    data = get_razorpay_subscription(subscription_id)
+    status = str(data.get("status", "")).lower()
+    if status == "active":
+        update_user_plan("Professional", subscription_id, status)
+        return True, status
+    update_user_plan("Free", subscription_id, status)
+    return False, status
+
+
+def verify_free_billing_subscription():
+    """Verify the ₹299/mo Free-tier subscription. Does NOT change 'plan'."""
+    ready, message = razorpay_activation_ready("RAZORPAY_FREE_PLAN_ID", "Free")
+    if not ready:
+        raise RuntimeError(message)
+    subscription_id = st.session_state.get("free_subscription_id", "")
+    if not subscription_id:
+        admin = get_supabase_admin_client()
+        current = admin.auth.admin.get_user_by_id(st.session_state.user_id)
+        user = getattr(current, "user", None)
+        metadata = getattr(user, "user_metadata", {}) or {} if user else {}
+        subscription_id = metadata.get("free_subscription_id", "")
+    if not subscription_id:
+        raise RuntimeError("No Razorpay subscription ID is available. Start the ₹299/mo checkout first.")
+    data = get_razorpay_subscription(subscription_id)
+    status = str(data.get("status", "")).lower()
+    if status == "active":
+        update_free_billing_status("active", subscription_id)
+        return True, status
+    update_free_billing_status(status, subscription_id)
+    return False, status
+
+
+def friendly_auth_error(error) -> str:
+    """Convert Supabase auth errors into user-friendly messages."""
+    message = str(getattr(error, "message", error))
+    lowered = message.lower()
+
+    if "invalid login credentials" in lowered:
+        return "Invalid email or password."
+    if "email not confirmed" in lowered:
+        return "Please verify your email address before signing in."
+    if "user already registered" in lowered:
+        return "An account with this email already exists. Please sign in."
+    if "password should be at least" in lowered:
+        return "Password must meet Supabase's minimum password requirements."
+    if "rate limit" in lowered:
+        return "Too many attempts. Please wait a moment and try again."
+    if "name or service not known" in lowered:
+        return (
+            "Could not connect to Supabase. Check SUPABASE_URL and "
+            "SUPABASE_ANON_KEY in Streamlit Secrets."
+        )
+
+    return message
+
+
+def sign_up_user(full_name, company_name, email, password):
+    """Create a persistent customer account in Supabase Auth."""
+    supabase = get_supabase_client()
+
+    return supabase.auth.sign_up(
+        {
+            "email": email.strip().lower(),
+            "password": password,
+            "options": {
+                "email_redirect_to": secret("APP_PUBLIC_URL", "https://generative-insight-ops.streamlit.app/"),
+                "data": {
+                    "full_name": full_name.strip(),
+                    "company_name": company_name.strip(),
+                    "plan": "Free",
+                }
+            },
+        }
+    )
+
+
+def sign_in_user(email, password):
+    """Authenticate a customer using Supabase Auth."""
+    supabase = get_supabase_client()
+
+    return supabase.auth.sign_in_with_password(
+        {
+            "email": email.strip().lower(),
+            "password": password,
+        }
+    )
+
+
+def sign_out_user():
+    """Sign the current user out of Supabase."""
+    try:
+        supabase = get_supabase_client()
+        supabase.auth.sign_out()
+    except Exception:
+        pass
+
+
+def set_authenticated_user(response):
+    """Copy authenticated Supabase user information into session state."""
+    user = getattr(response, "user", None)
+
+    if user is None:
+        raise RuntimeError(
+            "Authentication succeeded but no user was returned."
+        )
+
+    metadata = getattr(user, "user_metadata", {}) or {}
+
+    st.session_state.industry_selected_this_login = bool(PRODUCT)
+    st.session_state.pop("owner_area", None)
+    st.session_state.authenticated = True
+    st.session_state.user_email = (user.email or "").lower()
+    st.session_state.user_id = user.id
+    session = getattr(response, "session", None)
+    st.session_state.supabase_access_token = getattr(session, "access_token", "") or ""
+    st.session_state.supabase_refresh_token = getattr(session, "refresh_token", "") or ""
+    st.session_state.user_name = metadata.get("full_name", "")
+    st.session_state.company_name = metadata.get("company_name", "")
+    st.session_state.user_plan = metadata.get("plan", "Free") or "Free"
+    st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
+    st.session_state.free_billing_status = metadata.get("free_billing_status", "")
+    st.session_state.free_subscription_id = metadata.get("free_subscription_id", "")
+    st.session_state.industry = PRODUCT["industry"] if PRODUCT else (metadata.get("industry", "BPO") or "BPO")
+
+    # Supabase sets this automatically when the account is created — used
+    # to work out how many days are left in the Free trial.
+    created_at = getattr(user, "created_at", None)
+    st.session_state.account_created_at = str(created_at) if created_at else ""
+
+
+def clear_authentication():
+    sign_out_user()
+
+    st.session_state.pop("account_access", None)
+    st.session_state.pop("owner_area", None)
+    st.session_state.pop("industry_selected_this_login", None)
+    st.session_state.pop("neon_client", None)
+    st.session_state.authenticated = False
+    st.session_state.user_email = ""
+    st.session_state.user_id = ""
+    st.session_state.supabase_access_token = ""
+    st.session_state.supabase_refresh_token = ""
+    st.session_state.user_name = ""
+    st.session_state.company_name = ""
+    st.session_state.user_plan = "Free"
+    st.session_state.show_plans = False
+    st.session_state.razorpay_checkout_url = ""
+    st.session_state.razorpay_subscription_id = ""
+    st.session_state.account_created_at = ""
+    st.session_state.free_billing_status = ""
+    st.session_state.free_subscription_id = ""
+    st.session_state.razorpay_checkout_url_free = ""
+    st.session_state.industry = "BPO"
+    st.session_state.manufacturing_file_name = ""
+    st.session_state.manufacturing_result = None
+    st.session_state.manufacturing_report_bytes = None
+    st.session_state.manufacturing_report_generated_at = None
+
+    for key in list(st.session_state):
+        if key.startswith(("ox_", "hub_")):
+            del st.session_state[key]
+    clear_analysis()
+
+
+def trial_days_remaining():
+    """Days left in the Free trial, or None if unknown (e.g. not signed in)."""
+    access = st.session_state.get("account_access")
+    if access:
+        import math
+        expires = datetime.fromisoformat(access["trial_expires_at"].replace("Z", "+00:00"))
+        return math.ceil((expires - datetime.now(expires.tzinfo)).total_seconds() / 86400)
+    raw = st.session_state.get("account_created_at", "")
+    if not raw:
+        return None
+    try:
+        created = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    now = datetime.now(created.tzinfo) if created.tzinfo else datetime.now()
+    elapsed_days = (now - created).days
+    return FREE_TRIAL_DAYS - elapsed_days
+
+
+def require_trial_analysis(uploaded, industry, settings=None):
+    if st.session_state.user_plan != "Free" or free_billing_is_active():
+        return
+    from trial_access import admit_analysis
+    try:
+        admission = admit_analysis(get_supabase_admin_client(), st.session_state.user_id,
+                                   uploaded.getvalue(), industry, settings)
+    except Exception:
+        st.error("We couldn't verify your trial allowance. Please try again shortly.")
+        st.stop()
+    if not admission["allowed"]:
+        st.warning("Your trial has ended." if admission.get("reason") == "expired"
+                   else "You've used your trial analysis allowance. Subscribe to analyse more data.")
+        show_pricing("analysis_limit")
+        st.stop()
+    st.caption(f"Trial: {admission['remaining']} new analyses remaining. PDF reports included.")
+
+
+def get_plan_config(plan):
+    configs = {
+        "Free": {
+            "max_mb": 5,
+            "copilot": True,
+            "pdf": True,
+            "email": False,
+            "automation": False,
+            "price": f"₹299/mo ({FREE_TRIAL_DAYS} days free)",
+        },
+        "Professional": {
+            "max_mb": 25,
+            "copilot": True,
+            "pdf": True,
+            "email": True,
+            "automation": True,
+            "price": "₹1,999/mo",
+        },
+        "Business": {
+            "max_mb": 100,
+            "copilot": True,
+            "pdf": True,
+            "email": True,
+            "automation": True,
+            "price": "Custom",
+        },
+    }
+
+    return configs.get(plan, configs["Free"])
+
+
+def clear_analysis():
+    st.session_state.n8n_sent = False
+    st.session_state.n8n_result = None
+    st.session_state.copilot_answer = None
+    st.session_state.last_question = ""
+    st.session_state.file_name = ""
+    st.session_state.analysis_result = None
+    st.session_state.analysis_df = None
+    st.session_state.report_pdf = None
+    st.session_state.report_generated_at = None
+
+
+def normalize_n8n_response(response):
+    try:
+        data = response.json()
+    except ValueError:
+        return {"answer": response.text}
+
+    if isinstance(data, list) and data:
+        data = data[0]
+
+    return data if isinstance(data, dict) else {"answer": data}
+
+
+def normalize_webhook_url(value):
+    """Return a clean HTTP(S) webhook URL, or an empty string if invalid."""
+    url = str(value or "").strip().strip('"\'')
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return url
+
+
+def n8n_failure_message(response, workflow_name="n8n workflow"):
+    """Turn n8n/hosting failures into safe, actionable UI messages."""
+    body = (response.text or "").lower()
+
+    if response.status_code == 404:
+        if "no workspace here" in body:
+            return (
+                f"{workflow_name} endpoint was not found (HTTP 404). The configured "
+                "URL points to an unavailable workspace or the wrong hosting domain. "
+                "Update the webhook URL in Streamlit Secrets."
+            )
+        return (
+            f"{workflow_name} endpoint was not found (HTTP 404). Confirm that the n8n "
+            "workflow is active and copy its production URL (/webhook/..., not "
+            "/webhook-test/...) into Streamlit Secrets."
+        )
+
+    if response.status_code in {401, 403}:
+        return f"{workflow_name} rejected the request. Check its authentication settings."
+
+    return f"{workflow_name} failed (HTTP {response.status_code})."
+
+
+def safe_n8n_error_detail(response):
+    """Avoid rendering an entire hosting-provider HTML error page in the app."""
+    content_type = response.headers.get("Content-Type", "").lower()
+    body = (response.text or "").strip()
+    if not body or "text/html" in content_type or body.lower().startswith("<!doctype html"):
+        return ""
+    return body[:1000]
+
+
+def parse_ai_answer(data):
+    answer = data
+
+    if isinstance(data, dict):
+        answer = (
+            data.get("answer")
+            or data.get("response")
+            or data.get("output")
+            or data.get("text")
+            or data.get("message")
+        )
+
+    if isinstance(answer, str):
+        text = answer.strip()
+
+        if text.startswith("```"):
+            text = text[3:].strip()
+            if text.lower().startswith("json"):
+                text = text[4:].strip()
+            if text.endswith("```"):
+                text = text[:-3].strip()
+
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            return text
+
+    return answer
+
+
+def build_data_template_bytes():
+    """Build the operational-data upload template as an in-memory .xlsx file."""
+
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+
+    NAVY = "071A3D"
+    BLUE = "0757B8"
+    LIGHT_BLUE = "EAF2FD"
+    SAMPLE_FILL = "FFF6E5"
+    GREY = "667085"
+
+    ws = wb.active
+    ws.title = "Operational_Data"
+
+    headers = [
+        ("Date", "Date", 14),
+        ("Employee_ID", "Text", 14),
+        ("Employee_Name", "Text", 18),
+        ("Team", "Text", 14),
+        ("Target", "Number", 10),
+        ("Production", "Number", 12),
+        ("AHT_Actual", "Number", 12),
+        ("AHT_Target", "Number", 12),
+        ("Quality_%", "Number (0-100)", 12),
+        ("SLA_%", "Number (0-100)", 10),
+        ("Attendance", "Text (Present/Absent)", 16),
+        ("Error_Count", "Number", 12),
+        ("Error_Category", "Text", 18),
+    ]
+
+    header_font = Font(name="Arial", bold=True, color="FFFFFF", size=10)
+    header_fill = PatternFill("solid", fgColor=NAVY)
+    thin = Side(style="thin", color="D9DEE7")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    for col_idx, (name, _, width) in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col_idx, value=name)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = border
+        ws.column_dimensions[get_column_letter(col_idx)].width = width
+
+    hint_font = Font(name="Arial", italic=True, color=GREY, size=9)
+    hint_fill = PatternFill("solid", fgColor=LIGHT_BLUE)
+    for col_idx, (name, hint, _) in enumerate(headers, start=1):
+        cell = ws.cell(row=2, column=col_idx, value=hint)
+        cell.font = hint_font
+        cell.fill = hint_fill
+        cell.alignment = Alignment(horizontal="center")
+        cell.border = border
+
+    base_date = datetime(2026, 8, 3).date()
+    sample_rows = [
+        [base_date, "EMP-1001", "Aditi Sharma", "Collections", 50, 47, 6.4, 6.0, 96.5, 98.1, "Present", 1, "Documentation"],
+        [base_date, "EMP-1002", "Rahul Verma", "Collections", 50, 41, 7.8, 6.0, 91.2, 93.4, "Present", 4, "Process error"],
+        [base_date, "EMP-1003", "Meera Iyer", "Customer Care", 45, 46, 5.9, 6.0, 98.0, 99.0, "Absent", 0, ""],
+        [base_date + timedelta(days=1), "EMP-1001", "Aditi Sharma", "Collections", 50, 44, 6.7, 6.0, 95.0, 97.2, "Present", 2, "Documentation"],
+        [base_date + timedelta(days=1), "EMP-1004", "Karan Malhotra", "Customer Care", 45, 38, 8.2, 6.0, 88.5, 90.0, "Present", 6, "Escalation delay"],
+    ]
+
+    sample_font = Font(name="Arial", size=10)
+    for r_offset, row_data in enumerate(sample_rows, start=3):
+        for col_idx, value in enumerate(row_data, start=1):
+            cell = ws.cell(row=r_offset, column=col_idx, value=value)
+            cell.font = sample_font
+            cell.fill = PatternFill("solid", fgColor=SAMPLE_FILL)
+            cell.border = border
+            if headers[col_idx - 1][0] == "Date":
+                cell.number_format = "DD-MMM-YYYY"
+
+    ws.freeze_panes = "A3"
+
+    note_row = len(sample_rows) + 4
+    note = ws.cell(
+        row=note_row,
+        column=1,
+        value=(
+            "↑ Rows 3–7 are SAMPLE data showing the expected format. "
+            "Delete them and paste your own operational data starting at row 3."
+        ),
+    )
+    note.font = Font(name="Arial", italic=True, size=9, color=GREY)
+    ws.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=len(headers))
+
+    ins = wb.create_sheet("Instructions")
+    ins.column_dimensions["A"].width = 20
+    ins.column_dimensions["B"].width = 70
+    ins.column_dimensions["C"].width = 14
+
+    title = ins.cell(row=1, column=1, value="AI Operations Manager — Data Upload Template")
+    title.font = Font(name="Arial", bold=True, size=14, color=NAVY)
+    ins.merge_cells("A1:C1")
+
+    sub = ins.cell(
+        row=2,
+        column=1,
+        value="Fill in the 'Operational_Data' sheet with your own rows, then upload the file (.xlsx or .csv).",
+    )
+    sub.font = Font(name="Arial", italic=True, size=10, color=GREY)
+    ins.merge_cells("A2:C2")
+
+    col_head_font = Font(name="Arial", bold=True, color="FFFFFF", size=10)
+    col_head_fill = PatternFill("solid", fgColor=BLUE)
+    for i, h in enumerate(["Column", "What to enter", "Required?"], start=1):
+        c = ins.cell(row=4, column=i, value=h)
+        c.font = col_head_font
+        c.fill = col_head_fill
+        c.alignment = Alignment(horizontal="left", vertical="center")
+
+    field_docs = [
+        ("Date", "The date the record applies to (one row per employee per day).", "Optional"),
+        ("Employee_ID", "A unique ID for the employee (e.g. EMP-1001). Used to track the same person across days.", "Required"),
+        ("Employee_Name", "The employee's full name, as it should appear in reports.", "Required"),
+        ("Team", "The team or department the employee belongs to (e.g. Collections, Customer Care).", "Required"),
+        ("Target", "The expected production/output target for that day (a number).", "Required"),
+        ("Production", "The actual production/output achieved that day (a number).", "Required"),
+        ("AHT_Actual", "Actual Average Handling Time for that day (in minutes, or your standard unit).", "Required"),
+        ("AHT_Target", "The target Average Handling Time to compare against.", "Optional"),
+        ("Quality_%", "Quality score for the day, as a percentage (0–100, not a decimal fraction).", "Required"),
+        ("SLA_%", "SLA adherence for the day, as a percentage (0–100).", "Required"),
+        ("Attendance", "The day's attendance status as text, e.g. 'Present' or 'Absent' (the app calculates absence % from this — don't enter a percentage here).", "Required"),
+        ("Error_Count", "Number of errors recorded that day.", "Required"),
+        ("Error_Category", "A short label for the main error type, if any (e.g. Documentation, Process error).", "Optional"),
+    ]
+
+    row_font = Font(name="Arial", size=10)
+    req_font = Font(name="Arial", size=10, bold=True, color="B42318")
+    opt_font = Font(name="Arial", size=10, color=GREY)
+
+    r = 5
+    for name, desc, required in field_docs:
+        ins.cell(row=r, column=1, value=name).font = Font(name="Arial", bold=True, size=10, color=NAVY)
+        ins.cell(row=r, column=2, value=desc).font = row_font
+        ins.cell(row=r, column=2).alignment = Alignment(wrap_text=True, vertical="top")
+        req_cell = ins.cell(row=r, column=3, value=required)
+        req_cell.font = req_font if required == "Required" else opt_font
+        ins.row_dimensions[r].height = 30
+        r += 1
+
+    r += 1
+    notes_title = ins.cell(row=r, column=1, value="Notes")
+    notes_title.font = Font(name="Arial", bold=True, size=12, color=NAVY)
+    r += 1
+    notes = [
+        "• Keep the header row (row 1) exactly as provided — column names must match for the upload to work.",
+        "• One row = one employee's record for one day. Add as many rows as you need.",
+        "• Quality_% and SLA_% should be plain numbers like 96.5, not '96.5%' as text.",
+        "• Attendance is a text status per row (e.g. 'Present' or 'Absent') — the app calculates absence % from this automatically.",
+        "• Keep the sheet named 'Operational_Data' if using an Excel file with multiple sheets.",
+        "• Free plan supports files up to 5 MB; Professional up to 25 MB; Business up to 100 MB.",
+    ]
+    for note_line in notes:
+        ins.cell(row=r, column=1, value=note_line).font = Font(name="Arial", size=10)
+        ins.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
+        r += 1
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def build_procurement_report_bytes(prs, result):
+    """
+    Build the Manufacturing procurement comparison report (Overview, PR
+    Summary, Item Detail sheets) as in-memory .xlsx bytes for download.
+    Mirrors the standalone report generator used to validate this engine.
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    overall = result["overall"]
+    pr_rows = result["pr_rows"]
+    item_rows = result["item_rows"]
+
+    NAVY = "071A3D"
+    LIGHT_BLUE = "EAF2FD"
+    RISK_FILL = "FDEBEC"
+    RISK_FONT = "B42318"
+    GOOD_FILL = "EAF7EE"
+    GREY = "667085"
+
+    wb = openpyxl.Workbook()
+    thin = Side(style="thin", color="D9DEE7")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    header_font = Font(name="Arial", bold=True, color="FFFFFF", size=10)
+    header_fill = PatternFill("solid", fgColor=NAVY)
+    body_font = Font(name="Arial", size=10)
+
+    # --- Overview ---
+    ws = wb.active
+    ws.title = "Overview"
+    ws.column_dimensions["A"].width = 34
+    ws.column_dimensions["B"].width = 22
+
+    title = ws.cell(row=1, column=1, value="Procurement Price Comparison — Overview")
+    title.font = Font(name="Arial", bold=True, size=14, color=NAVY)
+    ws.merge_cells("A1:B1")
+
+    sub = ws.cell(row=2, column=1, value=f"Generated {datetime.now().strftime('%d %b %Y, %H:%M')} · {overall['total_prs']} Purchase Requisitions analyzed")
+    sub.font = Font(name="Arial", italic=True, size=9, color=GREY)
+    ws.merge_cells("A2:B2")
+
+    metrics = [
+        ("Purchase Requisitions", overall["total_prs"]),
+        ("Total Items", overall["total_items"]),
+        ("Recommended Spend (₹)", overall["total_recommended_spend"]),
+        ("Highest-Quote Spend (₹)", overall["total_highest_quote_spend"]),
+        ("Potential Savings (₹)", overall["total_potential_savings"]),
+        ("Overall Savings %", overall["overall_savings_pct"]),
+        ("Single-Vendor Items (Risk)", overall["total_single_vendor_items"]),
+        ("Price-Increase Items (Risk)", overall["total_price_increase_items"]),
+        ("No-Quote Items (Risk)", overall["total_no_quote_items"]),
+    ]
+    r = 4
+    for label, value in metrics:
+        lc = ws.cell(row=r, column=1, value=label)
+        lc.font = Font(name="Arial", bold=True, size=10, color=NAVY)
+        vc = ws.cell(row=r, column=2, value=value)
+        vc.font = body_font
+        if "Spend" in label or "Savings (" in label:
+            vc.number_format = "₹#,##0"
+        elif "%" in label:
+            vc.number_format = "0.0"
+        for cell in (lc, vc):
+            cell.border = border
+            cell.fill = PatternFill("solid", fgColor=LIGHT_BLUE) if r % 2 == 0 else PatternFill("solid", fgColor="FFFFFF")
+        r += 1
+
+    note = ws.cell(row=r + 1, column=1, value=(
+        "Recommended Vendor = lowest quoted total price per item. Savings = difference vs the "
+        "highest quote received for that item. Risk flags call out items with only one quote, "
+        "a >10% price increase vs the last recorded order, or no valid quote at all."
+    ))
+    note.font = Font(name="Arial", italic=True, size=9, color=GREY)
+    note.alignment = Alignment(wrap_text=True)
+    ws.merge_cells(start_row=r + 1, start_column=1, end_row=r + 1, end_column=2)
+    ws.row_dimensions[r + 1].height = 45
+
+    # Executive summary — pulled from procurement_engine.build_insights so
+    # the report always matches exactly what was shown in-app.
+    _insights = procurement_engine.build_insights(result)
+    _risk_level = _insights["risk_level"].split(" ", 1)[-1]  # drop the emoji for the plain-text report title
+
+    r_summary = r + 3
+    summary_title = ws.cell(row=r_summary, column=1, value=f"Executive Summary — {_risk_level}")
+    summary_title.font = Font(name="Arial", bold=True, size=12, color=NAVY)
+    ws.merge_cells(start_row=r_summary, start_column=1, end_row=r_summary, end_column=2)
+    r_summary += 1
+
+    for point in _insights["summary_points"]:
+        # Strip the leading emoji for a plain-text report line.
+        line = point.split(" ", 1)[-1] if point[:1] in "🟢🟡🟠🔴⚪" else point
+        cell = ws.cell(row=r_summary, column=1, value=f"• {line}")
+        cell.font = Font(name="Arial", size=10)
+        cell.alignment = Alignment(wrap_text=True)
+        ws.merge_cells(start_row=r_summary, start_column=1, end_row=r_summary, end_column=2)
+        ws.row_dimensions[r_summary].height = 28
+        r_summary += 1
+
+    r_summary += 1
+    rec_title = ws.cell(row=r_summary, column=1, value="Recommendation")
+    rec_title.font = Font(name="Arial", bold=True, size=11, color=NAVY)
+    ws.merge_cells(start_row=r_summary, start_column=1, end_row=r_summary, end_column=2)
+    r_summary += 1
+    rec_cell = ws.cell(row=r_summary, column=1, value=_insights["recommendation"])
+    rec_cell.font = Font(name="Arial", size=10)
+    rec_cell.alignment = Alignment(wrap_text=True)
+    ws.merge_cells(start_row=r_summary, start_column=1, end_row=r_summary, end_column=2)
+    ws.row_dimensions[r_summary].height = 45
+
+    # --- PR Summary ---
+    ws2 = wb.create_sheet("PR Summary")
+    pr_headers = ["PR Sheet", "Plant / Indenter", "Working Date", "Vendors Compared", "Items",
+                  "Recommended Spend", "Highest-Quote Spend", "Potential Savings", "Savings %",
+                  "Single-Vendor Items", "Price-Increase Items", "No-Quote Items"]
+    for c, h in enumerate(pr_headers, start=1):
+        cell = ws2.cell(row=1, column=c, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = border
+    ws2.row_dimensions[1].height = 30
+    for i, w in enumerate([12, 46, 14, 16, 8, 16, 18, 16, 10, 16, 16, 14], start=1):
+        ws2.column_dimensions[get_column_letter(i)].width = w
+
+    for ridx, row in enumerate(pr_rows, start=2):
+        values = [
+            row["PR Sheet"], row["Plant / Indenter"], row["Working Date"], row["Vendors Compared"],
+            row["Items"], row["Recommended Spend"], row["Highest-Quote Spend"], row["Potential Savings"],
+            row["Savings %"], row["Single-Vendor Items (Risk)"], row["Price-Increase Items (Risk)"],
+            row["No-Quote Items (Risk)"],
+        ]
+        for c, v in enumerate(values, start=1):
+            cell = ws2.cell(row=ridx, column=c, value=v)
+            cell.font = body_font
+            cell.border = border
+            if c in (6, 7, 8):
+                cell.number_format = "₹#,##0"
+            if c == 9 and v is not None:
+                cell.number_format = "0.0"
+            if c in (10, 11, 12) and v:
+                cell.fill = PatternFill("solid", fgColor=RISK_FILL)
+                cell.font = Font(name="Arial", size=10, color=RISK_FONT, bold=True)
+    ws2.freeze_panes = "A2"
+
+    # --- Item Detail ---
+    ws3 = wb.create_sheet("Item Detail")
+    item_headers = ["PR Sheet", "PR No", "Item Code", "Item Name", "Qty", "UM", "Vendors Quoted",
+                     "Recommended Vendor", "Recommended Total Price", "2nd Best Vendor", "2nd Best Total Price",
+                     "Highest Quoted Vendor", "Highest Total Price", "Savings vs Highest", "Savings vs Highest %",
+                     "Previous Unit Price", "Previous Vendor", "% Change vs Previous", "Risk Flags"]
+    for c, h in enumerate(item_headers, start=1):
+        cell = ws3.cell(row=1, column=c, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = border
+    ws3.row_dimensions[1].height = 32
+    for i, w in enumerate([10, 12, 12, 42, 9, 7, 10, 24, 16, 22, 15, 24, 15, 14, 12, 14, 20, 14, 32], start=1):
+        ws3.column_dimensions[get_column_letter(i)].width = w
+
+    money_cols = {9, 11, 13, 14, 16}
+    pct_cols = {15, 18}
+    for ridx, row in enumerate(item_rows, start=2):
+        values = [
+            row["PR Sheet"], row["PR No"], row["Item Code"], row["Item Name"], row["Qty"], row["UM"],
+            row["Vendors Quoted"], row["Recommended Vendor"], row["Recommended Total Price"],
+            row["2nd Best Vendor"], row["2nd Best Total Price"], row["Highest Quoted Vendor"],
+            row["Highest Total Price"], row["Savings vs Highest"], row["Savings vs Highest %"],
+            row["Previous Unit Price"], row["Previous Vendor"], row["% Change vs Previous"], row["Risk Flags"],
+        ]
+        has_risk = bool(row["Risk Flags"])
+        for c, v in enumerate(values, start=1):
+            cell = ws3.cell(row=ridx, column=c, value=v)
+            cell.font = body_font
+            cell.border = border
+            if c in money_cols and v is not None:
+                cell.number_format = "₹#,##0.00"
+            if c in pct_cols and v is not None:
+                cell.number_format = "0.0"
+            if c == 19 and has_risk:
+                cell.fill = PatternFill("solid", fgColor=RISK_FILL)
+                cell.font = Font(name="Arial", size=10, color=RISK_FONT, bold=True)
+            elif c == 8 and not has_risk and row["Vendors Quoted"] > 1:
+                cell.fill = PatternFill("solid", fgColor=GOOD_FILL)
+    ws3.freeze_panes = "B2"
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def render_footer():
+    st.divider()
+    st.markdown(
+        f"""<div class="gi-footer">
+<strong>Generative Insight</strong> · AI Operations Copilot v{APP_VERSION}
+<br>
+Insights today. Intelligence tomorrow.
+<br>
+<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">generativeinsight.in</a>
+&nbsp;·&nbsp;
+© {datetime.now().year}
+<br>
+🛡️ Enterprise-grade security for your operational data
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_case_management_flow(plan_config):
+    """Persistent, login-scoped Vakil client and legal case workflow."""
+    show_brand_header(compact=True)
+    try:
+        db = get_authenticated_supabase_client()
+        vakil_case_manager.render(
+            db,
+            st.session_state.user_id,
+            notification_webhook_url=normalize_webhook_url(
+                secret("N8N_VAKIL_NOTIFICATION_WEBHOOK_URL")
+            ),
+            sender_email=st.session_state.user_email,
+        )
+    except Exception as exc:
+        st.error(f"Could not open the Vakil workspace: {exc}")
+    render_footer()
+    return
+
+    # Legacy spreadsheet-based case flow retained below for migration
+    # reference. The persistent Vakil workflow above is now authoritative.
+    st.markdown('<div class="main-title">Case Management</div>', unsafe_allow_html=True)
+    st.caption("Configure, assign, track, update, and export operational cases from one workspace.")
+
+    with st.expander("⚙️ Case workflow configuration", expanded=False):
+        cfg1, cfg2 = st.columns(2)
+        due_soon_hours = cfg1.number_input("Due-soon warning window (hours)", 1, 168, 4)
+        stale_hours = cfg2.number_input("Stale-case threshold (hours)", 1, 720, 24)
+        st.caption("Closed statuses: Resolved, Closed, Cancelled. Dates are interpreted as UTC.")
+
+    template = case_management_engine.sample_cases()
+    template_buffer = io.BytesIO()
+    with pd.ExcelWriter(template_buffer, engine="openpyxl") as writer:
+        template.to_excel(writer, sheet_name="Cases", index=False)
+    st.download_button(
+        "⬇️ Download case template",
+        template_buffer.getvalue(),
+        "case_management_template.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+    uploaded = st.file_uploader(
+        f"📁 Upload case register (.xlsx or .csv) — max {plan_config['max_mb']} MB",
+        type=["xlsx", "csv"], key="case_management_uploader",
+    )
+
+    if uploaded and uploaded.name != st.session_state.case_file_name:
+        try:
+            source = pd.read_csv(uploaded) if uploaded.name.lower().endswith(".csv") else pd.read_excel(uploaded)
+            normalized = case_management_engine.normalize_cases(source)
+            source_columns = case_management_engine.REQUIRED_COLUMNS + case_management_engine.OPTIONAL_COLUMNS
+            st.session_state.case_working_df = normalized[source_columns].copy()
+            st.session_state.case_file_name = uploaded.name
+            st.session_state.case_audit_log = []
+        except Exception as exc:
+            st.error(f"❌ Could not load the case register: {exc}")
+            render_footer()
+            return
+
+    if st.session_state.case_working_df is None:
+        st.info("Upload your case register or download the template to start the workflow.")
+        render_footer()
+        return
+
+    with st.expander("➕ Create a new case", expanded=False):
+        with st.form("create_case_form", clear_on_submit=True):
+            c1, c2, c3 = st.columns(3)
+            new_id = c1.text_input("Case ID")
+            new_priority = c2.selectbox("Priority", case_management_engine.PRIORITY_OPTIONS, index=2)
+            new_status = c3.selectbox("Status", case_management_engine.STATUS_OPTIONS)
+            c4, c5, c6 = st.columns(3)
+            new_owner = c4.text_input("Owner", value="Unassigned")
+            new_category = c5.text_input("Category")
+            new_customer = c6.text_input("Customer")
+            c7, c8 = st.columns(2)
+            new_sla_date = c7.date_input("SLA due date")
+            new_sla_time = c8.time_input("SLA due time")
+            new_description = st.text_area("Description", height=70)
+            create_case = st.form_submit_button("Create case", type="primary")
+
+        if create_case:
+            existing_ids = set(st.session_state.case_working_df["Case_ID"].astype(str))
+            if not new_id.strip():
+                st.error("Case ID is required.")
+            elif new_id.strip() in existing_ids:
+                st.error("Case ID already exists.")
+            else:
+                now = pd.Timestamp.now(tz="UTC").tz_localize(None)
+                row = {column: "" for column in case_management_engine.REQUIRED_COLUMNS + case_management_engine.OPTIONAL_COLUMNS}
+                row.update({
+                    "Case_ID": new_id.strip(), "Created_At": now, "Status": new_status,
+                    "Priority": new_priority, "Owner": new_owner.strip() or "Unassigned",
+                    "Category": new_category.strip(),
+                    "SLA_Due_At": pd.Timestamp(datetime.combine(new_sla_date, new_sla_time)),
+                    "Customer": new_customer.strip(), "Description": new_description.strip(),
+                    "Last_Updated_At": now, "Resolution_At": pd.NaT,
+                })
+                st.session_state.case_working_df = pd.concat(
+                    [st.session_state.case_working_df, pd.DataFrame([row])], ignore_index=True
+                )
+                st.session_state.case_audit_log.append({
+                    "Updated_At": now, "Case_ID": new_id.strip(), "Field": "Case",
+                    "Old_Value": "", "New_Value": "Created",
+                })
+                st.success(f"Created {new_id.strip()}.")
+
+    st.subheader("📝 Case register")
+    editable_columns = case_management_engine.REQUIRED_COLUMNS + case_management_engine.OPTIONAL_COLUMNS
+    previous = st.session_state.case_working_df[editable_columns].copy()
+    edited = st.data_editor(
+        previous,
+        use_container_width=True,
+        hide_index=True,
+        num_rows="fixed",
+        disabled=["Case_ID", "Created_At", "Last_Updated_At"],
+        column_config={
+            "Status": st.column_config.SelectboxColumn("Status", options=case_management_engine.STATUS_OPTIONS, required=True),
+            "Priority": st.column_config.SelectboxColumn("Priority", options=case_management_engine.PRIORITY_OPTIONS, required=True),
+            "Description": st.column_config.TextColumn("Description", width="large"),
+            "Resolution_Notes": st.column_config.TextColumn("Resolution notes", width="large"),
+        },
+        key="case_register_editor",
+    )
+
+    if len(edited) == len(previous):
+        now = pd.Timestamp.now(tz="UTC").tz_localize(None)
+        tracked = ["Status", "Priority", "Owner", "Category", "SLA_Due_At", "Customer", "Description", "Resolution_At", "Resolution_Notes"]
+        changed_rows = set()
+        for row_index in edited.index:
+            for field in tracked:
+                old_value, new_value = previous.at[row_index, field], edited.at[row_index, field]
+                old_text = "" if pd.isna(old_value) else str(old_value)
+                new_text = "" if pd.isna(new_value) else str(new_value)
+                if old_text != new_text:
+                    changed_rows.add(row_index)
+                    st.session_state.case_audit_log.append({
+                        "Updated_At": now, "Case_ID": edited.at[row_index, "Case_ID"],
+                        "Field": field, "Old_Value": old_text, "New_Value": new_text,
+                    })
+        if changed_rows:
+            edited.loc[list(changed_rows), "Last_Updated_At"] = now
+        st.session_state.case_working_df = edited.copy()
+
+    try:
+        result = case_management_engine.analyze_cases(
+            st.session_state.case_working_df,
+            due_soon_hours=due_soon_hours,
+            stale_hours=stale_hours,
+        )
+    except Exception as exc:
+        st.error(f"❌ Case validation failed: {exc}")
+        render_footer()
+        return
+
+    overall = result["overall"]
+    metric_columns = st.columns(6)
+    metric_columns[0].metric("Total", overall["total"])
+    metric_columns[1].metric("Open", overall["open"])
+    metric_columns[2].metric("SLA breached", overall["breached"])
+    metric_columns[3].metric("Due soon", overall["due_soon"])
+    metric_columns[4].metric("Unassigned", overall["unassigned"])
+    metric_columns[5].metric("SLA compliance", f"{overall['sla_compliance_pct']}%")
+
+    st.subheader("🔎 Work queue")
+    f1, f2, f3 = st.columns(3)
+    status_filter = f1.multiselect("Status", sorted(result["cases"]["Status"].unique()))
+    owner_filter = f2.multiselect("Owner", sorted(result["cases"]["Owner"].unique()))
+    risk_filter = f3.multiselect("Risk", ["Critical", "High", "Watch", "Normal"])
+    queue = result["cases"]
+    if status_filter:
+        queue = queue[queue["Status"].isin(status_filter)]
+    if owner_filter:
+        queue = queue[queue["Owner"].isin(owner_filter)]
+    if risk_filter:
+        queue = queue[queue["Risk_Level"].isin(risk_filter)]
+    queue = queue.sort_values(["Risk_Score", "SLA_Hours_Remaining"], ascending=[False, True])
+    st.dataframe(queue, use_container_width=True, hide_index=True)
+
+    chart1, chart2 = st.columns(2)
+    with chart1:
+        st.markdown("#### Cases by status")
+        st.bar_chart(result["cases"].groupby("Status").size())
+    with chart2:
+        st.markdown("#### Open workload by owner")
+        st.bar_chart(result["cases"][result["cases"]["Is_Open"]].groupby("Owner").size())
+
+    export_buffer = io.BytesIO()
+    with pd.ExcelWriter(export_buffer, engine="openpyxl") as writer:
+        result["cases"].to_excel(writer, sheet_name="Cases", index=False)
+        pd.DataFrame(st.session_state.case_audit_log).to_excel(writer, sheet_name="Audit_Log", index=False)
+    d1, d2 = st.columns(2)
+    d1.download_button("⬇️ Download updated case register", export_buffer.getvalue(), "case_register_updated.xlsx")
+    d2.download_button(
+        "⬇️ Download audit log",
+        pd.DataFrame(st.session_state.case_audit_log).to_csv(index=False).encode("utf-8"),
+        "case_audit_log.csv", "text/csv",
+    )
+
+    with st.expander("🤖 AI-ready case context"):
+        st.code(case_management_engine.make_ai_prompt(result), language="text")
+    render_footer()
+
+
+def render_coming_soon_flow(industry_key):
+    """
+    Shown for any industry selected in the dropdown that doesn't have a
+    real engine module yet (Retail, Logistics, Healthcare, ...). Never
+    shows fake data or placeholder insights — just a clear message and
+    a way to request the module, same brand styling as the rest of the app.
+    """
+    show_brand_header(compact=True)
+
+    label = INDUSTRY_LABELS.get(industry_key, industry_key)
+
+    st.markdown(
+        f'<div class="main-title">{label}</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f"""<div class="hero">
+<h3>This industry module is coming soon</h3>
+<p class="small-muted">{label} isn't built yet — Manufacturing (Procurement) and BPO / Call Center are live today. Switch back to one of those from the sidebar, or tell us what this module needs.</p>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### What we'd need to build this")
+    st.write(
+        "Every industry module follows the same pattern as the existing "
+        "ones: a sample template of your operational data, the KPIs that "
+        "matter for this industry, and how risk should be flagged. Share "
+        "that and we can turn it into a working module the same way "
+        "Manufacturing (Procurement) was built."
+    )
+
+    contact_email = secret("SUPPORT_EMAIL", "hello@generativeinsight.in")
+    st.link_button(
+        f"📧 Request the {label} module",
+        f"mailto:{contact_email}?subject=Requesting%20the%20{label.replace(' ', '%20')}%20module",
+        use_container_width=False,
+    )
+
+    render_footer()
+
+
+def render_searchable_procurement_table(df, table_key, download_name):
+    """Show a procurement table with column-aware search and CSV export."""
+
+    if not isinstance(df, pd.DataFrame) or df.empty:
+        st.info("No data available.")
+        return
+
+    search_col, search_text_col = st.columns([1, 2])
+    with search_col:
+        selected_column = st.selectbox(
+            "Search column",
+            ["All columns", *df.columns.tolist()],
+            key=f"{table_key}_search_column",
+        )
+    with search_text_col:
+        search_text = st.text_input(
+            "Search",
+            placeholder="Type a value to filter the table...",
+            key=f"{table_key}_search_text",
+        )
+
+    filtered_df = df
+    if search_text.strip():
+        query = search_text.strip()
+        if selected_column == "All columns":
+            mask = df.astype(str).apply(
+                lambda column: column.str.contains(
+                    query, case=False, na=False, regex=False
+                )
+            ).any(axis=1)
+        else:
+            mask = df[selected_column].astype(str).str.contains(
+                query, case=False, na=False, regex=False
+            )
+        filtered_df = df.loc[mask]
+
+    st.caption(f"Showing {len(filtered_df):,} of {len(df):,} rows")
+
+    # Keep procurement reports readable even when the Streamlit deployment
+    # or browser is using a dark theme.
+    light_table = filtered_df.style.set_properties(
+        **{
+            "background-color": "#FFFFFF",
+            "color": "#111111",
+            "border-color": "#E5E7EB",
+        }
+    ).set_table_styles(
+        [
+            {
+                "selector": "th",
+                "props": [
+                    ("background-color", "#F3F4F6"),
+                    ("color", "#111111"),
+                    ("border-color", "#D1D5DB"),
+                    ("font-weight", "600"),
+                ],
+            }
+        ]
+    )
+    st.dataframe(light_table, use_container_width=True, hide_index=True)
+    st.download_button(
+        "⬇️ Download displayed table (CSV)",
+        data=filtered_df.to_csv(index=False).encode("utf-8-sig"),
+        file_name=download_name,
+        mime="text/csv",
+        use_container_width=True,
+        key=f"{table_key}_download",
+    )
+
+
+def render_manufacturing_flow(plan_config):
+    """
+    Manufacturing industry flow: upload a Price Comparative Sheet workbook
     (one sheet per Purchase Requisition, multiple vendor quote blocks per
     sheet), get vendor-comparison analysis, recommended vendor per item,
     savings vs alternatives, and risk flags. Uses procurement_engine.py,
