@@ -1,6 +1,6 @@
 # Three dedicated products — free Neon setup
 
-Status: three empty Neon projects exist. Streamlit integration is prepared with local tests passing. Live migrations, authentication, billing, owner enrollment and deployment still require verification. No legacy customer data has been copied.
+Status: all three Neon databases have the application schema installed. Live rollback-only checks passed for trial quotas, duplicate admission, record isolation, owner authorization and suspension. Complete signup-screen startup passed against each live database. End-to-end email delivery/login, billing, owner enrollment and public deployments still require verification. No legacy customer data has been copied.
 
 | Product | Entry point | Neon project | Proposed address (not live) |
 | --- | --- | --- | --- |
@@ -14,7 +14,7 @@ All three projects were created in AWS Singapore on Free with Better Auth enable
 
 1. Run neon_app_schema.sql once in each NEW Neon database, replacing PRODUCT_NAME with bpo, procurement or vakil respectively. Never run it in Supabase. This atomic transaction deliberately refuses repeated installation. Existing constraints, owner checks, audit triggers and row-level policies are retained. Every connection checks the database's product marker.
 2. Deploy three Streamlit apps. Store each project's connection privately in Streamlit secrets, never GitHub. Set PRODUCT_ID, NEON_AUTH_URL, NEON_DATABASE_URL and APP_PUBLIC_URL. PRODUCT_PROJECTS must contain the three distinct IDs above under bpo, procurement and vakil. Auth and database URLs must use the same Neon endpoint. Connections require certificate-verified TLS.
-3. Add each actual HTTPS app URL to that project's Better Auth trusted origins and redirect settings. Enable email/password sign-in and email verification. Signup redirects to APP_PUBLIC_URL; app access requires a verified email and online session validation. Cookies remain within one Streamlit user session. Sign-out clears them even if the provider fails.
+3. Add each actual HTTPS app URL to that project's Better Auth trusted origins and redirect settings. Email/password sign-in and required email verification are enabled. Neon's free shared email provider only supports OTP codes, so the UI includes verification and resend forms. Automatic sign-in after verification is disabled. App access requires verified email and online session validation. Cookies remain within one Streamlit user session. Sign-out clears them even if the provider fails.
 4. Register and verify the owner separately in each app. After verifying the identity, enroll the matching gi_auth.users ID in app_owners through a reviewed database action. Never grant ownership based on submitted email or editable metadata.
 5. Configure billing independently. Payment in one app must never unlock another. Preserve 3 trial days, 5 analyses, 5 MB uploads and PDF reports. Trial profiles start from the authentication provider's creation timestamp, not first login.
 6. Verify live signup, confirmation, login, revocation, sign-out, owner/non-owner views, suspension, concurrent quota use, same-email registration across apps, records, reports and mobile navigation. Unit tests do not establish live deployment correctness.
@@ -26,4 +26,8 @@ NeonClient is scoped to st.session_state. It checks the verified Better Auth ses
 
 ## Validation
 
-Install requirements and run `python -m unittest test_neon_backend.py test_product_reporting.py`. Sixteen local tests passed: identity validation, unverified/revoked identities, isolated cookie jars, signup without automatic access, cross-account rejection, parameter binding, allowlists, error redaction, logout cleanup, product guards and reporting. Live SQL and end-to-end auth must pass before publication. Windows may report temporary-directory cleanup warnings after successful tests.
+Install requirements and run `python -m unittest test_neon_backend.py test_product_reporting.py`. Nineteen local tests passed, including email-code handling, identity validation, isolated cookie jars, cross-account rejection, parameter binding, date compatibility and reporting. Live database checks passed on all three projects; each complete signup page starts with four forms and no exceptions. Test fixtures were rolled back. End-to-end email verification, actual login, billing and owner enrollment remain mandatory before customer launch.
+
+## Private credential transfer
+
+The deployment form is prepared, but database credentials have not been transferred to Streamlit. Automatic approval review rejected the proposed temporary loopback-only masked transfer page because explicit permission to send those credentials to Streamlit was missing. Await the owner's specific approval or let the owner enter secrets directly. Do not bypass that rejection, include secrets in GitHub, or print them in chat/logs.
