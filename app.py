@@ -1168,6 +1168,8 @@ st.markdown(
         }}
     }}
 
+    body:has(.gi-auth-tabs-marker) [data-testid="stMain"],
+    body:has(.gi-auth-tabs-marker) [data-testid="stMainBlockContainer"] {{ background: transparent !important; }}
     /* Center the identity above the account card on every product. */
     body:has(.gi-auth-tabs-marker) [data-testid="stAppViewContainer"] {{
         background: radial-gradient(ellipse at 12% 12%, #dceeff 0, transparent 45%), radial-gradient(ellipse at 90% 85%, #e0f4f2 0, transparent 42%), #f3f6fb !important;
