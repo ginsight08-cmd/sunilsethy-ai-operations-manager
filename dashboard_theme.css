@@ -295,3 +295,19 @@ body:has(.gi-workspace-marker) [data-testid="stExpandSidebarButton"] button {
     -webkit-text-fill-color: #243b53 !important;
 }
 body:has(.gi-workspace-marker) [data-testid="stHeader"] { background: #f6f8fc !important; color: #243b53 !important; }
+/* Full-width workspace: all former sidebar controls live in the settings panel. */
+body:has(.gi-workspace-marker) [data-testid="stSidebar"],
+body:has(.gi-workspace-marker) [data-testid="stSidebarCollapsedControl"],
+body:has(.gi-workspace-marker) [data-testid="stExpandSidebarButton"] { display: none !important; }
+body:has(.gi-workspace-marker) [data-testid="stMain"] { margin-left: 0 !important; }
+body:has(.gi-workspace-marker) .st-key-primary_reporting_nav > [data-testid="stTabs"] > div > [role="tablist"] { position: sticky; top: 3rem; z-index: 50; }
+@media (max-width: 768px) {
+    body:has(.gi-workspace-marker) [data-testid="stMainBlockContainer"] { padding-bottom: 7rem !important; }
+    body:has(.gi-workspace-marker) .st-key-primary_reporting_nav > [data-testid="stTabs"] > div > [role="tablist"] {
+        position: fixed; top: auto; bottom: 0; left: 0; right: 0;
+        z-index: 100; justify-content: space-around; border-radius: 16px 16px 0 0;
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom)) !important;
+        background: #f5f8ff !important; box-shadow: 0 -4px 20px #18365b18;
+    }
+}
+body:has(.gi-workspace-marker) button[kind="primary"] p { color: #fff !important; -webkit-text-fill-color: #fff !important; }
