@@ -170,3 +170,146 @@ body:has(.gi-workspace-marker) [data-testid="stExpandSidebarButton"] {
 @media (prefers-reduced-motion: reduce) {
     body:has(.gi-workspace-marker) section[data-testid="stSidebar"] { transition: none !important; }
 }
+
+/* Product workspace refinement: shared across BPO, Procurement and Vakil. */
+body:has(.gi-workspace-marker) {
+    --workspace-border: #dce5ef;
+    --workspace-blue: #155eef;
+    --workspace-soft: #edf4ff;
+}
+body:has(.gi-workspace-marker) [data-testid="stMainBlockContainer"] {
+    padding: 1.75rem clamp(1.1rem, 3vw, 3rem) 4rem;
+}
+body:has(.gi-workspace-marker) [data-testid="stMain"] {
+    background: linear-gradient(180deg, #edf3fa 0, #f6f8fc 320px) !important;
+}
+body:has(.gi-workspace-marker) [data-testid="stMainBlockContainer"] {
+    background: transparent !important;
+}
+body:has(.gi-workspace-marker) .gi-dashboard-heading {
+    position: relative;
+    padding: 1.65rem 1.85rem;
+    border: 1px solid #cfdff1;
+    background: linear-gradient(115deg, #fff 48%, #eaf3ff);
+    box-shadow: 0 8px 28px rgba(22, 51, 89, .045);
+}
+body:has(.gi-workspace-marker) .gi-dashboard-title {
+    color: #112b49 !important;
+    font-weight: 750;
+    line-height: 1.2;
+}
+body:has(.gi-workspace-marker) .gi-dashboard-subtitle {
+    color: #51657d !important;
+    margin-top: .45rem;
+    max-width: 66ch;
+}
+body:has(.gi-workspace-marker) h2,
+body:has(.gi-workspace-marker) h3 { color: #173351 !important; line-height: 1.35; }
+body:has(.gi-workspace-marker) [data-testid="stCaptionContainer"] { color: #57697f; line-height: 1.6; }
+body:has(.gi-workspace-marker) .gi-metric-card,
+body:has(.gi-workspace-marker) [data-testid="stMetric"] {
+    min-height: 128px;
+    padding: 1.35rem !important;
+    border-top: 3px solid #a9c9f5;
+    box-shadow: 0 4px 18px rgba(22, 51, 89, .045);
+}
+body:has(.gi-workspace-marker) .gi-metric-value,
+body:has(.gi-workspace-marker) [data-testid="stMetricValue"] {
+    color: #142f50 !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.035em;
+    font-size: clamp(1.6rem, 2.3vw, 2.15rem);
+}
+body:has(.gi-workspace-marker) [data-testid="stMetricLabel"] { color: #52657c; }
+body:has(.gi-workspace-marker) [data-testid="stVegaLiteChart"] {
+    border: 1px solid var(--workspace-border);
+    border-radius: 16px;
+    padding: 12px;
+    background: #fff;
+    box-shadow: 0 3px 14px rgba(22, 51, 89, .035);
+}
+body:has(.gi-workspace-marker) [role="tabpanel"] { padding-top: 1.3rem; }
+body:has(.gi-workspace-marker) [role="tablist"] { scrollbar-width: thin; }
+body:has(.gi-workspace-marker) [role="tab"][aria-selected="true"] {
+    border: 1px solid #c9dafa;
+}
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #fff, #f6f9fe) !important;
+}
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] .gi-brand-row {
+    padding: 12px 2px 18px;
+    align-items: center;
+}
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] [role="radiogroup"] { gap: 6px; }
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] label:has(input:checked),
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] label:has([role="radio"][aria-checked="true"]) {
+    background: #e8f0ff !important;
+    border: 1px solid #c1d4fa !important;
+    box-shadow: inset 3px 0 #155eef;
+    font-weight: 650;
+}
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] hr { border-color: #e2e9f2; margin: 1rem 0; }
+body:has(.gi-workspace-marker) [data-testid="stWidgetLabel"] p { font-weight: 600; color: #354c67; }
+body:has(.gi-workspace-marker) [data-testid="stTextInput"] input,
+body:has(.gi-workspace-marker) [data-testid="stTextArea"] textarea,
+body:has(.gi-workspace-marker) [data-testid="stNumberInput"] input {
+    color: #18314f !important;
+    background: #fff !important;
+    border-radius: 10px;
+    line-height: 1.5;
+}
+body:has(.gi-workspace-marker) [data-testid="stFileUploaderDropzone"] {
+    padding: 1.5rem;
+    background: #f8fbff !important;
+    border: 1.5px dashed #94b4dd;
+}
+body:has(.gi-workspace-marker) [data-testid="stAlert"] {
+    border-radius: 12px;
+    line-height: 1.55;
+}
+body:has(.gi-workspace-marker) :is(button, a, input, textarea, [role="combobox"], [role="tab"]):focus-visible {
+    outline: 3px solid #2467d6 !important;
+    outline-offset: 3px !important;
+}
+body:has(.gi-workspace-marker) button:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 768px) {
+    body:has(.gi-workspace-marker) [data-testid="stMainBlockContainer"] { padding: 3.5rem 1rem 2.5rem !important; }
+    body:has(.gi-workspace-marker) .gi-dashboard-heading { padding: 1.2rem; border-radius: 14px; }
+    body:has(.gi-workspace-marker) .gi-metric-card,
+    body:has(.gi-workspace-marker) [data-testid="stMetric"] { min-height: 108px; padding: 1rem !important; }
+    body:has(.gi-workspace-marker) [role="tab"] { padding: 10px 12px !important; }
+    body:has(.gi-workspace-marker) [data-testid="stVegaLiteChart"] { padding: 6px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+    body:has(.gi-workspace-marker) .stButton button { transition: background-color .15s, box-shadow .15s; }
+}
+/* Keep the light workspace readable even when Streamlit inherits dark mode. */
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] p,
+body:has(.gi-workspace-marker) [data-testid="stSidebar"] label,
+body:has(.gi-workspace-marker) [data-testid="stMetric"] p,
+body:has(.gi-workspace-marker) [data-testid="stMarkdownContainer"] p,
+body:has(.gi-workspace-marker) [data-testid="stExpander"] summary,
+body:has(.gi-workspace-marker) [data-testid="stSidebarCollapseButton"] button,
+body:has(.gi-workspace-marker) [data-testid="stExpandSidebarButton"] button {
+    color: #243b53 !important;
+    -webkit-text-fill-color: #243b53 !important;
+}
+body:has(.gi-workspace-marker) [data-testid="stHeader"] { background: #f6f8fc !important; color: #243b53 !important; }
+/* Full-width workspace: all former sidebar controls live in the settings panel. */
+body:has(.gi-workspace-marker) [data-testid="stSidebar"],
+body:has(.gi-workspace-marker) [data-testid="stSidebarCollapsedControl"],
+body:has(.gi-workspace-marker) [data-testid="stExpandSidebarButton"] { display: none !important; }
+body:has(.gi-workspace-marker) [data-testid="stMain"] { margin-left: 0 !important; }
+body:has(.gi-workspace-marker) .st-key-primary_reporting_nav > [data-testid="stTabs"] > div > [role="tablist"] { position: sticky; top: 3rem; z-index: 50; }
+@media (max-width: 768px) {
+    body:has(.gi-workspace-marker) [data-testid="stMainBlockContainer"] { padding-bottom: 7rem !important; }
+    body:has(.gi-workspace-marker) .st-key-primary_reporting_nav > [data-testid="stTabs"] > div > [role="tablist"] {
+        position: fixed; top: auto; bottom: 0; left: 0; right: 0;
+        z-index: 100; justify-content: space-around; border-radius: 16px 16px 0 0;
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom)) !important;
+        background: #f5f8ff !important; box-shadow: 0 -4px 20px #18365b18;
+    }
+}
+body:has(.gi-workspace-marker) button[kind="primary"] p { color: #fff !important; -webkit-text-fill-color: #fff !important; }
+/* Chart sizing is managed by Vega; padding must not widen its canvas. */
+body:has(.gi-workspace-marker) [data-testid="stVegaLiteChart"] { padding: 0 !important; overflow: hidden; }

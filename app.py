@@ -26,11 +26,19 @@ from operations_excellence import render_operations_excellence
 # Complete Streamlit application
 # ============================================================
 
-APP_NAME = "Generative Insight"
+from product_deployment import PRODUCTS, validate_deployment
+from bpo_trends import render_bpo_trends
+from workspace_navigation import reporting_navigation
+
+PRODUCT_ID = globals().get("DEPLOYMENT_PRODUCT")
+PRODUCT = PRODUCTS[PRODUCT_ID] if PRODUCT_ID else None
+PRODUCT_NAME = PRODUCT["name"] if PRODUCT else "AI Operations Copilot"
+USE_NEON = bool(PRODUCT)
+APP_NAME = f"Generative Insight | {PRODUCT_NAME}"
 APP_VERSION = "1.0.0"
 
 st.set_page_config(
-    page_title="Generative Insight | AI Operations Copilot",
+    page_title=APP_NAME,
     page_icon="assets/generative-insight-gi-mark-transparent.png",
     layout="wide",
     # "auto" keeps the desktop sidebar visible while allowing Streamlit
@@ -1160,6 +1168,32 @@ st.markdown(
             padding: 8px 12px !important;
         }}
     }}
+
+    body:has(.gi-auth-tabs-marker) [data-testid="stMain"],
+    body:has(.gi-auth-tabs-marker) [data-testid="stMainBlockContainer"] {{ background: transparent !important; }}
+    /* Center the identity above the account card on every product. */
+    body:has(.gi-auth-tabs-marker) [data-testid="stAppViewContainer"] {{
+        background: radial-gradient(ellipse at 12% 12%, #dceeff 0, transparent 45%), radial-gradient(ellipse at 90% 85%, #e0f4f2 0, transparent 42%), #f3f6fb !important;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-topbar {{
+        display: flex !important; justify-content: center !important;
+        width: 100%; margin: 0 auto 12px !important; padding: 18px 0 12px !important;
+        border: 0 !important; background: transparent !important;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-brand-row {{
+        display: flex; align-items: center; justify-content: center; gap: 14px;
+        margin: 0; max-width: 100%;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-icon-sm {{
+        display: flex; align-items: center; justify-content: center;
+        flex: 0 0 48px; width: 48px; height: 48px; margin: 0 !important;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-brand {{ color: #102b4e; line-height: 1.2; }}
+    body:has(.gi-auth-tabs-marker) .gi-tagline {{ color: #52677c; margin-top: 4px; }}
+    body:has(.gi-auth-tabs-marker) [role="tabpanel"]:has(.gi-signup-marker),
+    body:has(.gi-auth-tabs-marker) [role="tabpanel"]:has(.gi-login-marker) {{
+        box-shadow: 0 18px 54px rgba(24,55,95,.10); border-color: #dbe5f0;
+    }}
 </style>
 """,
     unsafe_allow_html=True,
@@ -1322,6 +1356,18 @@ def secret(name, default=""):
         return default
 
 
+# Fail closed before any authentication or database request in dedicated apps.
+if PRODUCT:
+    try:
+        validate_deployment(PRODUCT_ID, {key: secret(key) for key in
+            ("PRODUCT_ID", "PRODUCT_PROJECTS", "NEON_AUTH_URL", "NEON_DATABASE_URL", "APP_PUBLIC_URL")})
+    except ValueError as error:
+        st.error(str(error))
+        st.stop()
+    st.session_state.industry = PRODUCT["industry"]
+    st.session_state.industry_selected_this_login = True
+
+
 def show_brand_header(compact=False):
     """
     Display the Generative Insight logo and website branding. Rendered as
@@ -1349,7 +1395,7 @@ def show_brand_header(compact=False):
     st.markdown(
         f"""<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:2px;">
 {logo_html}
-<div style="color:#737373; font-size:0.85rem;">AI Operations Copilot</div>
+<div style="color:#737373; font-size:0.85rem;">{PRODUCT_NAME}</div>
 </div>""",
         unsafe_allow_html=True,
     )
@@ -1364,7 +1410,17 @@ AI / ML &nbsp; | &nbsp; Annotation &nbsp; | &nbsp; Web & App Development
     )
 
 
+def get_neon_client():
+    from neon_backend import NeonClient
+    if "neon_client" not in st.session_state or st.session_state.neon_client.product != PRODUCT_ID:
+        st.session_state.neon_client = NeonClient(secret("NEON_AUTH_URL"),
+            secret("NEON_DATABASE_URL"), secret("APP_PUBLIC_URL"), PRODUCT_ID)
+    return st.session_state.neon_client
+
+
 def get_supabase_client() -> Client:
+    if USE_NEON:
+        return get_neon_client()
     """Create the Supabase client from Streamlit Secrets."""
     url = secret("SUPABASE_URL")
     anon_key = secret("SUPABASE_ANON_KEY")
@@ -1394,6 +1450,8 @@ def get_authenticated_supabase_client() -> Client:
 
 
 def get_supabase_admin_client() -> Client:
+    if USE_NEON:
+        return get_neon_client()
     url = secret("SUPABASE_URL")
     service_role_key = secret("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not service_role_key:
@@ -1491,7 +1549,7 @@ def get_razorpay_subscription(subscription_id):
 def razorpay_activation_ready(plan_id_secret="RAZORPAY_PROFESSIONAL_PLAN_ID", plan_label="Professional"):
     if not st.session_state.get("authenticated") or not st.session_state.get("user_id"):
         return False, f"Please create an account or sign in before starting a {plan_label} subscription."
-    if not secret("SUPABASE_SERVICE_ROLE_KEY"):
+    if not (secret("NEON_DATABASE_URL") if USE_NEON else secret("SUPABASE_SERVICE_ROLE_KEY")):
         return False, "Secure plan activation is not configured. Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets."
     if not razorpay_is_configured(plan_id_secret):
         return False, f"Razorpay is not fully configured. Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and {plan_id_secret} to Streamlit Secrets."
@@ -1576,6 +1634,7 @@ def sign_up_user(full_name, company_name, email, password):
             "email": email.strip().lower(),
             "password": password,
             "options": {
+                "email_redirect_to": secret("APP_PUBLIC_URL", "https://generative-insight-ops.streamlit.app/"),
                 "data": {
                     "full_name": full_name.strip(),
                     "company_name": company_name.strip(),
@@ -1618,7 +1677,7 @@ def set_authenticated_user(response):
 
     metadata = getattr(user, "user_metadata", {}) or {}
 
-    st.session_state.industry_selected_this_login = False
+    st.session_state.industry_selected_this_login = bool(PRODUCT)
     st.session_state.pop("owner_area", None)
     st.session_state.authenticated = True
     st.session_state.user_email = (user.email or "").lower()
@@ -1632,7 +1691,7 @@ def set_authenticated_user(response):
     st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
     st.session_state.free_billing_status = metadata.get("free_billing_status", "")
     st.session_state.free_subscription_id = metadata.get("free_subscription_id", "")
-    st.session_state.industry = metadata.get("industry", "BPO") or "BPO"
+    st.session_state.industry = PRODUCT["industry"] if PRODUCT else (metadata.get("industry", "BPO") or "BPO")
 
     # Supabase sets this automatically when the account is created — used
     # to work out how many days are left in the Free trial.
@@ -1646,6 +1705,7 @@ def clear_authentication():
     st.session_state.pop("account_access", None)
     st.session_state.pop("owner_area", None)
     st.session_state.pop("industry_selected_this_login", None)
+    st.session_state.pop("neon_client", None)
     st.session_state.authenticated = False
     st.session_state.user_email = ""
     st.session_state.user_id = ""
@@ -3647,7 +3707,7 @@ if not st.session_state.authenticated:
 <div class="gi-auth-icon-sm" style="background:transparent;">{logo_mark_html(40, 12, 18)}</div>
 <div>
 <div class="gi-brand">Generative <span>Insight</span></div>
-<div class="gi-tagline">AI Operations Copilot</div>
+<div class="gi-tagline">{PRODUCT_NAME}</div>
 </div>
 </div>
 </div>""",
@@ -3668,8 +3728,8 @@ if not st.session_state.authenticated:
             'Generative <span>Insight</span></div>'
         )
     if (
-        not secret("SUPABASE_URL")
-        or not secret("SUPABASE_ANON_KEY")
+        not USE_NEON and (not secret("SUPABASE_URL")
+        or not secret("SUPABASE_ANON_KEY"))
     ):
         st.error(
             "🔐 Authentication is not configured yet. "
@@ -3706,7 +3766,7 @@ if not st.session_state.authenticated:
         )
 
         st.markdown(
-            f"""<div class="gi-auth-card-title">Get started with Generative Insight</div>
+            f"""<div class="gi-auth-card-title">Get started with {PRODUCT_NAME}</div>
 <div class="gi-auth-card-desc">Start your {FREE_TRIAL_DAYS}-day free trial: {FREE_TRIAL_ANALYSES} analyses total, uploads up to 5 MB, and PDF reports. Then continue from ₹299/month.</div>""",
             unsafe_allow_html=True,
         )
@@ -3849,12 +3909,11 @@ Your data is protected with enterprise-grade security. By creating an account, y
                         st.rerun()
 
                     elif signup_user is not None:
-
-                        st.success(
-                            "✅ Account created. Please check your "
-                            "email and click the verification link "
-                            "before signing in."
-                        )
+                        if USE_NEON:
+                            st.session_state.neon_pending_email = signup_email.strip().lower()
+                            st.success("Account created. Enter the code from your email below, then sign in.")
+                        else:
+                            st.success("Account created. Check your email and click the verification link before signing in.")
 
                     else:
 
@@ -3870,11 +3929,18 @@ Your data is protected with enterprise-grade security. By creating an account, y
                         + friendly_auth_error(e)
                     )
 
+        if USE_NEON:
+            from neon_verification import render_verification
+            render_verification(get_neon_client().auth, "signup_email_verification")
+
     # --------------------------------------------------------
     # LOGIN
     # --------------------------------------------------------
 
     with login_tab:
+        if USE_NEON:
+            from neon_verification import render_verification
+            render_verification(get_neon_client().auth, "login_email_verification")
 
         st.markdown('<span class="gi-login-marker"></span>', unsafe_allow_html=True)
 
@@ -4003,8 +4069,16 @@ if not st.session_state.get("industry_selected_this_login", False):
     render_industry_choice(INDUSTRY_LABELS, update_user_industry)
     st.stop()
 
+st.markdown('<span class="gi-workspace-marker"></span>', unsafe_allow_html=True)
+st.markdown(
+    "<style>" + (BASE_DIR / "dashboard_theme.css").read_text(encoding="utf-8") + "</style>",
+    unsafe_allow_html=True,
+)
+
+st.markdown(f"### {PRODUCT_NAME}")
 if _access["is_owner"]:
-    _owner_view = st.sidebar.radio("Account area", ["My workspace", "Owner dashboard"], key="owner_area")
+    with st.popover("Admin account"):
+        _owner_view = st.radio("Account area", ["My workspace", "Owner dashboard"], key="owner_area")
     if _owner_view == "Owner dashboard":
         from owner_admin import owner_snapshot, render_owner_admin
         try:
@@ -4025,13 +4099,8 @@ plan_config = get_plan_config(
     st.session_state.user_plan
 )
 
-st.markdown('<span class="gi-workspace-marker"></span>', unsafe_allow_html=True)
-st.markdown(
-    "<style>" + (BASE_DIR / "dashboard_theme.css").read_text(encoding="utf-8") + "</style>",
-    unsafe_allow_html=True,
-)
 
-with st.sidebar:
+with st.expander("Workspace settings · account, tools and KPI targets", expanded=False):
     st.markdown(
         f"""<div class="gi-brand-row">
 {logo_mark_html(40, 11, 18)}
@@ -4099,32 +4168,35 @@ with st.sidebar:
 
     st.subheader("Workspace")
 
-    _current_industry = st.session_state.get("industry", "BPO")
-    _selected_label = st.selectbox(
-        "Analyze data for",
-        options=list(INDUSTRY_LABELS.values()),
-        index=list(INDUSTRY_LABELS.keys()).index(_current_industry)
-        if _current_industry in INDUSTRY_LABELS else 0,
-        key="industry_selector",
-    )
-    _selected_industry = next(
-        k for k, v in INDUSTRY_LABELS.items() if v == _selected_label
-    )
-    if _selected_industry != _current_industry:
-        update_user_industry(_selected_industry)
-        clear_analysis()
-        st.session_state.manufacturing_file_name = ""
-        st.session_state.manufacturing_result = None
-        st.session_state.manufacturing_report_bytes = None
-        st.rerun()
+    if PRODUCT:
+        st.caption(PRODUCT_NAME)
+    else:
+        _current_industry = st.session_state.get("industry", "BPO")
+        _selected_label = st.selectbox(
+            "Analyze data for",
+            options=list(INDUSTRY_LABELS.values()),
+            index=list(INDUSTRY_LABELS.keys()).index(_current_industry)
+            if _current_industry in INDUSTRY_LABELS else 0,
+            key="industry_selector",
+        )
+        _selected_industry = next(
+            k for k, v in INDUSTRY_LABELS.items() if v == _selected_label
+        )
+        if _selected_industry != _current_industry:
+            update_user_industry(_selected_industry)
+            clear_analysis()
+            st.session_state.manufacturing_file_name = ""
+            st.session_state.manufacturing_result = None
+            st.session_state.manufacturing_report_bytes = None
+            st.rerun()
 
     st.divider()
 
     if st.session_state.industry == "BPO":
 
         st.radio(
-            "BPO workspace",
-            ["Performance Dashboard", "Operations Excellence"],
+            "Operations workspace",
+            ["IT Operations", "AI/ML Annotation", "Performance Dashboard", "Operations Excellence"],
             key="bpo_workspace",
         )
         with st.expander("KPI targets", expanded=False):
@@ -4289,6 +4361,16 @@ elif st.session_state.industry not in BUILT_INDUSTRIES:
     render_coming_soon_flow(st.session_state.industry)
     st.stop()
 
+
+if st.session_state.get("bpo_workspace") == "IT Operations":
+    from it_operations import render_it_operations
+    render_it_operations(plan_config, require_trial_analysis)
+    st.stop()
+
+if st.session_state.get("bpo_workspace") == "AI/ML Annotation":
+    from annotation_operations import render_annotation_operations
+    render_annotation_operations(plan_config, require_trial_analysis)
+    st.stop()
 
 if st.session_state.get("bpo_workspace") == "Operations Excellence":
     render_operations_excellence()
@@ -4771,11 +4853,11 @@ if "Date" in df.columns:
 if trend_data.empty:
     trend_data = pd.DataFrame(
         {
-            "Productivity": [productivity] * 6,
-            "Quality": [quality] * 6,
-            "SLA": [sla] * 6,
+            "Productivity": [productivity],
+            "Quality": [quality],
+            "SLA": [sla],
         },
-        index=[f"Wk {i}" for i in range(1, 7)],
+        index=["Current upload"],
     )
 
 trend_col, alerts_col = st.columns([2.15, 1])
@@ -4805,7 +4887,7 @@ with trend_col:
                 .mark_line(point=alt.OverlayMarkDef(size=55), strokeWidth=2.5)
                 .encode(
                     x=alt.X(f"{_period_column}:N", title=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(domain=[0, 100])),
+                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(zero=True)),
                     color=alt.Color(
                         "KPI:N",
                         scale=alt.Scale(
@@ -4829,7 +4911,7 @@ with trend_col:
                 .mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6, size=54)
                 .encode(
                     x=alt.X("KPI:N", title=None, sort=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(domain=[0, 100])),
+                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(zero=True)),
                     color=alt.Color(
                         "KPI:N",
                         scale=alt.Scale(
@@ -5038,17 +5120,7 @@ if n8n_url and not st.session_state.n8n_sent:
 # MAIN TABS
 # ============================================================
 
-tabs = st.tabs(
-    [
-        "📊 Executive Dashboard",
-        "🚨 AI Insights",
-        "👥 Employee Risk",
-        "✅ Action Center",
-        "🤖 Management Copilot",
-        "📄 Reports",
-        "💳 Billing",
-    ]
-)
+tabs = reporting_navigation()
 
 
 # ============================================================
@@ -5794,3 +5866,9 @@ Insights today. Intelligence tomorrow.
 </div>""",
     unsafe_allow_html=True,
 )
+
+
+
+with tabs[7]:
+    render_bpo_trends(df, {"Productivity": productivity_target,
+        "Quality": quality_target, "SLA": sla_target, "AHT": aht_target})
