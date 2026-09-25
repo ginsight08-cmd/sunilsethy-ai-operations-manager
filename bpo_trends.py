@@ -33,7 +33,7 @@ def aggregate(frame, frequency):
     return pd.DataFrame(rows)
 
 def render_bpo_trends(source, targets):
-    st.subheader('Performance trends')
+    st.subheader('Analytics dashboard')
     st.caption('Explore the uploaded data by reporting period and team. Filters below affect this section only.')
     frame,invalid=prepare(source)
     if frame.empty:
@@ -56,6 +56,7 @@ def render_bpo_trends(source, targets):
         st.info('No records match these filters.')
         return
     summary=aggregate(frame,{'Daily':'D','Weekly':'W-SUN','Monthly':'MS'}[granularity])
+    st.caption(f'{len(frame):,} records · {frame.Date.min():%d %b %Y} – {frame.Date.max():%d %b %Y} · {granularity} view')
     columns=st.columns(4)
     for col,metric in zip(columns,METRICS):
         latest=summary.iloc[-1][metric]
@@ -78,6 +79,26 @@ def render_bpo_trends(source, targets):
                 target=alt.Chart(pd.DataFrame({'Target':[targets[metric]]})).mark_rule(color='#d97706',strokeDash=[5,4]).encode(y='Target:Q',tooltip=['Target:Q'])
                 st.altair_chart((base+target).interactive(),use_container_width=True)
     st.caption('Orange dashed lines show configured targets. Productivity uses total production ÷ total valid target. Quality, SLA and AHT are record averages, not volume-weighted rates. Missing periods are omitted; line segments connect observed periods.')
+    st.markdown('### Volume and quality drivers')
+    volume_col, distribution_col = st.columns(2)
+    with volume_col:
+        st.markdown('**Workload by reporting period**')
+        workload = alt.Chart(summary).mark_bar(color='#155eef', cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
+            x=alt.X('Period:T', title='Reporting period'),
+            y=alt.Y('Records:Q', title='Uploaded records'),
+            tooltip=['Period:T', 'Records:Q']).interactive()
+        st.altair_chart(workload, use_container_width=True)
+        st.caption('Record count measures uploaded observations, not calls or production volume.')
+    with distribution_col:
+        st.markdown('**Quality distribution**')
+        quality = frame[['Quality_%']].dropna() if 'Quality_%' in frame else pd.DataFrame()
+        if quality.empty:
+            st.info('Add Quality_% values to see the distribution.')
+        else:
+            st.altair_chart(alt.Chart(quality).mark_bar(color='#0f8b8d').encode(
+                x=alt.X('Quality_%:Q', bin=alt.Bin(maxbins=15), title='Quality (%)'),
+                y=alt.Y('count():Q', title='Records'),
+                tooltip=[alt.Tooltip('count():Q', title='Records')]).interactive(), use_container_width=True)
     if teams:
         rows=[]
         for team,group in frame.groupby('Team'):
@@ -91,5 +112,17 @@ def render_bpo_trends(source, targets):
             x=alt.X(f'{metric}:Q', title=metric + (' (source units)' if metric=='AHT' else ' (%)')),
             y=alt.Y('Team:N', sort='-x'), tooltip=['Team:N', alt.Tooltip(f'{metric}:Q',format='.2f')]), use_container_width=True)
         st.dataframe(team_frame,hide_index=True,use_container_width=True)
+        st.markdown('**Team performance matrix**')
+        st.caption('Each column uses its own colour scale. Hover for exact values; lower AHT is better.')
+        matrix_columns = st.columns(4)
+        for panel, name in zip(matrix_columns, METRICS):
+            with panel:
+                st.altair_chart(alt.Chart(team_frame.dropna(subset=[name])).mark_rect().encode(
+                    y=alt.Y('Team:N', title=None),
+                    color=alt.Color(f'{name}:Q', scale=alt.Scale(scheme='blues'), legend=alt.Legend(title=name)),
+                    tooltip=['Team:N', alt.Tooltip(f'{name}:Q', format='.2f')]
+                ).properties(height=max(100, 28*len(team_frame))), use_container_width=True)
     st.markdown('**Reporting-period details**')
     st.dataframe(summary,hide_index=True,use_container_width=True)
+    st.download_button('Download filtered dashboard data', summary.to_csv(index=False).encode('utf-8'),
+                       file_name='bpo-dashboard-summary.csv', mime='text/csv', key='bpo_dashboard_download')
