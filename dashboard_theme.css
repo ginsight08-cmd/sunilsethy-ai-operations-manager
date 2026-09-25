@@ -311,3 +311,5 @@ body:has(.gi-workspace-marker) .st-key-primary_reporting_nav > [data-testid="stT
     }
 }
 body:has(.gi-workspace-marker) button[kind="primary"] p { color: #fff !important; -webkit-text-fill-color: #fff !important; }
+/* Chart sizing is managed by Vega; padding must not widen its canvas. */
+body:has(.gi-workspace-marker) [data-testid="stVegaLiteChart"] { padding: 0 !important; overflow: hidden; }

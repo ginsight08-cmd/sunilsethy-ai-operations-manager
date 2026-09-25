@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from collections.abc import Mapping
 
 PRODUCTS = {
-    "bpo": {"name": "BPO AI Operations Manager", "industry": "BPO"},
+    "bpo": {"name": "IT Operations Manager", "industry": "BPO"},
     "procurement": {"name": "AI Procurement", "industry": "Manufacturing"},
     "vakil": {"name": "AI Vakil", "industry": "CaseManagement"},
 }

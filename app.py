@@ -4195,8 +4195,8 @@ with st.expander("Workspace settings · account, tools and KPI targets", expande
     if st.session_state.industry == "BPO":
 
         st.radio(
-            "BPO workspace",
-            ["Performance Dashboard", "Operations Excellence"],
+            "Operations workspace",
+            ["IT Operations", "AI/ML Annotation", "Performance Dashboard", "Operations Excellence"],
             key="bpo_workspace",
         )
         with st.expander("KPI targets", expanded=False):
@@ -4361,6 +4361,16 @@ elif st.session_state.industry not in BUILT_INDUSTRIES:
     render_coming_soon_flow(st.session_state.industry)
     st.stop()
 
+
+if st.session_state.get("bpo_workspace") == "IT Operations":
+    from it_operations import render_it_operations
+    render_it_operations(plan_config, require_trial_analysis)
+    st.stop()
+
+if st.session_state.get("bpo_workspace") == "AI/ML Annotation":
+    from annotation_operations import render_annotation_operations
+    render_annotation_operations(plan_config, require_trial_analysis)
+    st.stop()
 
 if st.session_state.get("bpo_workspace") == "Operations Excellence":
     render_operations_excellence()
