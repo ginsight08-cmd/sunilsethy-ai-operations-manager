@@ -313,3 +313,32 @@ body:has(.gi-workspace-marker) .st-key-primary_reporting_nav > [data-testid="stT
 body:has(.gi-workspace-marker) button[kind="primary"] p { color: #fff !important; -webkit-text-fill-color: #fff !important; }
 /* Chart sizing is managed by Vega; padding must not widen its canvas. */
 body:has(.gi-workspace-marker) [data-testid="stVegaLiteChart"] { padding: 0 !important; overflow: hidden; }
+/* Product shell: useful identity and links replace empty page chrome. */
+body:has(.gi-workspace-marker) [data-testid="stHeader"] { display: none !important; }
+body:has(.gi-workspace-marker) [data-testid="stMainBlockContainer"] { padding-top: 1.25rem !important; }
+.gi-product-header { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:18px 24px; margin-bottom:24px; border:1px solid #dce5ef; border-radius:18px; background:#fff; box-shadow:0 4px 20px #19345108; }
+.gi-product-brand { display:flex; align-items:center; gap:12px; color:#173351 !important; text-decoration:none !important; font-size:20px; font-weight:650; line-height:1.2; }
+.gi-product-brand strong { color:#155eef; }
+.gi-product-brand small { display:block; font-size:12px; font-weight:500; color:#52657c; margin-top:6px; }
+.gi-product-header nav { display:flex; gap:10px; flex-wrap:wrap; }
+.gi-product-header nav a { padding:10px 14px; border-radius:10px; background:#edf4ff; color:#164d9e !important; text-decoration:none; font-size:13px; font-weight:600; }
+#workspace-settings { scroll-margin-top:20px; }
+.gi-product-footer { margin-top:36px; padding:30px; background:#eaf1fa; color:#243b53; border:1px solid #d4e0ef; border-radius:18px; }
+.gi-footer-grid { display:grid; grid-template-columns:1.2fr 1fr 1.2fr; gap:32px; }
+.gi-footer-brand { font-size:20px; color:#173351; }
+.gi-product-footer p { margin:10px 0; font-size:13px; line-height:1.65; }
+.gi-product-footer small { font-size:12px; color:#52657c; line-height:1.65; }
+.gi-product-footer nav { display:flex; flex-direction:column; gap:10px; font-size:13px; }
+.gi-product-footer a { color:#164d9e !important; text-decoration:none; }
+.gi-product-footer a:hover,.gi-product-header a:hover { text-decoration:underline !important; }
+.gi-footer-cta { display:inline-block; padding:10px 14px; background:#fff; border:1px solid #c8d8ee; border-radius:10px; font-size:13px; font-weight:600; }
+.gi-footer-bottom { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; margin-top:26px; padding-top:18px; border-top:1px solid #cbd9ea; font-size:11px; color:#52657c; }
+@media(max-width:768px) {
+ .gi-product-header { flex-direction:column; align-items:flex-start; padding:18px; gap:16px; margin-bottom:16px; }
+ .gi-product-brand { font-size:18px; }
+ .gi-product-header nav { width:100%; }
+ .gi-product-header nav a { flex:1; text-align:center; padding:10px 8px; font-size:12px; }
+ .gi-product-footer { padding:22px 18px; margin-top:24px; }
+ .gi-footer-grid { grid-template-columns:1fr; gap:24px; }
+ .gi-footer-bottom { flex-direction:column; gap:10px; }
+}
