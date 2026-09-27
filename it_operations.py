@@ -3,6 +3,7 @@ from io import BytesIO
 import pandas as pd
 import altair as alt
 import streamlit as st
+from google_sheets_source import source_upload
 from date_filters import date_range
 from bpo_trends import show_chart
 
@@ -61,7 +62,7 @@ def render_it_operations(plan_config, admit):
         st.write('Optional: Due_At and Completed_At. Status: Not started / In progress / Blocked / Completed. Use ISO dates with timezones; dates without timezones are treated as UTC.')
         st.download_button('Download IT operations template',work_template().to_csv(index=False).encode(),'it-operations-template.csv','text/csv')
         st.caption('Template rows are examples; replace them before analysis.')
-    upload=st.file_uploader(f'Upload IT work-item export — max {plan_config["max_mb"]} MB',type=['csv','xlsx'],key='it_ops_upload')
+    upload=source_upload(f'Upload IT work-item export — max {plan_config["max_mb"]} MB',type=['csv','xlsx'],key='it_ops_upload')
     if upload is None:
         st.info('Upload your work-item export to see delivery, workload and risk dashboards. For detailed label-review metrics, select AI/ML Annotation in Workspace settings.')
         return

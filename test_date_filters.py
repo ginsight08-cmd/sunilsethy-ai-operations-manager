@@ -13,6 +13,14 @@ class DateTests(unittest.TestCase):
   self.assertFalse(app.error)
   self.assertEqual(app.date_input[0].value,date(2020,1,1))
   self.assertEqual(app.date_input[1].value,date(2020,12,31))
+ def test_user_can_edit_beyond_upload_dates(self):
+  app=AppTest.from_string("import pandas as pd\nfrom date_filters import date_range\ndate_range(pd.Timestamp('2026-07-27'),pd.Timestamp('2026-07-27'),'test')",default_timeout=15).run()
+  app.date_input[1].set_value(date(2027,6,2)).run()
+  app.date_input[0].set_value(date(2026,9,27)).run()
+  self.assertFalse(app.exception)
+  self.assertFalse(app.error)
+  self.assertEqual(app.date_input[0].value,date(2026,9,27))
+  self.assertEqual(app.date_input[1].value,date(2027,6,2))
  def test_single_day(self):
   app=AppTest.from_string("import pandas as pd\nfrom date_filters import date_range\ndate_range(pd.Timestamp('2026-07-27'),pd.Timestamp('2026-07-27'),'test')",default_timeout=15).run()
   self.assertFalse(app.exception)

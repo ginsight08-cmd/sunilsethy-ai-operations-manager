@@ -3,6 +3,7 @@ from io import BytesIO
 import pandas as pd
 import altair as alt
 import streamlit as st
+from google_sheets_source import source_upload
 from date_filters import date_range
 from bpo_trends import show_chart
 
@@ -102,7 +103,7 @@ def render_annotation_operations(plan_config, admit):
         st.write('Optional: Completed_At, Review_Status (Not reviewed / Accepted / Rejected), Rework_Count, Annotation_Minutes. Dates use ISO format; timezone-free dates are treated as UTC. Status: Not started / In progress / Completed.')
         st.download_button('Download annotation template', template().to_csv(index=False).encode(), 'annotation-template.csv', 'text/csv')
         st.caption('Template rows are fictional examples. Replace them with your task export. Raw images, videos and audio files are not required.')
-    upload = st.file_uploader(f'Upload annotation task export — max {plan_config["max_mb"]} MB', type=['csv','xlsx'], key='annotation_upload')
+    upload = source_upload(f'Upload annotation task export — max {plan_config["max_mb"]} MB', type=['csv','xlsx'], key='annotation_upload')
     if upload is None:
         st.info('Upload a task export to open your annotation dashboard.')
         return

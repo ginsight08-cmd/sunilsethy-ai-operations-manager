@@ -11,6 +11,7 @@ import pandas as pd
 import altair as alt
 import requests
 import streamlit as st
+from google_sheets_source import source_upload
 from supabase import create_client, Client
 
 from engine import analyze_data, make_ai_prompt
@@ -1700,6 +1701,9 @@ def set_authenticated_user(response):
 
 
 def clear_authentication():
+    for _key in list(st.session_state):
+        if _key.startswith('_google_') or _key.startswith('google_auth_'):
+            st.session_state.pop(_key, None)
     sign_out_user()
 
     st.session_state.pop("account_access", None)
@@ -2303,7 +2307,7 @@ def render_case_management_flow(plan_config):
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
-    uploaded = st.file_uploader(
+    uploaded = source_upload(
         f"📁 Upload case register (.xlsx or .csv) — max {plan_config['max_mb']} MB",
         type=["xlsx", "csv"], key="case_management_uploader",
     )
@@ -2604,7 +2608,7 @@ def render_manufacturing_flow(plan_config):
             key="mfg_report_name",
         )
 
-    uploaded = st.file_uploader(
+    uploaded = source_upload(
         f"📁 Upload Price Comparative Sheet workbook (.xlsx) — max {plan_config['max_mb']} MB",
         type=["xlsx"],
         key="mfg_file_uploader",
@@ -4414,7 +4418,7 @@ with _workspace_content:
     # FILE UPLOAD
     # ============================================================
 
-    uploaded = st.file_uploader(
+    uploaded = source_upload(
         (
             "📁 Upload Excel or CSV operational data — "
             f"max {plan_config['max_mb']} MB"
