@@ -2,6 +2,7 @@
 import pandas as pd
 import altair as alt
 import streamlit as st
+from date_filters import date_range
 
 METRICS = {'Productivity': 'Productivity', 'Quality': 'Quality_%', 'SLA': 'SLA_%', 'AHT': 'AHT_Actual'}
 
@@ -50,12 +51,12 @@ def render_bpo_trends(source, targets):
     if invalid:
         st.warning(f'{invalid} records with missing or invalid dates are excluded from these charts.')
     a,b,c=st.columns([2,2,1])
-    dates=a.date_input('Reporting dates',value=(frame.Date.min().date(),frame.Date.max().date()),key='bpo_trend_dates')
+    with a:
+        dates=date_range(frame.Date.min(),frame.Date.max(),'bpo_trend_dates')
     teams=sorted(frame['Team'].dropna().astype(str).unique()) if 'Team' in frame else []
     chosen=b.multiselect('Teams',teams,default=teams,key='bpo_trend_teams') if teams else []
     granularity=c.selectbox('Period',['Daily','Weekly','Monthly'],key='bpo_trend_period')
-    if len(dates)!=2:
-        st.info('Choose a start and end date.')
+    if dates is None:
         return
     frame=frame[frame.Date.between(pd.Timestamp(dates[0]),pd.Timestamp(dates[1]))]
     if teams:

@@ -3,6 +3,7 @@ from io import BytesIO
 import pandas as pd
 import altair as alt
 import streamlit as st
+from date_filters import date_range
 from bpo_trends import show_chart
 
 WORKFLOWS = ['Service desk', 'Software delivery', 'QA/testing', 'AI/data operations', 'BPO']
@@ -76,8 +77,9 @@ def render_it_operations(plan_config, admit):
     a,b,c=st.columns(3)
     workflows=a.multiselect('Workflows',WORKFLOWS,default=WORKFLOWS)
     projects=b.multiselect('Projects',sorted(frame.Project.unique()),default=sorted(frame.Project.unique()))
-    dates=c.date_input('Creation dates (UTC)',value=(frame.Created_At.min().date(),frame.Created_At.max().date()),key='it_ops_dates')
-    if len(dates)!=2: st.info('Choose both dates.');return
+    with c:
+        dates=date_range(frame.Created_At.min(),frame.Created_At.max(),'it_ops_dates','Creation dates (UTC)')
+    if dates is None: return
     frame=frame[frame.Workflow.isin(workflows)&frame.Project.isin(projects)&frame.Created_At.dt.date.between(*dates)]
     if frame.empty: st.info('No work items match your filters.');return
     metrics=summarize_work(frame)

@@ -3,6 +3,7 @@ from io import BytesIO
 import pandas as pd
 import altair as alt
 import streamlit as st
+from date_filters import date_range
 from bpo_trends import show_chart
 
 MODALITIES = ['Image', 'Video', 'Text', 'Audio']
@@ -122,9 +123,9 @@ def render_annotation_operations(plan_config, admit):
     a,b,c = st.columns(3)
     modalities = a.multiselect('Annotation modality', MODALITIES, default=MODALITIES)
     projects = b.multiselect('Projects', sorted(frame.Project.unique()), default=sorted(frame.Project.unique()))
-    dates = c.date_input('Task creation dates (UTC)', value=(frame.Created_At.min().date(),frame.Created_At.max().date()), key='annotation_dates')
-    if len(dates) != 2:
-        st.info('Choose both dates.')
+    with c:
+        dates = date_range(frame.Created_At.min(),frame.Created_At.max(),'annotation_dates','Task creation dates (UTC)')
+    if dates is None:
         return
     selected = frame[frame.Modality.isin(modalities) & frame.Project.isin(projects) & frame.Created_At.dt.date.between(*dates)]
     if selected.empty:
