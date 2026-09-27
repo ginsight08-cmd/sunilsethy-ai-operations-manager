@@ -1,0 +1,24 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="strict-origin"><style>body{font:14px system-ui;margin:0;color:#18314f}button{background:white;border:1px solid #cbd5e1;border-radius:8px;padding:12px 18px;color:#18314f;font-weight:600;cursor:pointer}button:focus-visible{outline:3px solid #155eef}p{font-size:12px}</style></head><body>
+<button id="connect" disabled>Connect Google Sheets</button><p id="status" role="status">Loading Google sign-in…</p>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+let args=null;
+const parentOrigin=new URL(document.referrer || location.href).origin;
+const send=(type,data={})=>window.parent.postMessage({isStreamlitMessage:true,type,...data},parentOrigin);
+window.addEventListener('message',event=>{
+ if(event.source!==window.parent || event.origin!==parentOrigin || event.data.type!=='streamlit:render')return;
+ args=event.data.args;
+ if(location.origin!==args.origin){document.getElementById('status').textContent='This app origin is not configured for Google sign-in.';return;}
+ document.getElementById('connect').disabled=false;
+ document.getElementById('status').textContent='Your Google password stays with Google.';
+});
+document.getElementById('connect').onclick=()=>{
+ if(!args || !window.google?.accounts?.oauth2){document.getElementById('status').textContent='Google sign-in is still loading. Try again.';return;}
+ const nonce=args.nonce;
+ const client=google.accounts.oauth2.initCodeClient({client_id:args.client_id,scope:'https://www.googleapis.com/auth/spreadsheets.readonly',include_granted_scopes:false,ux_mode:'popup',
+ callback:response=>{if(response.code){send('streamlit:setComponentValue',{value:{code:response.code,nonce,origin:location.origin},dataType:'json'});}else{document.getElementById('status').textContent='Access was not granted. You can try again.';}},
+ error_callback:()=>{document.getElementById('status').textContent='The sign-in popup could not finish. Allow popups and try again.';}});
+ client.requestCode();
+};
+send('streamlit:componentReady',{apiVersion:1});send('streamlit:setFrameHeight',{height:95});
+</script></body></html>

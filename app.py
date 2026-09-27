@@ -11,6 +11,7 @@ import pandas as pd
 import altair as alt
 import requests
 import streamlit as st
+from google_sheets_source import source_upload
 from supabase import create_client, Client
 
 from engine import analyze_data, make_ai_prompt
@@ -26,11 +27,19 @@ from operations_excellence import render_operations_excellence
 # Complete Streamlit application
 # ============================================================
 
-APP_NAME = "Generative Insight"
+from product_deployment import PRODUCTS, validate_deployment
+from bpo_trends import render_bpo_trends
+from workspace_navigation import reporting_navigation
+
+PRODUCT_ID = globals().get("DEPLOYMENT_PRODUCT")
+PRODUCT = PRODUCTS[PRODUCT_ID] if PRODUCT_ID else None
+PRODUCT_NAME = PRODUCT["name"] if PRODUCT else "AI Operations Copilot"
+USE_NEON = bool(PRODUCT)
+APP_NAME = f"Generative Insight | {PRODUCT_NAME}"
 APP_VERSION = "1.0.0"
 
 st.set_page_config(
-    page_title="Generative Insight | AI Operations Copilot",
+    page_title=APP_NAME,
     page_icon="assets/generative-insight-gi-mark-transparent.png",
     layout="wide",
     # "auto" keeps the desktop sidebar visible while allowing Streamlit
@@ -1160,6 +1169,32 @@ st.markdown(
             padding: 8px 12px !important;
         }}
     }}
+
+    body:has(.gi-auth-tabs-marker) [data-testid="stMain"],
+    body:has(.gi-auth-tabs-marker) [data-testid="stMainBlockContainer"] {{ background: transparent !important; }}
+    /* Center the identity above the account card on every product. */
+    body:has(.gi-auth-tabs-marker) [data-testid="stAppViewContainer"] {{
+        background: radial-gradient(ellipse at 12% 12%, #dceeff 0, transparent 45%), radial-gradient(ellipse at 90% 85%, #e0f4f2 0, transparent 42%), #f3f6fb !important;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-topbar {{
+        display: flex !important; justify-content: center !important;
+        width: 100%; margin: 0 auto 12px !important; padding: 18px 0 12px !important;
+        border: 0 !important; background: transparent !important;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-brand-row {{
+        display: flex; align-items: center; justify-content: center; gap: 14px;
+        margin: 0; max-width: 100%;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-auth-icon-sm {{
+        display: flex; align-items: center; justify-content: center;
+        flex: 0 0 48px; width: 48px; height: 48px; margin: 0 !important;
+    }}
+    body:has(.gi-auth-tabs-marker) .gi-brand {{ color: #102b4e; line-height: 1.2; }}
+    body:has(.gi-auth-tabs-marker) .gi-tagline {{ color: #52677c; margin-top: 4px; }}
+    body:has(.gi-auth-tabs-marker) [role="tabpanel"]:has(.gi-signup-marker),
+    body:has(.gi-auth-tabs-marker) [role="tabpanel"]:has(.gi-login-marker) {{
+        box-shadow: 0 18px 54px rgba(24,55,95,.10); border-color: #dbe5f0;
+    }}
 </style>
 """,
     unsafe_allow_html=True,
@@ -1322,6 +1357,18 @@ def secret(name, default=""):
         return default
 
 
+# Fail closed before any authentication or database request in dedicated apps.
+if PRODUCT:
+    try:
+        validate_deployment(PRODUCT_ID, {key: secret(key) for key in
+            ("PRODUCT_ID", "PRODUCT_PROJECTS", "NEON_AUTH_URL", "NEON_DATABASE_URL", "APP_PUBLIC_URL")})
+    except ValueError as error:
+        st.error(str(error))
+        st.stop()
+    st.session_state.industry = PRODUCT["industry"]
+    st.session_state.industry_selected_this_login = True
+
+
 def show_brand_header(compact=False):
     """
     Display the Generative Insight logo and website branding. Rendered as
@@ -1349,7 +1396,7 @@ def show_brand_header(compact=False):
     st.markdown(
         f"""<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:2px;">
 {logo_html}
-<div style="color:#737373; font-size:0.85rem;">AI Operations Copilot</div>
+<div style="color:#737373; font-size:0.85rem;">{PRODUCT_NAME}</div>
 </div>""",
         unsafe_allow_html=True,
     )
@@ -1364,7 +1411,17 @@ AI / ML &nbsp; | &nbsp; Annotation &nbsp; | &nbsp; Web & App Development
     )
 
 
+def get_neon_client():
+    from neon_backend import NeonClient
+    if "neon_client" not in st.session_state or st.session_state.neon_client.product != PRODUCT_ID:
+        st.session_state.neon_client = NeonClient(secret("NEON_AUTH_URL"),
+            secret("NEON_DATABASE_URL"), secret("APP_PUBLIC_URL"), PRODUCT_ID)
+    return st.session_state.neon_client
+
+
 def get_supabase_client() -> Client:
+    if USE_NEON:
+        return get_neon_client()
     """Create the Supabase client from Streamlit Secrets."""
     url = secret("SUPABASE_URL")
     anon_key = secret("SUPABASE_ANON_KEY")
@@ -1394,6 +1451,8 @@ def get_authenticated_supabase_client() -> Client:
 
 
 def get_supabase_admin_client() -> Client:
+    if USE_NEON:
+        return get_neon_client()
     url = secret("SUPABASE_URL")
     service_role_key = secret("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not service_role_key:
@@ -1491,7 +1550,7 @@ def get_razorpay_subscription(subscription_id):
 def razorpay_activation_ready(plan_id_secret="RAZORPAY_PROFESSIONAL_PLAN_ID", plan_label="Professional"):
     if not st.session_state.get("authenticated") or not st.session_state.get("user_id"):
         return False, f"Please create an account or sign in before starting a {plan_label} subscription."
-    if not secret("SUPABASE_SERVICE_ROLE_KEY"):
+    if not (secret("NEON_DATABASE_URL") if USE_NEON else secret("SUPABASE_SERVICE_ROLE_KEY")):
         return False, "Secure plan activation is not configured. Add SUPABASE_SERVICE_ROLE_KEY to Streamlit Secrets."
     if not razorpay_is_configured(plan_id_secret):
         return False, f"Razorpay is not fully configured. Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and {plan_id_secret} to Streamlit Secrets."
@@ -1576,6 +1635,7 @@ def sign_up_user(full_name, company_name, email, password):
             "email": email.strip().lower(),
             "password": password,
             "options": {
+                "email_redirect_to": secret("APP_PUBLIC_URL", "https://generative-insight-ops.streamlit.app/"),
                 "data": {
                     "full_name": full_name.strip(),
                     "company_name": company_name.strip(),
@@ -1618,7 +1678,7 @@ def set_authenticated_user(response):
 
     metadata = getattr(user, "user_metadata", {}) or {}
 
-    st.session_state.industry_selected_this_login = False
+    st.session_state.industry_selected_this_login = bool(PRODUCT)
     st.session_state.pop("owner_area", None)
     st.session_state.authenticated = True
     st.session_state.user_email = (user.email or "").lower()
@@ -1632,7 +1692,7 @@ def set_authenticated_user(response):
     st.session_state.razorpay_subscription_id = metadata.get("razorpay_subscription_id", "")
     st.session_state.free_billing_status = metadata.get("free_billing_status", "")
     st.session_state.free_subscription_id = metadata.get("free_subscription_id", "")
-    st.session_state.industry = metadata.get("industry", "BPO") or "BPO"
+    st.session_state.industry = PRODUCT["industry"] if PRODUCT else (metadata.get("industry", "BPO") or "BPO")
 
     # Supabase sets this automatically when the account is created — used
     # to work out how many days are left in the Free trial.
@@ -1641,11 +1701,15 @@ def set_authenticated_user(response):
 
 
 def clear_authentication():
+    for _key in list(st.session_state):
+        if _key.startswith('_google_') or _key.startswith('google_auth_'):
+            st.session_state.pop(_key, None)
     sign_out_user()
 
     st.session_state.pop("account_access", None)
     st.session_state.pop("owner_area", None)
     st.session_state.pop("industry_selected_this_login", None)
+    st.session_state.pop("neon_client", None)
     st.session_state.authenticated = False
     st.session_state.user_email = ""
     st.session_state.user_id = ""
@@ -2197,21 +2261,10 @@ def build_procurement_report_bytes(prs, result):
 
 
 def render_footer():
-    st.divider()
-    st.markdown(
-        f"""<div class="gi-footer">
-<strong>Generative Insight</strong> · AI Operations Copilot v{APP_VERSION}
-<br>
-Insights today. Intelligence tomorrow.
-<br>
-<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">generativeinsight.in</a>
-&nbsp;·&nbsp;
-© {datetime.now().year}
-<br>
-🛡️ Enterprise-grade security for your operational data
-</div>""",
-        unsafe_allow_html=True,
-    )
+    # The shared shell owns the footer once the authenticated workspace opens.
+    if not globals().get('_workspace_shell_active', False):
+        from workspace_shell import render_footer as shared_footer
+        shared_footer()
 
 
 def render_case_management_flow(plan_config):
@@ -2254,7 +2307,7 @@ def render_case_management_flow(plan_config):
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
-    uploaded = st.file_uploader(
+    uploaded = source_upload(
         f"📁 Upload case register (.xlsx or .csv) — max {plan_config['max_mb']} MB",
         type=["xlsx", "csv"], key="case_management_uploader",
     )
@@ -2555,7 +2608,7 @@ def render_manufacturing_flow(plan_config):
             key="mfg_report_name",
         )
 
-    uploaded = st.file_uploader(
+    uploaded = source_upload(
         f"📁 Upload Price Comparative Sheet workbook (.xlsx) — max {plan_config['max_mb']} MB",
         type=["xlsx"],
         key="mfg_file_uploader",
@@ -3647,7 +3700,7 @@ if not st.session_state.authenticated:
 <div class="gi-auth-icon-sm" style="background:transparent;">{logo_mark_html(40, 12, 18)}</div>
 <div>
 <div class="gi-brand">Generative <span>Insight</span></div>
-<div class="gi-tagline">AI Operations Copilot</div>
+<div class="gi-tagline">{PRODUCT_NAME}</div>
 </div>
 </div>
 </div>""",
@@ -3668,8 +3721,8 @@ if not st.session_state.authenticated:
             'Generative <span>Insight</span></div>'
         )
     if (
-        not secret("SUPABASE_URL")
-        or not secret("SUPABASE_ANON_KEY")
+        not USE_NEON and (not secret("SUPABASE_URL")
+        or not secret("SUPABASE_ANON_KEY"))
     ):
         st.error(
             "🔐 Authentication is not configured yet. "
@@ -3706,7 +3759,7 @@ if not st.session_state.authenticated:
         )
 
         st.markdown(
-            f"""<div class="gi-auth-card-title">Get started with Generative Insight</div>
+            f"""<div class="gi-auth-card-title">Get started with {PRODUCT_NAME}</div>
 <div class="gi-auth-card-desc">Start your {FREE_TRIAL_DAYS}-day free trial: {FREE_TRIAL_ANALYSES} analyses total, uploads up to 5 MB, and PDF reports. Then continue from ₹299/month.</div>""",
             unsafe_allow_html=True,
         )
@@ -3849,12 +3902,11 @@ Your data is protected with enterprise-grade security. By creating an account, y
                         st.rerun()
 
                     elif signup_user is not None:
-
-                        st.success(
-                            "✅ Account created. Please check your "
-                            "email and click the verification link "
-                            "before signing in."
-                        )
+                        if USE_NEON:
+                            st.session_state.neon_pending_email = signup_email.strip().lower()
+                            st.success("Account created. Enter the code from your email below, then sign in.")
+                        else:
+                            st.success("Account created. Check your email and click the verification link before signing in.")
 
                     else:
 
@@ -3870,11 +3922,18 @@ Your data is protected with enterprise-grade security. By creating an account, y
                         + friendly_auth_error(e)
                     )
 
+        if USE_NEON:
+            from neon_verification import render_verification
+            render_verification(get_neon_client().auth, "signup_email_verification")
+
     # --------------------------------------------------------
     # LOGIN
     # --------------------------------------------------------
 
     with login_tab:
+        if USE_NEON:
+            from neon_verification import render_verification
+            render_verification(get_neon_client().auth, "login_email_verification")
 
         st.markdown('<span class="gi-login-marker"></span>', unsafe_allow_html=True)
 
@@ -4003,1794 +4062,1789 @@ if not st.session_state.get("industry_selected_this_login", False):
     render_industry_choice(INDUSTRY_LABELS, update_user_industry)
     st.stop()
 
-if _access["is_owner"]:
-    _owner_view = st.sidebar.radio("Account area", ["My workspace", "Owner dashboard"], key="owner_area")
-    if _owner_view == "Owner dashboard":
-        from owner_admin import owner_snapshot, render_owner_admin
-        try:
-            _owner_data = owner_snapshot(_access_db)
-        except Exception:
-            st.error("Your owner account is recognised, but dashboard data could not load. Please retry.")
-            if st.button("Retry dashboard", key="owner_retry"):
-                st.rerun()
-        else:
-            render_owner_admin(_access_db, _owner_data)
-        st.stop()
-
-# ============================================================
-# SIDEBAR
-# ============================================================
-
-plan_config = get_plan_config(
-    st.session_state.user_plan
-)
-
 st.markdown('<span class="gi-workspace-marker"></span>', unsafe_allow_html=True)
 st.markdown(
     "<style>" + (BASE_DIR / "dashboard_theme.css").read_text(encoding="utf-8") + "</style>",
     unsafe_allow_html=True,
 )
 
-with st.sidebar:
-    st.markdown(
-        f"""<div class="gi-brand-row">
-{logo_mark_html(40, 11, 18)}
-<div><div class="gi-brand">Generative <span>Insight</span></div>
-<div class="gi-tagline">Operations workspace</div></div>
-</div>""",
-        unsafe_allow_html=True,
+from workspace_shell import render_header, render_footer as render_shell_footer
+_workspace_shell_active = True
+render_header(PRODUCT_NAME, logo_mark_html(42, 11, 18))
+_workspace_content = st.container()
+render_shell_footer()
+with _workspace_content:
+    st.markdown('<div id="workspace-settings"></div>', unsafe_allow_html=True)
+    if _access["is_owner"]:
+        with st.popover("Admin account"):
+            _owner_view = st.radio("Account area", ["My workspace", "Owner dashboard"], key="owner_area")
+        if _owner_view == "Owner dashboard":
+            from owner_admin import owner_snapshot, render_owner_admin
+            try:
+                _owner_data = owner_snapshot(_access_db)
+            except Exception:
+                st.error("Your owner account is recognised, but dashboard data could not load. Please retry.")
+                if st.button("Retry dashboard", key="owner_retry"):
+                    st.rerun()
+            else:
+                render_owner_admin(_access_db, _owner_data)
+            st.stop()
+
+    # ============================================================
+    # SIDEBAR
+    # ============================================================
+
+    plan_config = get_plan_config(
+        st.session_state.user_plan
     )
 
-    st.divider()
 
-    st.markdown(
-        f'<div class="gi-pill green">Plan: {st.session_state.user_plan}</div>',
-        unsafe_allow_html=True,
-    )
-
-    if st.session_state.user_plan == "Free":
-        if free_billing_is_active():
-            st.markdown(
-                '<div class="gi-pill green">✅ ₹299/mo billing active — trial limits don\'t apply.</div>',
-                unsafe_allow_html=True,
-            )
-        else:
-            remaining = trial_days_remaining()
-            if remaining is not None:
-                if remaining <= 0:
-                    st.markdown(
-                        '<div class="gi-pill red">Your free trial has ended. '
-                        'Continue for ₹299/mo to keep using AI Operations Manager.</div>',
-                        unsafe_allow_html=True,
-                    )
-                elif remaining <= 3:
-                    st.markdown(
-                        f'<div class="gi-pill amber">⏳ {remaining} day(s) left in your free trial '
-                        '(then ₹299/mo).</div>',
-                        unsafe_allow_html=True,
-                    )
-                elif remaining <= 5:
-                    # Soft nudge before the hard wall hits — people convert
-                    # better when they choose to upgrade early than when
-                    # they're forced to at day 0.
-                    st.markdown(
-                        f'<div class="gi-pill amber">🙂 {remaining} days left in your trial. '
-                        'Lock in ₹299/mo now to avoid any interruption.</div>',
-                        unsafe_allow_html=True,
-                    )
-                    if st.button(
-                        "Continue for ₹299/mo",
-                        use_container_width=True,
-                        key="sidebar_early_continue",
-                    ):
-                        st.session_state.show_plans = True
-                        st.rerun()
-                else:
-                    st.markdown(
-                        f'<div class="gi-pill neutral">{remaining} days left in your free trial (then ₹299/mo).</div>',
-                        unsafe_allow_html=True,
-                    )
-
-    render_user_badge(st.session_state.get("user_name", ""), st.session_state.user_email)
-
-    st.divider()
-
-    st.radio("Workspace view", ["Industry tools", "Shared work hub"], key="workspace_view")
-
-    st.subheader("Workspace")
-
-    _current_industry = st.session_state.get("industry", "BPO")
-    _selected_label = st.selectbox(
-        "Analyze data for",
-        options=list(INDUSTRY_LABELS.values()),
-        index=list(INDUSTRY_LABELS.keys()).index(_current_industry)
-        if _current_industry in INDUSTRY_LABELS else 0,
-        key="industry_selector",
-    )
-    _selected_industry = next(
-        k for k, v in INDUSTRY_LABELS.items() if v == _selected_label
-    )
-    if _selected_industry != _current_industry:
-        update_user_industry(_selected_industry)
-        clear_analysis()
-        st.session_state.manufacturing_file_name = ""
-        st.session_state.manufacturing_result = None
-        st.session_state.manufacturing_report_bytes = None
-        st.rerun()
-
-    st.divider()
-
-    if st.session_state.industry == "BPO":
-
-        st.radio(
-            "BPO workspace",
-            ["Performance Dashboard", "Operations Excellence"],
-            key="bpo_workspace",
+    with st.expander("Workspace settings · account, tools and KPI targets", expanded=False):
+        st.markdown(
+            f"""<div class="gi-brand-row">
+    {logo_mark_html(40, 11, 18)}
+    <div><div class="gi-brand">Generative <span>Insight</span></div>
+    <div class="gi-tagline">Operations workspace</div></div>
+    </div>""",
+            unsafe_allow_html=True,
         )
-        with st.expander("KPI targets", expanded=False):
-            st.caption("Set the thresholds used by your operational analysis.")
-            productivity_target = st.number_input(
-                "Productivity target %",
-                min_value=1,
-                max_value=200,
-                value=90,
-            )
-
-            quality_target = st.number_input(
-                "Quality target %",
-                min_value=1,
-                max_value=100,
-                value=95,
-            )
-
-            sla_target = st.number_input(
-                "SLA target %",
-                min_value=1,
-                max_value=100,
-                value=97,
-            )
-
-            aht_target = st.number_input(
-                "AHT target",
-                min_value=1,
-                max_value=1000,
-                value=50,
-            )
 
         st.divider()
 
-    if st.button(
-        "View plans",
-        use_container_width=True,
-        key="sidebar_view_plans",
-    ):
-        st.session_state.show_plans = True
-
-    if st.button(
-        "Reset analysis",
-        use_container_width=True,
-        key="sidebar_reset_analysis",
-    ):
-        clear_analysis()
-        st.rerun()
-
-    if st.button(
-        "Sign out",
-        use_container_width=True,
-        key="sidebar_sign_out",
-    ):
-        clear_authentication()
-        st.rerun()
-
-
-if st.session_state.get("show_plans"):
-
-    st.divider()
-
-    show_pricing("sidebar")
-
-    st.divider()
-
-
-# ============================================================
-# FREE TRIAL GATE
-# 3 days of Free access, then the dashboard is locked until
-# the user upgrades to a paid plan.
-# ============================================================
-
-if st.session_state.user_plan == "Free" and not free_billing_is_active():
-
-    _trial_remaining = trial_days_remaining()
-
-    if _trial_remaining is not None and _trial_remaining <= 0:
-
-        show_brand_header(compact=True)
-
         st.markdown(
-            '<div class="main-title">Your Free trial has ended</div>',
+            f'<div class="gi-pill green">Plan: {st.session_state.user_plan}</div>',
             unsafe_allow_html=True,
         )
 
-        st.warning(
-            "Your free trial ended "
-            f"{abs(_trial_remaining)} day(s) ago. Continue on Free for "
-            "₹299/mo, or upgrade to Professional or Business, to keep "
-            "analyzing operational data."
-        )
-
-        show_pricing("trial_expired")
-
-        st.stop()
-
-    elif _trial_remaining is not None and _trial_remaining <= 5:
-
-        # Soft nudge before the hard wall — shown once trial is running
-        # low but access is still allowed. Distinct from the sidebar
-        # caption: this sits at the top of the main dashboard where it
-        # can't be missed, with a direct link to upgrade now.
-        nudge_col1, nudge_col2 = st.columns([4, 1])
-        with nudge_col1:
-            st.warning(
-                f"⏳ **{_trial_remaining} day(s) left** in your free trial. "
-                "Continue on Free for ₹299/mo, or upgrade to Professional, "
-                "to avoid losing access to your dashboard."
-            )
-        with nudge_col2:
-            if st.button(
-                "View Plans",
-                use_container_width=True,
-                key="trial_nudge_view_plans",
-            ):
-                st.session_state.show_plans = True
-                st.rerun()
-
-
-# ============================================================
-# HEADER
-# ============================================================
-
-st.markdown(
-    """<div class="gi-dashboard-heading">
-<div>
-<div class="gi-dashboard-title">Operations Dashboard</div>
-<div class="gi-dashboard-subtitle">Turn operational data into management decisions</div>
-</div>
-</div>""",
-    unsafe_allow_html=True,
-)
-
-# ============================================================
-# INDUSTRY DISPATCH
-# Manufacturing gets its own complete, self-contained flow. Anything
-# not yet in BUILT_INDUSTRIES gets the coming-soon screen. Both stop
-# here. Everything below this point (Report Setup, file upload, KPI
-# analysis, tabs) is BPO-only and assumes productivity_target etc.
-# exist, which they only do when industry == "BPO".
-# ============================================================
-
-if st.session_state.get("workspace_view") == "Shared work hub":
-    try:
-        hub_db = get_authenticated_supabase_client()
-    except Exception:
-        st.error("Could not open your workspace. Please sign out and sign in again.")
-        st.stop()
-    render_work_hub(hub_db, st.session_state.user_id, st.session_state.industry)
-    st.stop()
-
-if st.session_state.industry == "Manufacturing":
-    render_manufacturing_flow(plan_config)
-    st.stop()
-
-elif st.session_state.industry == "CaseManagement":
-    render_case_management_flow(plan_config)
-    st.stop()
-
-elif st.session_state.industry not in BUILT_INDUSTRIES:
-    render_coming_soon_flow(st.session_state.industry)
-    st.stop()
-
-
-if st.session_state.get("bpo_workspace") == "Operations Excellence":
-    render_operations_excellence()
-    st.stop()
-
-
-# ============================================================
-# CUSTOMER INFORMATION
-# ============================================================
-
-st.subheader("🏢 Report Setup")
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-
-    company_name = st.text_input(
-        "Company Name",
-        value=st.session_state.get(
-            "company_name",
-            "",
-        ),
-        placeholder="e.g. ABC Technologies",
-    )
-
-with col2:
-
-    manager_email = st.text_input(
-        "Manager Email",
-        value=st.session_state.get(
-            "user_email",
-            "",
-        ),
-        placeholder="manager@company.com",
-    )
-
-with col3:
-
-    report_name = st.text_input(
-        "Report Name",
-        value="Daily Operations Report",
-    )
-
-
-# ============================================================
-# FILE UPLOAD
-# ============================================================
-
-uploaded = st.file_uploader(
-    (
-        "📁 Upload Excel or CSV operational data — "
-        f"max {plan_config['max_mb']} MB"
-    ),
-    type=["xlsx", "xls", "csv"],
-)
-
-if not uploaded:
-
-    st.info(
-        "Upload operational data to activate the "
-        "executive dashboard."
-    )
-
-    st.markdown("### Required columns")
-
-    st.code(
-        "Date, Employee_ID, Employee_Name, Team, Target, "
-        "Production, AHT_Actual, AHT_Target, Quality_%, "
-        "SLA_%, Attendance, Error_Count, Error_Category"
-    )
-
-    st.download_button(
-        "⬇️ Download Data Template (.xlsx)",
-        data=build_data_template_bytes(),
-        file_name="AI_Operations_Manager_Data_Template.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True,
-        key="download_data_template",
-    )
-
-    st.caption(
-        "Includes example rows and a column-by-column guide — "
-        "delete the sample rows and paste in your own data."
-    )
-
-    st.markdown("### What you get")
-
-    a, b, c, d = st.columns(4)
-
-    with a:
-        render_check_card("Risk Detection")
-    with b:
-        render_check_card("Employee Risk")
-    with c:
-        render_check_card("AI Copilot")
-    with d:
-        render_check_card("Management Report")
-
-    st.stop()
-
-
-# ============================================================
-# FILE SIZE
-# ============================================================
-
-file_mb = uploaded.size / (1024 * 1024)
-
-if file_mb > plan_config["max_mb"]:
-
-    st.error(
-        f"File is {file_mb:.2f} MB. "
-        f"Your {st.session_state.user_plan} plan supports "
-        f"files up to {plan_config['max_mb']} MB."
-    )
-
-    st.stop()
-
-elif (
-    st.session_state.user_plan != "Professional"
-    and file_mb > plan_config["max_mb"] * 0.8
-):
-
-    # Contextual upsell — shown right where the constraint actually
-    # bites, not on a separate pricing page.
-    st.warning(
-        f"This file is {file_mb:.2f} MB, close to your "
-        f"{plan_config['max_mb']} MB limit. Professional supports files "
-        "up to 25 MB plus PDF + email reports and n8n automation."
-    )
-    if st.button("🚀 See Professional plan", key="upsell_filesize"):
-        st.session_state.show_plans = True
-        st.rerun()
-
-
-# ============================================================
-# RESET WHEN NEW FILE
-# ============================================================
-
-if st.session_state.file_name != uploaded.name:
-
-    st.session_state.file_name = uploaded.name
-    st.session_state.n8n_sent = False
-    st.session_state.n8n_result = None
-    st.session_state.copilot_answer = None
-    st.session_state.last_question = ""
-    st.session_state.analysis_result = None
-    st.session_state.analysis_df = None
-    st.session_state.report_pdf = None
-
-
-# ============================================================
-# N8N SETTINGS
-# ============================================================
-
-n8n_url_raw = secret(
-    "N8N_WEBHOOK_URL"
-)
-
-copilot_url_raw = secret(
-    "N8N_COPILOT_WEBHOOK_URL"
-)
-
-n8n_url = normalize_webhook_url(n8n_url_raw)
-copilot_url = normalize_webhook_url(copilot_url_raw)
-
-if n8n_url_raw and not n8n_url:
-    st.error("❌ N8N_WEBHOOK_URL is not a valid HTTP(S) URL in Streamlit Secrets.")
-
-if copilot_url_raw and not copilot_url:
-    st.error("❌ N8N_COPILOT_WEBHOOK_URL is not a valid HTTP(S) URL in Streamlit Secrets.")
-
-if n8n_url and "/webhook-test/" in n8n_url:
-
-    st.warning(
-        "⚠️ n8n is configured with a TEST webhook. "
-        "For production use, activate the workflow and use "
-        "/webhook/operations-upload in Streamlit Secrets."
-    )
-
-if (
-    copilot_url
-    and "/webhook-test/" in copilot_url
-):
-
-    st.warning(
-        "⚠️ Management Copilot is using an n8n TEST webhook. "
-        "Use the production /webhook/management-copilot URL "
-        "after activating the workflow."
-    )
-
-
-# ============================================================
-# READ FILE
-# ============================================================
-
-_analysis_start_time = time.time()
-
-with st.spinner("🔄 Fetching and reading your uploaded data..."):
-
-    try:
-
-        uploaded.seek(0)
-
-        if uploaded.name.lower().endswith(".csv"):
-
-            df = pd.read_csv(uploaded)
-
-        else:
-
-            xls = pd.ExcelFile(uploaded)
-
-            sheet = (
-                "Operational_Data"
-                if "Operational_Data" in xls.sheet_names
-                else xls.sheet_names[0]
-            )
-
-            df = pd.read_excel(
-                uploaded,
-                sheet_name=sheet,
-            )
-
-    except Exception as e:
-
-        st.error(
-            f"❌ Could not read the uploaded file: {e}"
-        )
-
-        st.stop()
-
-
-# ============================================================
-# VALIDATE DATA
-# ============================================================
-
-required_columns = [
-    "Employee_ID",
-    "Employee_Name",
-    "Team",
-    "Target",
-    "Production",
-    "AHT_Actual",
-    "Quality_%",
-    "SLA_%",
-    # These two matter: engine.py's analyze_data() requires them too
-    # (see its REQUIRED list). Without checking for them here, a file
-    # could pass this gate cleanly and then crash a moment later
-    # inside analyze_data() with a confusing "Missing columns" error.
-    "Attendance",
-    "Error_Count",
-]
-
-missing_columns = [
-    col
-    for col in required_columns
-    if col not in df.columns
-]
-
-if missing_columns:
-
-    st.error(
-        "❌ Required columns are missing."
-    )
-
-    st.write(missing_columns)
-
-    st.stop()
-
-
-# ============================================================
-# LOCAL ANALYSIS
-# ============================================================
-
-require_trial_analysis(uploaded, st.session_state.industry, {"productivity": productivity_target, "quality": quality_target, "sla": sla_target, "aht": aht_target})
-
-with st.spinner("🧠 Analyzing operational data against your KPI targets..."):
-
-    try:
-
-        result = analyze_data(
-            df,
-            productivity_target=productivity_target,
-            quality_target=quality_target,
-            sla_target=sla_target,
-            aht_target=aht_target,
-        )
-
-    except Exception as e:
-
-        st.error(
-            f"❌ Analysis failed: {e}"
-        )
-
-        st.stop()
-
-_analysis_elapsed = time.time() - _analysis_start_time
-
-st.session_state.analysis_result = result
-st.session_state.analysis_df = df
-
-
-# ============================================================
-# KPI CALCULATIONS
-# ============================================================
-
-overall = result["overall"]
-
-productivity = float(
-    overall["productivity"]
-)
-
-quality = float(
-    overall["quality"]
-)
-
-sla = float(
-    overall["sla"]
-)
-
-aht = float(
-    overall["aht"]
-)
-
-productivity_gap = (
-    productivity - productivity_target
-)
-
-quality_gap = (
-    quality - quality_target
-)
-
-sla_gap = (
-    sla - sla_target
-)
-
-aht_gap = (
-    aht - aht_target
-)
-
-breaches = sum(
-    [
-        productivity < productivity_target,
-        quality < quality_target,
-        sla < sla_target,
-        aht > aht_target,
-    ]
-)
-
-if breaches == 0:
-
-    risk_level = "🟢 LOW RISK"
-
-elif breaches == 1:
-
-    risk_level = "🟡 MEDIUM RISK"
-
-elif breaches == 2:
-
-    risk_level = "🟠 HIGH RISK"
-
-else:
-
-    risk_level = "🔴 CRITICAL RISK"
-
-
-actions_df = result.get(
-    "actions",
-    pd.DataFrame(),
-)
-
-action_count = (
-    len(actions_df)
-    if isinstance(actions_df, pd.DataFrame)
-    else 0
-)
-
-high_priority_count = 0
-
-if (
-    isinstance(actions_df, pd.DataFrame)
-    and not actions_df.empty
-):
-
-    for col in [
-        "Priority",
-        "priority",
-        "Priority_Level",
-        "priority_level",
-    ]:
-
-        if col in actions_df.columns:
-
-            high_priority_count = len(
-                actions_df[
-                    actions_df[col]
-                    .astype(str)
-                    .str.lower()
-                    .isin(
-                        [
-                            "high",
-                            "critical",
-                        ]
-                    )
-                ]
-            )
-
-            break
-
-
-# ============================================================
-# KPI PERFORMANCE
-# ============================================================
-
-st.markdown(
-    f'<div class="small-muted" style="margin:.25rem 0 1rem;">'
-    f'{company_name or "Your organization"} · {report_name} · '
-    f'{len(df)} rows analyzed in {_analysis_elapsed:.2f}s</div>',
-    unsafe_allow_html=True,
-)
-
-k1, k2, k3, k4 = st.columns(4)
-
-with k1:
-    render_metric_card(
-        "📈", "Productivity", f"{productivity:.2f}%",
-        delta=f"{productivity_gap:+.2f}% vs target",
-        delta_tone="good" if productivity_gap >= 0 else "bad",
-    )
-
-with k2:
-    render_metric_card(
-        "✔️", "Quality", f"{quality:.2f}%",
-        delta=f"{quality_gap:+.2f}% vs target",
-        delta_tone="good" if quality_gap >= 0 else "bad",
-    )
-
-with k3:
-    render_metric_card(
-        "⏱️", "SLA", f"{sla:.2f}%",
-        delta=f"{sla_gap:+.2f}% vs target",
-        delta_tone="good" if sla_gap >= 0 else "bad",
-    )
-
-with k4:
-    render_metric_card(
-        "⌛", "Average AHT", f"{aht:.2f}",
-        delta=f"{aht_gap:+.2f} vs target",
-        delta_tone="bad" if aht_gap > 0 else "good",
-    )
-
-
-# ============================================================
-# PERFORMANCE TREND + RISK ALERTS
-# ============================================================
-
-trend_data = pd.DataFrame()
-if "Date" in df.columns:
-    _trend_source = df.copy()
-    _trend_source["Date"] = pd.to_datetime(_trend_source["Date"], errors="coerce")
-    _trend_source = _trend_source.dropna(subset=["Date"])
-    if not _trend_source.empty:
-        _trend_source["Period"] = _trend_source["Date"].dt.to_period("W").astype(str)
-        _trend_rows = []
-        for _period, _group in _trend_source.groupby("Period", sort=True):
-            _row = {"Period": _period}
-            if "Production" in _group.columns and "Target" in _group.columns:
-                _target_sum = pd.to_numeric(_group["Target"], errors="coerce").sum()
-                _production_sum = pd.to_numeric(_group["Production"], errors="coerce").sum()
-                if _target_sum:
-                    _row["Productivity"] = (_production_sum / _target_sum) * 100
-            if "Quality_%" in _group.columns:
-                _row["Quality"] = pd.to_numeric(_group["Quality_%"], errors="coerce").mean()
-            if "SLA_%" in _group.columns:
-                _row["SLA"] = pd.to_numeric(_group["SLA_%"], errors="coerce").mean()
-            _trend_rows.append(_row)
-        trend_data = pd.DataFrame(_trend_rows).set_index("Period") if _trend_rows else pd.DataFrame()
-
-# A stable current-period view keeps the dashboard useful when the uploaded
-# file has no Date column or contains only one reporting period.
-if trend_data.empty:
-    trend_data = pd.DataFrame(
-        {
-            "Productivity": [productivity] * 6,
-            "Quality": [quality] * 6,
-            "SLA": [sla] * 6,
-        },
-        index=[f"Wk {i}" for i in range(1, 7)],
-    )
-
-trend_col, alerts_col = st.columns([2.15, 1])
-
-with trend_col:
-    with st.container(border=True):
-        st.markdown('<div class="gi-panel-title">KPI Performance Trend</div>', unsafe_allow_html=True)
-        _has_real_trend = len(trend_data.index) >= 2
-        _chart_subtitle = (
-            "Productivity, quality and SLA over time"
-            if _has_real_trend
-            else "Current KPI position — add multiple dates to display a trend"
-        )
-        st.markdown(
-            f'<div class="gi-panel-subtitle">{_chart_subtitle}</div>',
-            unsafe_allow_html=True,
-        )
-
-        if _has_real_trend:
-            _chart_frame = (
-                trend_data.reset_index()
-                .melt(id_vars=[trend_data.index.name or "index"], var_name="KPI", value_name="Value")
-            )
-            _period_column = trend_data.index.name or "index"
-            _chart = (
-                alt.Chart(_chart_frame)
-                .mark_line(point=alt.OverlayMarkDef(size=55), strokeWidth=2.5)
-                .encode(
-                    x=alt.X(f"{_period_column}:N", title=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(domain=[0, 100])),
-                    color=alt.Color(
-                        "KPI:N",
-                        scale=alt.Scale(
-                            domain=["Productivity", "Quality", "SLA"],
-                            range=["#0EA5E9", "#0F766E", "#EF4444"],
-                        ),
-                        legend=alt.Legend(orient="bottom", title=None),
-                    ),
-                    tooltip=[_period_column, "KPI", alt.Tooltip("Value:Q", format=".1f")],
-                )
-            )
-        else:
-            _current_kpis = pd.DataFrame(
-                {
-                    "KPI": ["Productivity", "Quality", "SLA"],
-                    "Value": [productivity, quality, sla],
-                }
-            )
-            _chart = (
-                alt.Chart(_current_kpis)
-                .mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6, size=54)
-                .encode(
-                    x=alt.X("KPI:N", title=None, sort=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(domain=[0, 100])),
-                    color=alt.Color(
-                        "KPI:N",
-                        scale=alt.Scale(
-                            domain=["Productivity", "Quality", "SLA"],
-                            range=["#0EA5E9", "#0F766E", "#EF4444"],
-                        ),
-                        legend=None,
-                    ),
-                    tooltip=["KPI", alt.Tooltip("Value:Q", format=".1f")],
-                )
-            )
-
-        _chart = _chart.properties(height=300).configure(
-            background="#FFFFFF"
-        ).configure_view(
-            stroke=None
-        ).configure_axis(
-            labelColor="#52525B",
-            titleColor="#52525B",
-            domainColor="#E5E7EB",
-            tickColor="#E5E7EB",
-            gridColor="#EEF0F3",
-        ).configure_legend(
-            labelColor="#27272A"
-        )
-        st.altair_chart(_chart, use_container_width=True, theme=None)
-
-with alerts_col:
-    with st.container(border=True):
-        st.markdown('<div class="gi-panel-title">⚠ Risk Alerts</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="gi-panel-subtitle">{breaches} active signal(s)</div>',
-            unsafe_allow_html=True,
-        )
-
-        _alerts = []
-        if productivity < productivity_target:
-            _alerts.append(("Productivity below target", f"{productivity:.1f}% vs {productivity_target}%", "High"))
-        if quality < quality_target:
-            _alerts.append(("Quality below target", f"{quality:.1f}% vs {quality_target}%", "High"))
-        if sla < sla_target:
-            _alerts.append(("SLA below target", f"{sla:.1f}% vs {sla_target}%", "Medium"))
-        if aht > aht_target:
-            _alerts.append(("Average AHT rising", f"{aht:.1f} vs {aht_target}", "Medium"))
-
-        if not _alerts:
-            st.success("All monitored KPIs are within target.")
-        else:
-            for _name, _meta, _level in _alerts:
+        if st.session_state.user_plan == "Free":
+            if free_billing_is_active():
                 st.markdown(
-                    f'''<div class="gi-risk-alert">
-<div><div class="gi-risk-name">{_name}</div><div class="gi-risk-meta">{_meta}</div></div>
-<div class="gi-risk-level">{_level}</div>
-</div>''',
+                    '<div class="gi-pill green">✅ ₹299/mo billing active — trial limits don\'t apply.</div>',
                     unsafe_allow_html=True,
                 )
+            else:
+                remaining = trial_days_remaining()
+                if remaining is not None:
+                    if remaining <= 0:
+                        st.markdown(
+                            '<div class="gi-pill red">Your free trial has ended. '
+                            'Continue for ₹299/mo to keep using AI Operations Manager.</div>',
+                            unsafe_allow_html=True,
+                        )
+                    elif remaining <= 3:
+                        st.markdown(
+                            f'<div class="gi-pill amber">⏳ {remaining} day(s) left in your free trial '
+                            '(then ₹299/mo).</div>',
+                            unsafe_allow_html=True,
+                        )
+                    elif remaining <= 5:
+                        # Soft nudge before the hard wall hits — people convert
+                        # better when they choose to upgrade early than when
+                        # they're forced to at day 0.
+                        st.markdown(
+                            f'<div class="gi-pill amber">🙂 {remaining} days left in your trial. '
+                            'Lock in ₹299/mo now to avoid any interruption.</div>',
+                            unsafe_allow_html=True,
+                        )
+                        if st.button(
+                            "Continue for ₹299/mo",
+                            use_container_width=True,
+                            key="sidebar_early_continue",
+                        ):
+                            st.session_state.show_plans = True
+                            st.rerun()
+                    else:
+                        st.markdown(
+                            f'<div class="gi-pill neutral">{remaining} days left in your free trial (then ₹299/mo).</div>',
+                            unsafe_allow_html=True,
+                        )
+
+        render_user_badge(st.session_state.get("user_name", ""), st.session_state.user_email)
+
+        st.divider()
+
+        st.radio("Workspace view", ["Industry tools", "Shared work hub"], key="workspace_view")
+
+        st.subheader("Workspace")
+
+        if PRODUCT:
+            st.caption(PRODUCT_NAME)
+        else:
+            _current_industry = st.session_state.get("industry", "BPO")
+            _selected_label = st.selectbox(
+                "Analyze data for",
+                options=list(INDUSTRY_LABELS.values()),
+                index=list(INDUSTRY_LABELS.keys()).index(_current_industry)
+                if _current_industry in INDUSTRY_LABELS else 0,
+                key="industry_selector",
+            )
+            _selected_industry = next(
+                k for k, v in INDUSTRY_LABELS.items() if v == _selected_label
+            )
+            if _selected_industry != _current_industry:
+                update_user_industry(_selected_industry)
+                clear_analysis()
+                st.session_state.manufacturing_file_name = ""
+                st.session_state.manufacturing_result = None
+                st.session_state.manufacturing_report_bytes = None
+                st.rerun()
+
+        st.divider()
+
+        if st.session_state.industry == "BPO":
+
+            st.radio(
+                "Operations workspace",
+                ["IT Operations", "AI/ML Annotation", "Performance Dashboard", "Operations Excellence"],
+                key="bpo_workspace",
+            )
+            with st.expander("KPI targets", expanded=False):
+                st.caption("Set the thresholds used by your operational analysis.")
+                productivity_target = st.number_input(
+                    "Productivity target %",
+                    min_value=1,
+                    max_value=200,
+                    value=90,
+                )
+
+                quality_target = st.number_input(
+                    "Quality target %",
+                    min_value=1,
+                    max_value=100,
+                    value=95,
+                )
+
+                sla_target = st.number_input(
+                    "SLA target %",
+                    min_value=1,
+                    max_value=100,
+                    value=97,
+                )
+
+                aht_target = st.number_input(
+                    "AHT target",
+                    min_value=1,
+                    max_value=1000,
+                    value=50,
+                )
+
+            st.divider()
+
+        if st.button(
+            "View plans",
+            use_container_width=True,
+            key="sidebar_view_plans",
+        ):
+            st.session_state.show_plans = True
+
+        if st.button(
+            "Reset analysis",
+            use_container_width=True,
+            key="sidebar_reset_analysis",
+        ):
+            clear_analysis()
+            st.rerun()
+
+        if st.button(
+            "Sign out",
+            use_container_width=True,
+            key="sidebar_sign_out",
+        ):
+            clear_authentication()
+            st.rerun()
 
 
-# ============================================================
-# EXECUTIVE SUMMARY
-# ============================================================
+    if st.session_state.get("show_plans"):
 
-summary_points = []
+        st.divider()
 
-summary_points.append(
-    f"{'🔴' if productivity < productivity_target else '🟢'} "
-    f"Productivity: {productivity:.1f}% vs "
-    f"{productivity_target}% target."
-)
+        show_pricing("sidebar")
 
-summary_points.append(
-    f"{'🔴' if quality < quality_target else '🟢'} "
-    f"Quality: {quality:.1f}% vs "
-    f"{quality_target}% target."
-)
+        st.divider()
 
-summary_points.append(
-    f"{'🔴' if sla < sla_target else '🟢'} "
-    f"SLA: {sla:.1f}% vs "
-    f"{sla_target}% target."
-)
 
-summary_points.append(
-    f"{'🟠' if aht > aht_target else '🟢'} "
-    f"AHT: {aht:.1f} vs "
-    f"{aht_target} target."
-)
+    # ============================================================
+    # FREE TRIAL GATE
+    # 3 days of Free access, then the dashboard is locked until
+    # the user upgrades to a paid plan.
+    # ============================================================
 
-if breaches >= 3:
+    if st.session_state.user_plan == "Free" and not free_billing_is_active():
 
-    recommendation = (
-        "Immediate management attention is recommended. "
-        "Multiple KPI thresholds are breached. Prioritize "
-        "root-cause analysis, targeted corrective actions, "
-        "and close monitoring."
+        _trial_remaining = trial_days_remaining()
+
+        if _trial_remaining is not None and _trial_remaining <= 0:
+
+            show_brand_header(compact=True)
+
+            st.markdown(
+                '<div class="main-title">Your Free trial has ended</div>',
+                unsafe_allow_html=True,
+            )
+
+            st.warning(
+                "Your free trial ended "
+                f"{abs(_trial_remaining)} day(s) ago. Continue on Free for "
+                "₹299/mo, or upgrade to Professional or Business, to keep "
+                "analyzing operational data."
+            )
+
+            show_pricing("trial_expired")
+
+            st.stop()
+
+        elif _trial_remaining is not None and _trial_remaining <= 5:
+
+            # Soft nudge before the hard wall — shown once trial is running
+            # low but access is still allowed. Distinct from the sidebar
+            # caption: this sits at the top of the main dashboard where it
+            # can't be missed, with a direct link to upgrade now.
+            nudge_col1, nudge_col2 = st.columns([4, 1])
+            with nudge_col1:
+                st.warning(
+                    f"⏳ **{_trial_remaining} day(s) left** in your free trial. "
+                    "Continue on Free for ₹299/mo, or upgrade to Professional, "
+                    "to avoid losing access to your dashboard."
+                )
+            with nudge_col2:
+                if st.button(
+                    "View Plans",
+                    use_container_width=True,
+                    key="trial_nudge_view_plans",
+                ):
+                    st.session_state.show_plans = True
+                    st.rerun()
+
+
+    # ============================================================
+    # HEADER
+    # ============================================================
+
+    st.markdown(
+        """<div class="gi-dashboard-heading">
+    <div>
+    <div class="gi-dashboard-title">Operations Dashboard</div>
+    <div class="gi-dashboard-subtitle">Turn operational data into management decisions</div>
+    </div>
+    </div>""",
+        unsafe_allow_html=True,
     )
 
-elif breaches >= 1:
+    # ============================================================
+    # INDUSTRY DISPATCH
+    # Manufacturing gets its own complete, self-contained flow. Anything
+    # not yet in BUILT_INDUSTRIES gets the coming-soon screen. Both stop
+    # here. Everything below this point (Report Setup, file upload, KPI
+    # analysis, tabs) is BPO-only and assumes productivity_target etc.
+    # exist, which they only do when industry == "BPO".
+    # ============================================================
 
-    recommendation = (
-        "Management should review the affected KPIs, validate "
-        "contributing factors, and initiate targeted corrective actions."
+    if st.session_state.get("workspace_view") == "Shared work hub":
+        try:
+            hub_db = get_authenticated_supabase_client()
+        except Exception:
+            st.error("Could not open your workspace. Please sign out and sign in again.")
+            st.stop()
+        render_work_hub(hub_db, st.session_state.user_id, st.session_state.industry)
+        st.stop()
+
+    if st.session_state.industry == "Manufacturing":
+        render_manufacturing_flow(plan_config)
+        st.stop()
+
+    elif st.session_state.industry == "CaseManagement":
+        render_case_management_flow(plan_config)
+        st.stop()
+
+    elif st.session_state.industry not in BUILT_INDUSTRIES:
+        render_coming_soon_flow(st.session_state.industry)
+        st.stop()
+
+
+    if st.session_state.get("bpo_workspace") == "IT Operations":
+        from it_operations import render_it_operations
+        render_it_operations(plan_config, require_trial_analysis)
+        st.stop()
+
+    if st.session_state.get("bpo_workspace") == "AI/ML Annotation":
+        from annotation_operations import render_annotation_operations
+        render_annotation_operations(plan_config, require_trial_analysis)
+        st.stop()
+
+    if st.session_state.get("bpo_workspace") == "Operations Excellence":
+        render_operations_excellence()
+        st.stop()
+
+
+    # ============================================================
+    # CUSTOMER INFORMATION
+    # ============================================================
+
+    st.subheader("🏢 Report Setup")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        company_name = st.text_input(
+            "Company Name",
+            value=st.session_state.get(
+                "company_name",
+                "",
+            ),
+            placeholder="e.g. ABC Technologies",
+        )
+
+    with col2:
+
+        manager_email = st.text_input(
+            "Manager Email",
+            value=st.session_state.get(
+                "user_email",
+                "",
+            ),
+            placeholder="manager@company.com",
+        )
+
+    with col3:
+
+        report_name = st.text_input(
+            "Report Name",
+            value="Daily Operations Report",
+        )
+
+
+    # ============================================================
+    # FILE UPLOAD
+    # ============================================================
+
+    uploaded = source_upload(
+        (
+            "📁 Upload Excel or CSV operational data — "
+            f"max {plan_config['max_mb']} MB"
+        ),
+        type=["xlsx", "xls", "csv"],
     )
 
-else:
+    if not uploaded:
 
-    recommendation = (
-        "Operations are within defined KPI thresholds. Continue "
-        "monitoring performance and maintain current processes."
+        st.info(
+            "Upload operational data to activate the "
+            "executive dashboard."
+        )
+
+        st.markdown("### Required columns")
+
+        st.code(
+            "Date, Employee_ID, Employee_Name, Team, Target, "
+            "Production, AHT_Actual, AHT_Target, Quality_%, "
+            "SLA_%, Attendance, Error_Count, Error_Category"
+        )
+
+        st.download_button(
+            "⬇️ Download Data Template (.xlsx)",
+            data=build_data_template_bytes(),
+            file_name="AI_Operations_Manager_Data_Template.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="download_data_template",
+        )
+
+        st.caption(
+            "Includes example rows and a column-by-column guide — "
+            "delete the sample rows and paste in your own data."
+        )
+
+        st.markdown("### What you get")
+
+        a, b, c, d = st.columns(4)
+
+        with a:
+            render_check_card("Risk Detection")
+        with b:
+            render_check_card("Employee Risk")
+        with c:
+            render_check_card("AI Copilot")
+        with d:
+            render_check_card("Management Report")
+
+        st.stop()
+
+
+    # ============================================================
+    # FILE SIZE
+    # ============================================================
+
+    file_mb = uploaded.size / (1024 * 1024)
+
+    if file_mb > plan_config["max_mb"]:
+
+        st.error(
+            f"File is {file_mb:.2f} MB. "
+            f"Your {st.session_state.user_plan} plan supports "
+            f"files up to {plan_config['max_mb']} MB."
+        )
+
+        st.stop()
+
+    elif (
+        st.session_state.user_plan != "Professional"
+        and file_mb > plan_config["max_mb"] * 0.8
+    ):
+
+        # Contextual upsell — shown right where the constraint actually
+        # bites, not on a separate pricing page.
+        st.warning(
+            f"This file is {file_mb:.2f} MB, close to your "
+            f"{plan_config['max_mb']} MB limit. Professional supports files "
+            "up to 25 MB plus PDF + email reports and n8n automation."
+        )
+        if st.button("🚀 See Professional plan", key="upsell_filesize"):
+            st.session_state.show_plans = True
+            st.rerun()
+
+
+    # ============================================================
+    # RESET WHEN NEW FILE
+    # ============================================================
+
+    if st.session_state.file_name != uploaded.name:
+
+        st.session_state.file_name = uploaded.name
+        st.session_state.n8n_sent = False
+        st.session_state.n8n_result = None
+        st.session_state.copilot_answer = None
+        st.session_state.last_question = ""
+        st.session_state.analysis_result = None
+        st.session_state.analysis_df = None
+        st.session_state.report_pdf = None
+
+
+    # ============================================================
+    # N8N SETTINGS
+    # ============================================================
+
+    n8n_url_raw = secret(
+        "N8N_WEBHOOK_URL"
     )
 
+    copilot_url_raw = secret(
+        "N8N_COPILOT_WEBHOOK_URL"
+    )
 
-st.subheader("🧠 Executive Summary")
+    n8n_url = normalize_webhook_url(n8n_url_raw)
+    copilot_url = normalize_webhook_url(copilot_url_raw)
 
-for point in summary_points:
-    st.write(point)
+    if n8n_url_raw and not n8n_url:
+        st.error("❌ N8N_WEBHOOK_URL is not a valid HTTP(S) URL in Streamlit Secrets.")
 
-st.info(
-    f"💡 **Management Recommendation:** {recommendation}"
-)
+    if copilot_url_raw and not copilot_url:
+        st.error("❌ N8N_COPILOT_WEBHOOK_URL is not a valid HTTP(S) URL in Streamlit Secrets.")
 
+    if n8n_url and "/webhook-test/" in n8n_url:
 
-# ============================================================
-# N8N OPERATIONAL AUTOMATION
-# ============================================================
-
-if n8n_url and not st.session_state.n8n_sent:
+        st.warning(
+            "⚠️ n8n is configured with a TEST webhook. "
+            "For production use, activate the workflow and use "
+            "/webhook/operations-upload in Streamlit Secrets."
+        )
 
     if (
-        not company_name.strip()
-        or not manager_email.strip()
+        copilot_url
+        and "/webhook-test/" in copilot_url
     ):
 
         st.warning(
-            "Enter Company Name and Manager Email to run "
-            "the configured n8n operational automation."
+            "⚠️ Management Copilot is using an n8n TEST webhook. "
+            "Use the production /webhook/management-copilot URL "
+            "after activating the workflow."
         )
 
-    else:
+
+    # ============================================================
+    # READ FILE
+    # ============================================================
+
+    _analysis_start_time = time.time()
+
+    with st.spinner("🔄 Fetching and reading your uploaded data..."):
 
         try:
 
             uploaded.seek(0)
 
-            files = {
-                "file": (
-                    uploaded.name,
-                    uploaded.getvalue(),
-                    uploaded.type
-                    or "application/octet-stream",
-                )
-            }
+            if uploaded.name.lower().endswith(".csv"):
 
-            data = {
-                "company_name": company_name.strip(),
-                "manager_email": manager_email.strip(),
-                "report_name": report_name.strip(),
-                "user_id": st.session_state.user_id,
-                "user_email": st.session_state.user_email,
-            }
-
-            with st.spinner(
-                "🤖 Running operational automation..."
-            ):
-
-                response = requests.post(
-                    n8n_url,
-                    files=files,
-                    data=data,
-                    timeout=120,
-                )
-
-            if response.status_code < 300:
-
-                st.session_state.n8n_result = (
-                    normalize_n8n_response(response)
-                )
-
-                st.session_state.n8n_sent = True
-
-                st.success(
-                    "✅ Operational automation completed."
-                )
+                df = pd.read_csv(uploaded)
 
             else:
 
-                st.error("❌ " + n8n_failure_message(response, "n8n workflow"))
-                error_detail = safe_n8n_error_detail(response)
-                if error_detail:
-                    st.code(error_detail, language="text")
+                xls = pd.ExcelFile(uploaded)
 
-        except requests.exceptions.Timeout:
+                sheet = (
+                    "Operational_Data"
+                    if "Operational_Data" in xls.sheet_names
+                    else xls.sheet_names[0]
+                )
 
-            st.warning(
-                "⏱️ n8n timed out. The workflow may still be running."
-            )
+                df = pd.read_excel(
+                    uploaded,
+                    sheet_name=sheet,
+                )
 
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
 
             st.error(
-                f"❌ Could not connect to n8n: {e}"
+                f"❌ Could not read the uploaded file: {e}"
             )
 
+            st.stop()
 
-# ============================================================
-# MAIN TABS
-# ============================================================
 
-tabs = st.tabs(
-    [
-        "📊 Executive Dashboard",
-        "🚨 AI Insights",
-        "👥 Employee Risk",
-        "✅ Action Center",
-        "🤖 Management Copilot",
-        "📄 Reports",
-        "💳 Billing",
+    # ============================================================
+    # VALIDATE DATA
+    # ============================================================
+
+    required_columns = [
+        "Employee_ID",
+        "Employee_Name",
+        "Team",
+        "Target",
+        "Production",
+        "AHT_Actual",
+        "Quality_%",
+        "SLA_%",
+        # These two matter: engine.py's analyze_data() requires them too
+        # (see its REQUIRED list). Without checking for them here, a file
+        # could pass this gate cleanly and then crash a moment later
+        # inside analyze_data() with a confusing "Missing columns" error.
+        "Attendance",
+        "Error_Count",
     ]
-)
 
+    missing_columns = [
+        col
+        for col in required_columns
+        if col not in df.columns
+    ]
 
-# ============================================================
-# TAB 1 — EXECUTIVE DASHBOARD
-# ============================================================
+    if missing_columns:
 
-with tabs[0]:
-
-    left, right = st.columns([1.4, 1])
-
-    with left:
-
-        st.subheader("Team Performance")
-
-        team_df = result.get(
-            "team",
-            pd.DataFrame(),
+        st.error(
+            "❌ Required columns are missing."
         )
 
-        if (
-            isinstance(team_df, pd.DataFrame)
-            and not team_df.empty
-        ):
+        st.write(missing_columns)
 
-            st.dataframe(
-                team_df,
-                use_container_width=True,
-                hide_index=True,
+        st.stop()
+
+
+    # ============================================================
+    # LOCAL ANALYSIS
+    # ============================================================
+
+    require_trial_analysis(uploaded, st.session_state.industry, {"productivity": productivity_target, "quality": quality_target, "sla": sla_target, "aht": aht_target})
+
+    with st.spinner("🧠 Analyzing operational data against your KPI targets..."):
+
+        try:
+
+            result = analyze_data(
+                df,
+                productivity_target=productivity_target,
+                quality_target=quality_target,
+                sla_target=sla_target,
+                aht_target=aht_target,
             )
 
-            if (
-                "Team" in team_df.columns
-                and "Productivity_%" in team_df.columns
-            ):
+        except Exception as e:
 
-                st.subheader(
-                    "Productivity by Team"
-                )
-
-                st.bar_chart(
-                    team_df.set_index("Team")[
-                        "Productivity_%"
-                    ]
-                )
-
-        else:
-
-            st.info(
-                "No team-level data available."
+            st.error(
+                f"❌ Analysis failed: {e}"
             )
 
-    with right:
+            st.stop()
 
-        st.subheader(
-            "Management Snapshot"
-        )
+    _analysis_elapsed = time.time() - _analysis_start_time
 
-        employees = result.get(
-            "employees",
-            pd.DataFrame(),
-        )
-
-        if (
-            isinstance(employees, pd.DataFrame)
-            and not employees.empty
-        ):
-
-            st.metric(
-                "Employees analyzed",
-                len(employees),
-            )
-
-            if "Risk_Score" in employees.columns:
-
-                st.metric(
-                    "Highest employee risk score",
-                    f"{employees['Risk_Score'].max():.2f}",
-                )
-
-        st.write(
-            "**Current KPI position**"
-        )
-
-        for item in summary_points:
-            st.write(item)
+    st.session_state.analysis_result = result
+    st.session_state.analysis_df = df
 
 
-# ============================================================
-# TAB 2 — AI INSIGHTS
-# ============================================================
+    # ============================================================
+    # KPI CALCULATIONS
+    # ============================================================
 
-with tabs[1]:
+    overall = result["overall"]
 
-    st.subheader(
-        "🚨 Automated Findings"
+    productivity = float(
+        overall["productivity"]
     )
 
-    findings_df = result.get(
-        "findings",
-        pd.DataFrame(),
+    quality = float(
+        overall["quality"]
     )
 
-    if (
-        isinstance(findings_df, pd.DataFrame)
-        and not findings_df.empty
-    ):
-
-        st.dataframe(
-            findings_df,
-            use_container_width=True,
-            hide_index=True,
-        )
-
-    else:
-
-        st.success(
-            "✅ No threshold breaches detected."
-        )
-
-    st.info(
-        "Root causes are evidence-based hypotheses. "
-        "The available data may not prove causality."
+    sla = float(
+        overall["sla"]
     )
 
-
-# ============================================================
-# TAB 3 — EMPLOYEE RISK
-# ============================================================
-
-with tabs[2]:
-
-    st.subheader(
-        "👥 Employee Risk"
+    aht = float(
+        overall["aht"]
     )
 
-    employee_data = result.get(
-        "employees",
-        pd.DataFrame(),
+    productivity_gap = (
+        productivity - productivity_target
     )
 
-    if (
-        isinstance(employee_data, pd.DataFrame)
-        and not employee_data.empty
-    ):
+    quality_gap = (
+        quality - quality_target
+    )
 
-        sort_cols = [
-            c
-            for c in [
-                "Risk_Score",
-                "Avg_Productivity",
-            ]
-            if c in employee_data.columns
+    sla_gap = (
+        sla - sla_target
+    )
+
+    aht_gap = (
+        aht - aht_target
+    )
+
+    breaches = sum(
+        [
+            productivity < productivity_target,
+            quality < quality_target,
+            sla < sla_target,
+            aht > aht_target,
         ]
+    )
 
-        if sort_cols:
+    if breaches == 0:
 
-            employee_data = employee_data.sort_values(
-                sort_cols,
-                ascending=[
-                    False
-                ] * len(sort_cols),
-            )
+        risk_level = "🟢 LOW RISK"
 
-        st.dataframe(
-            employee_data,
-            use_container_width=True,
-            hide_index=True,
-        )
+    elif breaches == 1:
+
+        risk_level = "🟡 MEDIUM RISK"
+
+    elif breaches == 2:
+
+        risk_level = "🟠 HIGH RISK"
 
     else:
 
-        st.info(
-            "No employee-level risk data available."
-        )
+        risk_level = "🔴 CRITICAL RISK"
 
 
-# ============================================================
-# TAB 4 — ACTION CENTER
-# ============================================================
-
-with tabs[3]:
-
-    st.subheader(
-        "✅ Recommended Actions"
+    actions_df = result.get(
+        "actions",
+        pd.DataFrame(),
     )
+
+    action_count = (
+        len(actions_df)
+        if isinstance(actions_df, pd.DataFrame)
+        else 0
+    )
+
+    high_priority_count = 0
 
     if (
         isinstance(actions_df, pd.DataFrame)
         and not actions_df.empty
     ):
 
-        st.dataframe(
-            actions_df,
-            use_container_width=True,
-            hide_index=True,
+        for col in [
+            "Priority",
+            "priority",
+            "Priority_Level",
+            "priority_level",
+        ]:
+
+            if col in actions_df.columns:
+
+                high_priority_count = len(
+                    actions_df[
+                        actions_df[col]
+                        .astype(str)
+                        .str.lower()
+                        .isin(
+                            [
+                                "high",
+                                "critical",
+                            ]
+                        )
+                    ]
+                )
+
+                break
+
+
+    # ============================================================
+    # KPI PERFORMANCE
+    # ============================================================
+
+    st.markdown(
+        f'<div class="small-muted" style="margin:.25rem 0 1rem;">'
+        f'{company_name or "Your organization"} · {report_name} · '
+        f'{len(df)} rows analyzed in {_analysis_elapsed:.2f}s</div>',
+        unsafe_allow_html=True,
+    )
+
+    k1, k2, k3, k4 = st.columns(4)
+
+    with k1:
+        render_metric_card(
+            "📈", "Productivity", f"{productivity:.2f}%",
+            delta=f"{productivity_gap:+.2f}% vs target",
+            delta_tone="good" if productivity_gap >= 0 else "bad",
+        )
+
+    with k2:
+        render_metric_card(
+            "✔️", "Quality", f"{quality:.2f}%",
+            delta=f"{quality_gap:+.2f}% vs target",
+            delta_tone="good" if quality_gap >= 0 else "bad",
+        )
+
+    with k3:
+        render_metric_card(
+            "⏱️", "SLA", f"{sla:.2f}%",
+            delta=f"{sla_gap:+.2f}% vs target",
+            delta_tone="good" if sla_gap >= 0 else "bad",
+        )
+
+    with k4:
+        render_metric_card(
+            "⌛", "Average AHT", f"{aht:.2f}",
+            delta=f"{aht_gap:+.2f} vs target",
+            delta_tone="bad" if aht_gap > 0 else "good",
+        )
+
+
+    # ============================================================
+    # PERFORMANCE TREND + RISK ALERTS
+    # ============================================================
+
+    trend_data = pd.DataFrame()
+    if "Date" in df.columns:
+        _trend_source = df.copy()
+        _trend_source["Date"] = pd.to_datetime(_trend_source["Date"], errors="coerce")
+        _trend_source = _trend_source.dropna(subset=["Date"])
+        if not _trend_source.empty:
+            _trend_source["Period"] = _trend_source["Date"].dt.to_period("W").astype(str)
+            _trend_rows = []
+            for _period, _group in _trend_source.groupby("Period", sort=True):
+                _row = {"Period": _period}
+                if "Production" in _group.columns and "Target" in _group.columns:
+                    _target_sum = pd.to_numeric(_group["Target"], errors="coerce").sum()
+                    _production_sum = pd.to_numeric(_group["Production"], errors="coerce").sum()
+                    if _target_sum:
+                        _row["Productivity"] = (_production_sum / _target_sum) * 100
+                if "Quality_%" in _group.columns:
+                    _row["Quality"] = pd.to_numeric(_group["Quality_%"], errors="coerce").mean()
+                if "SLA_%" in _group.columns:
+                    _row["SLA"] = pd.to_numeric(_group["SLA_%"], errors="coerce").mean()
+                _trend_rows.append(_row)
+            trend_data = pd.DataFrame(_trend_rows).set_index("Period") if _trend_rows else pd.DataFrame()
+
+    # A stable current-period view keeps the dashboard useful when the uploaded
+    # file has no Date column or contains only one reporting period.
+    if trend_data.empty:
+        trend_data = pd.DataFrame(
+            {
+                "Productivity": [productivity],
+                "Quality": [quality],
+                "SLA": [sla],
+            },
+            index=["Current upload"],
+        )
+
+    trend_col, alerts_col = st.columns([2.15, 1])
+
+    with trend_col:
+        with st.container(border=True):
+            st.markdown('<div class="gi-panel-title">KPI Performance Trend</div>', unsafe_allow_html=True)
+            _has_real_trend = len(trend_data.index) >= 2
+            _chart_subtitle = (
+                "Productivity, quality and SLA over time"
+                if _has_real_trend
+                else "Current KPI position — add multiple dates to display a trend"
+            )
+            st.markdown(
+                f'<div class="gi-panel-subtitle">{_chart_subtitle}</div>',
+                unsafe_allow_html=True,
+            )
+
+            if _has_real_trend:
+                _chart_frame = (
+                    trend_data.reset_index()
+                    .melt(id_vars=[trend_data.index.name or "index"], var_name="KPI", value_name="Value")
+                )
+                _period_column = trend_data.index.name or "index"
+                _chart = (
+                    alt.Chart(_chart_frame)
+                    .mark_line(point=alt.OverlayMarkDef(size=55), strokeWidth=2.5)
+                    .encode(
+                        x=alt.X(f"{_period_column}:N", title=None, axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(zero=True)),
+                        color=alt.Color(
+                            "KPI:N",
+                            scale=alt.Scale(
+                                domain=["Productivity", "Quality", "SLA"],
+                                range=["#0EA5E9", "#0F766E", "#EF4444"],
+                            ),
+                            legend=alt.Legend(orient="bottom", title=None),
+                        ),
+                        tooltip=[_period_column, "KPI", alt.Tooltip("Value:Q", format=".1f")],
+                    )
+                )
+            else:
+                _current_kpis = pd.DataFrame(
+                    {
+                        "KPI": ["Productivity", "Quality", "SLA"],
+                        "Value": [productivity, quality, sla],
+                    }
+                )
+                _chart = (
+                    alt.Chart(_current_kpis)
+                    .mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6, size=54)
+                    .encode(
+                        x=alt.X("KPI:N", title=None, sort=None, axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y("Value:Q", title="Percent", scale=alt.Scale(zero=True)),
+                        color=alt.Color(
+                            "KPI:N",
+                            scale=alt.Scale(
+                                domain=["Productivity", "Quality", "SLA"],
+                                range=["#0EA5E9", "#0F766E", "#EF4444"],
+                            ),
+                            legend=None,
+                        ),
+                        tooltip=["KPI", alt.Tooltip("Value:Q", format=".1f")],
+                    )
+                )
+
+            _chart = _chart.properties(height=300).configure(
+                background="#FFFFFF"
+            ).configure_view(
+                stroke=None
+            ).configure_axis(
+                labelColor="#52525B",
+                titleColor="#52525B",
+                domainColor="#E5E7EB",
+                tickColor="#E5E7EB",
+                gridColor="#EEF0F3",
+            ).configure_legend(
+                labelColor="#27272A"
+            )
+            st.altair_chart(_chart, use_container_width=True, theme=None)
+
+    with alerts_col:
+        with st.container(border=True):
+            st.markdown('<div class="gi-panel-title">⚠ Risk Alerts</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="gi-panel-subtitle">{breaches} active signal(s)</div>',
+                unsafe_allow_html=True,
+            )
+
+            _alerts = []
+            if productivity < productivity_target:
+                _alerts.append(("Productivity below target", f"{productivity:.1f}% vs {productivity_target}%", "High"))
+            if quality < quality_target:
+                _alerts.append(("Quality below target", f"{quality:.1f}% vs {quality_target}%", "High"))
+            if sla < sla_target:
+                _alerts.append(("SLA below target", f"{sla:.1f}% vs {sla_target}%", "Medium"))
+            if aht > aht_target:
+                _alerts.append(("Average AHT rising", f"{aht:.1f} vs {aht_target}", "Medium"))
+
+            if not _alerts:
+                st.success("All monitored KPIs are within target.")
+            else:
+                for _name, _meta, _level in _alerts:
+                    st.markdown(
+                        f'''<div class="gi-risk-alert">
+    <div><div class="gi-risk-name">{_name}</div><div class="gi-risk-meta">{_meta}</div></div>
+    <div class="gi-risk-level">{_level}</div>
+    </div>''',
+                        unsafe_allow_html=True,
+                    )
+
+
+    # ============================================================
+    # EXECUTIVE SUMMARY
+    # ============================================================
+
+    summary_points = []
+
+    summary_points.append(
+        f"{'🔴' if productivity < productivity_target else '🟢'} "
+        f"Productivity: {productivity:.1f}% vs "
+        f"{productivity_target}% target."
+    )
+
+    summary_points.append(
+        f"{'🔴' if quality < quality_target else '🟢'} "
+        f"Quality: {quality:.1f}% vs "
+        f"{quality_target}% target."
+    )
+
+    summary_points.append(
+        f"{'🔴' if sla < sla_target else '🟢'} "
+        f"SLA: {sla:.1f}% vs "
+        f"{sla_target}% target."
+    )
+
+    summary_points.append(
+        f"{'🟠' if aht > aht_target else '🟢'} "
+        f"AHT: {aht:.1f} vs "
+        f"{aht_target} target."
+    )
+
+    if breaches >= 3:
+
+        recommendation = (
+            "Immediate management attention is recommended. "
+            "Multiple KPI thresholds are breached. Prioritize "
+            "root-cause analysis, targeted corrective actions, "
+            "and close monitoring."
+        )
+
+    elif breaches >= 1:
+
+        recommendation = (
+            "Management should review the affected KPIs, validate "
+            "contributing factors, and initiate targeted corrective actions."
         )
 
     else:
 
-        st.success(
-            "No action items generated."
+        recommendation = (
+            "Operations are within defined KPI thresholds. Continue "
+            "monitoring performance and maintain current processes."
         )
 
 
-# ============================================================
-# TAB 5 — MANAGEMENT COPILOT
-# ============================================================
+    st.subheader("🧠 Executive Summary")
 
-with tabs[4]:
+    for point in summary_points:
+        st.write(point)
 
-    st.subheader(
-        "🤖 Management Copilot"
+    st.info(
+        f"💡 **Management Recommendation:** {recommendation}"
     )
 
-    st.caption(
-        "Ask questions about the uploaded operational data. "
-        "The Copilot is instructed to use only the supplied "
-        "operational context."
-    )
 
-    question = st.text_input(
-        "Ask your operational question",
-        placeholder=(
-            "Which team has the quality drop and "
-            "what action should be taken?"
-        ),
-        key="copilot_question",
-    )
+    # ============================================================
+    # N8N OPERATIONAL AUTOMATION
+    # ============================================================
 
-    ask_copilot = st.button(
-        "🚀 Ask Management Copilot",
-        type="primary",
-        use_container_width=True,
-        key="ask_management_copilot",
-    )
+    if n8n_url and not st.session_state.n8n_sent:
 
-    if ask_copilot:
-
-        if not question.strip():
+        if (
+            not company_name.strip()
+            or not manager_email.strip()
+        ):
 
             st.warning(
-                "⚠️ Please enter a question first."
-            )
-
-        elif not plan_config["copilot"]:
-
-            st.error(
-                "Copilot is not available on this plan."
-            )
-
-        elif not copilot_url:
-
-            st.error(
-                "❌ N8N_COPILOT_WEBHOOK_URL is not "
-                "configured in Streamlit Secrets."
+                "Enter Company Name and Manager Email to run "
+                "the configured n8n operational automation."
             )
 
         else:
 
-            context = build_copilot_context(
-                company_name,
-                report_name,
-                result,
-                productivity_target,
-                quality_target,
-                sla_target,
-                aht_target,
-                risk_level,
-                summary_points,
-            )
-
-            payload = {
-                "question": question.strip(),
-                "company_name": company_name.strip(),
-                "report_name": report_name.strip(),
-                "context": context,
-                "user_id": st.session_state.user_id,
-                "user_email": st.session_state.user_email,
-            }
-
             try:
 
+                uploaded.seek(0)
+
+                files = {
+                    "file": (
+                        uploaded.name,
+                        uploaded.getvalue(),
+                        uploaded.type
+                        or "application/octet-stream",
+                    )
+                }
+
+                data = {
+                    "company_name": company_name.strip(),
+                    "manager_email": manager_email.strip(),
+                    "report_name": report_name.strip(),
+                    "user_id": st.session_state.user_id,
+                    "user_email": st.session_state.user_email,
+                }
+
                 with st.spinner(
-                    "🤖 Management Copilot is analyzing..."
+                    "🤖 Running operational automation..."
                 ):
 
-                    copilot_response = requests.post(
-                        copilot_url,
-                        json=payload,
-                        headers={
-                            "Content-Type": "application/json"
-                        },
+                    response = requests.post(
+                        n8n_url,
+                        files=files,
+                        data=data,
                         timeout=120,
                     )
 
-                if copilot_response.status_code < 300:
+                if response.status_code < 300:
 
-                    raw = normalize_n8n_response(
-                        copilot_response
+                    st.session_state.n8n_result = (
+                        normalize_n8n_response(response)
                     )
 
-                    answer_data = parse_ai_answer(
-                        raw
-                    )
+                    st.session_state.n8n_sent = True
 
-                    st.session_state.copilot_answer = (
-                        answer_data
-                    )
-
-                    st.session_state.last_question = (
-                        question.strip()
+                    st.success(
+                        "✅ Operational automation completed."
                     )
 
                 else:
 
-                    st.session_state.copilot_answer = None
-
-                    st.error("❌ " + n8n_failure_message(copilot_response, "Copilot workflow"))
-                    error_detail = safe_n8n_error_detail(copilot_response)
+                    st.error("❌ " + n8n_failure_message(response, "n8n workflow"))
+                    error_detail = safe_n8n_error_detail(response)
                     if error_detail:
                         st.code(error_detail, language="text")
 
             except requests.exceptions.Timeout:
 
-                st.session_state.copilot_answer = None
-
-                st.error(
-                    "⏱️ Management Copilot timed out. "
-                    "Please try again."
-                )
-
-            except requests.exceptions.ConnectionError:
-
-                st.session_state.copilot_answer = None
-
-                st.error(
-                    "🔌 Could not connect to the n8n "
-                    "Copilot webhook."
+                st.warning(
+                    "⏱️ n8n timed out. The workflow may still be running."
                 )
 
             except requests.exceptions.RequestException as e:
 
-                st.session_state.copilot_answer = None
-
                 st.error(
-                    f"❌ Copilot request failed: {e}"
+                    f"❌ Could not connect to n8n: {e}"
                 )
 
-            except Exception as e:
 
-                st.session_state.copilot_answer = None
+    # ============================================================
+    # MAIN TABS
+    # ============================================================
 
-                st.error(
-                    f"❌ Unexpected Copilot error: {e}"
-                )
+    tabs = reporting_navigation()
 
-    if st.session_state.copilot_answer:
 
-        st.divider()
+    # ============================================================
+    # TAB 1 — EXECUTIVE DASHBOARD
+    # ============================================================
 
-        st.markdown(
-            "### 🧠 Copilot Analysis"
-        )
+    with tabs[0]:
 
-        st.caption(
-            "Question: "
-            + st.session_state.last_question
-        )
+        left, right = st.columns([1.4, 1])
 
-        answer = st.session_state.copilot_answer
+        with left:
 
-        if isinstance(answer, dict):
-
-            what = answer.get(
-                "what_is_happening"
-            )
-
-            factors = answer.get(
-                "contributing_factors",
-                [],
-            )
-
-            rec_actions = answer.get(
-                "recommended_actions",
-                [],
-            )
-
-            priority = answer.get(
-                "priority",
-                "",
-            )
-
-            owner = answer.get(
-                "owner",
-                "",
-            )
-
-            timeline = answer.get(
-                "timeline",
-                "",
-            )
-
-            sufficiency = answer.get(
-                "data_sufficiency"
-            )
-
-            if what:
-
-                st.markdown(
-                    "#### 🔎 What is happening"
-                )
-
-                st.info(what)
-
-            if factors:
-
-                st.markdown(
-                    "#### 🔍 Contributing Factors"
-                )
-
-                for factor in factors:
-                    st.write(
-                        f"• {factor}"
-                    )
-
-            if rec_actions:
-
-                st.markdown(
-                    "#### ✅ Recommended Actions"
-                )
-
-                for i, action in enumerate(
-                    rec_actions,
-                    1,
-                ):
-
-                    st.markdown(
-                        f"**{i}.** {action}"
-                    )
-
-            st.markdown(
-                "#### 📌 Management Decision"
-            )
-
-            d1, d2, d3 = st.columns(3)
-
-            with d1:
-                st.metric(
-                    "Priority",
-                    priority or "N/A",
-                )
-
-            with d2:
-                st.metric(
-                    "Owner",
-                    owner or "N/A",
-                )
-
-            with d3:
-                st.metric(
-                    "Timeline",
-                    timeline or "N/A",
-                )
-
-            if sufficiency:
-
-                st.markdown(
-                    "#### 📊 Data Sufficiency"
-                )
-
-                st.warning(
-                    sufficiency
-                )
-
-        elif isinstance(answer, str):
-
-            st.markdown(answer)
-
-        else:
-
-            st.code(
-                str(answer),
-                language="text",
-            )
-
-
-# ============================================================
-# TAB 6 — REPORTS
-# ============================================================
-
-with tabs[5]:
-
-    st.subheader(
-        "📄 Management Reports"
-    )
-
-    if not plan_config["pdf"]:
-
-        st.warning(
-            "PDF reporting is not available on your current plan."
-        )
-
-    else:
-
-        report_result = dict(result)
-
-        report_result["_targets"] = {
-            "productivity": productivity_target,
-            "quality": quality_target,
-            "sla": sla_target,
-            "aht": aht_target,
-        }
-
-        if st.button(
-            "📄 Generate Executive PDF",
-            type="primary",
-            use_container_width=True,
-            key="generate_executive_pdf",
-        ):
-
-            try:
-
-                with st.spinner(
-                    "Generating management report..."
-                ):
-
-                    pdf = create_pdf_report(
-                        company_name
-                        or "Organization",
-                        report_name
-                        or "Operations Report",
-                        report_result,
-                        risk_level,
-                        summary_points,
-                        recommendation,
-                    )
-
-                st.session_state.report_pdf = pdf
-
-                st.session_state.report_generated_at = (
-                    datetime.now()
-                )
-
-            except Exception as e:
-
-                st.error(
-                    f"❌ Could not generate PDF: {e}"
-                )
-
-        if st.session_state.report_pdf:
-
-            filename = (
-                f"{company_name or 'operations'}_report_"
-                f"{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
-            )
-
-            st.download_button(
-                "⬇️ Download Executive PDF",
-                data=st.session_state.report_pdf,
-                file_name=filename,
-                mime="application/pdf",
-                use_container_width=True,
-                key="download_executive_pdf",
-            )
-
-            if st.session_state.report_generated_at:
-
-                st.caption(
-                    "Generated "
-                    + st.session_state.report_generated_at.strftime(
-                        "%d %b %Y, %H:%M"
-                    )
-                )
-
-        st.divider()
-
-        st.subheader(
-            "📧 Email Report"
-        )
-
-        if not plan_config["email"]:
-
-            st.info(
-                "Email delivery is available on "
-                "Professional and Business plans."
-            )
-
-        else:
-
-            recipient = st.text_input(
-                "Recipient email",
-                value=manager_email,
-                key="report_recipient",
-            )
-
-            if st.button(
-                "📨 Email PDF Report",
-                use_container_width=True,
-                key="email_pdf_report",
-            ):
-
-                if not recipient.strip():
-
-                    st.warning(
-                        "Enter a recipient email address."
-                    )
-
-                elif not st.session_state.report_pdf:
-
-                    st.warning(
-                        "Generate the PDF first."
-                    )
-
-                else:
-
-                    try:
-
-                        send_email_report(
-                            recipient.strip(),
-                            f"{company_name} - {report_name}",
-                            (
-                                "Please find attached the management "
-                                f"report for {company_name or 'your organization'}.\n\n"
-                                "Generated by Generative Insight AI "
-                                "Operations Copilot."
-                            ),
-                            st.session_state.report_pdf,
-                            "operations_report.pdf",
-                        )
-
-                        st.success(
-                            "✅ Report emailed successfully."
-                        )
-
-                    except Exception as e:
-
-                        st.error(
-                            f"❌ Email failed: {e}"
-                        )
-
-        st.divider()
-
-        st.subheader(
-            "📥 Data Exports"
-        )
-
-        e1, e2 = st.columns(2)
-
-        with e1:
+            st.subheader("Team Performance")
 
             team_df = result.get(
                 "team",
                 pd.DataFrame(),
             )
 
-            if isinstance(
-                team_df,
-                pd.DataFrame,
+            if (
+                isinstance(team_df, pd.DataFrame)
+                and not team_df.empty
             ):
 
-                st.download_button(
-                    "⬇️ Team Analysis CSV",
-                    team_df.to_csv(
-                        index=False
-                    ).encode("utf-8"),
-                    "team_analysis.csv",
-                    "text/csv",
+                st.dataframe(
+                    team_df,
                     use_container_width=True,
-                    key="download_team_analysis",
+                    hide_index=True,
                 )
 
-        with e2:
+                if (
+                    "Team" in team_df.columns
+                    and "Productivity_%" in team_df.columns
+                ):
 
-            if isinstance(
+                    st.subheader(
+                        "Productivity by Team"
+                    )
+
+                    st.bar_chart(
+                        team_df.set_index("Team")[
+                            "Productivity_%"
+                        ]
+                    )
+
+            else:
+
+                st.info(
+                    "No team-level data available."
+                )
+
+        with right:
+
+            st.subheader(
+                "Management Snapshot"
+            )
+
+            employees = result.get(
+                "employees",
+                pd.DataFrame(),
+            )
+
+            if (
+                isinstance(employees, pd.DataFrame)
+                and not employees.empty
+            ):
+
+                st.metric(
+                    "Employees analyzed",
+                    len(employees),
+                )
+
+                if "Risk_Score" in employees.columns:
+
+                    st.metric(
+                        "Highest employee risk score",
+                        f"{employees['Risk_Score'].max():.2f}",
+                    )
+
+            st.write(
+                "**Current KPI position**"
+            )
+
+            for item in summary_points:
+                st.write(item)
+
+
+    # ============================================================
+    # TAB 2 — AI INSIGHTS
+    # ============================================================
+
+    with tabs[1]:
+
+        st.subheader(
+            "🚨 Automated Findings"
+        )
+
+        findings_df = result.get(
+            "findings",
+            pd.DataFrame(),
+        )
+
+        if (
+            isinstance(findings_df, pd.DataFrame)
+            and not findings_df.empty
+        ):
+
+            st.dataframe(
+                findings_df,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        else:
+
+            st.success(
+                "✅ No threshold breaches detected."
+            )
+
+        st.info(
+            "Root causes are evidence-based hypotheses. "
+            "The available data may not prove causality."
+        )
+
+
+    # ============================================================
+    # TAB 3 — EMPLOYEE RISK
+    # ============================================================
+
+    with tabs[2]:
+
+        st.subheader(
+            "👥 Employee Risk"
+        )
+
+        employee_data = result.get(
+            "employees",
+            pd.DataFrame(),
+        )
+
+        if (
+            isinstance(employee_data, pd.DataFrame)
+            and not employee_data.empty
+        ):
+
+            sort_cols = [
+                c
+                for c in [
+                    "Risk_Score",
+                    "Avg_Productivity",
+                ]
+                if c in employee_data.columns
+            ]
+
+            if sort_cols:
+
+                employee_data = employee_data.sort_values(
+                    sort_cols,
+                    ascending=[
+                        False
+                    ] * len(sort_cols),
+                )
+
+            st.dataframe(
+                employee_data,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        else:
+
+            st.info(
+                "No employee-level risk data available."
+            )
+
+
+    # ============================================================
+    # TAB 4 — ACTION CENTER
+    # ============================================================
+
+    with tabs[3]:
+
+        st.subheader(
+            "✅ Recommended Actions"
+        )
+
+        if (
+            isinstance(actions_df, pd.DataFrame)
+            and not actions_df.empty
+        ):
+
+            st.dataframe(
                 actions_df,
-                pd.DataFrame,
-            ):
+                use_container_width=True,
+                hide_index=True,
+            )
 
-                st.download_button(
-                    "⬇️ Action Plan CSV",
-                    actions_df.to_csv(
-                        index=False
-                    ).encode("utf-8"),
-                    "action_plan.csv",
-                    "text/csv",
-                    use_container_width=True,
-                    key="download_action_plan",
+        else:
+
+            st.success(
+                "No action items generated."
+            )
+
+
+    # ============================================================
+    # TAB 5 — MANAGEMENT COPILOT
+    # ============================================================
+
+    with tabs[4]:
+
+        st.subheader(
+            "🤖 Management Copilot"
+        )
+
+        st.caption(
+            "Ask questions about the uploaded operational data. "
+            "The Copilot is instructed to use only the supplied "
+            "operational context."
+        )
+
+        question = st.text_input(
+            "Ask your operational question",
+            placeholder=(
+                "Which team has the quality drop and "
+                "what action should be taken?"
+            ),
+            key="copilot_question",
+        )
+
+        ask_copilot = st.button(
+            "🚀 Ask Management Copilot",
+            type="primary",
+            use_container_width=True,
+            key="ask_management_copilot",
+        )
+
+        if ask_copilot:
+
+            if not question.strip():
+
+                st.warning(
+                    "⚠️ Please enter a question first."
+                )
+
+            elif not plan_config["copilot"]:
+
+                st.error(
+                    "Copilot is not available on this plan."
+                )
+
+            elif not copilot_url:
+
+                st.error(
+                    "❌ N8N_COPILOT_WEBHOOK_URL is not "
+                    "configured in Streamlit Secrets."
+                )
+
+            else:
+
+                context = build_copilot_context(
+                    company_name,
+                    report_name,
+                    result,
+                    productivity_target,
+                    quality_target,
+                    sla_target,
+                    aht_target,
+                    risk_level,
+                    summary_points,
+                )
+
+                payload = {
+                    "question": question.strip(),
+                    "company_name": company_name.strip(),
+                    "report_name": report_name.strip(),
+                    "context": context,
+                    "user_id": st.session_state.user_id,
+                    "user_email": st.session_state.user_email,
+                }
+
+                try:
+
+                    with st.spinner(
+                        "🤖 Management Copilot is analyzing..."
+                    ):
+
+                        copilot_response = requests.post(
+                            copilot_url,
+                            json=payload,
+                            headers={
+                                "Content-Type": "application/json"
+                            },
+                            timeout=120,
+                        )
+
+                    if copilot_response.status_code < 300:
+
+                        raw = normalize_n8n_response(
+                            copilot_response
+                        )
+
+                        answer_data = parse_ai_answer(
+                            raw
+                        )
+
+                        st.session_state.copilot_answer = (
+                            answer_data
+                        )
+
+                        st.session_state.last_question = (
+                            question.strip()
+                        )
+
+                    else:
+
+                        st.session_state.copilot_answer = None
+
+                        st.error("❌ " + n8n_failure_message(copilot_response, "Copilot workflow"))
+                        error_detail = safe_n8n_error_detail(copilot_response)
+                        if error_detail:
+                            st.code(error_detail, language="text")
+
+                except requests.exceptions.Timeout:
+
+                    st.session_state.copilot_answer = None
+
+                    st.error(
+                        "⏱️ Management Copilot timed out. "
+                        "Please try again."
+                    )
+
+                except requests.exceptions.ConnectionError:
+
+                    st.session_state.copilot_answer = None
+
+                    st.error(
+                        "🔌 Could not connect to the n8n "
+                        "Copilot webhook."
+                    )
+
+                except requests.exceptions.RequestException as e:
+
+                    st.session_state.copilot_answer = None
+
+                    st.error(
+                        f"❌ Copilot request failed: {e}"
+                    )
+
+                except Exception as e:
+
+                    st.session_state.copilot_answer = None
+
+                    st.error(
+                        f"❌ Unexpected Copilot error: {e}"
+                    )
+
+        if st.session_state.copilot_answer:
+
+            st.divider()
+
+            st.markdown(
+                "### 🧠 Copilot Analysis"
+            )
+
+            st.caption(
+                "Question: "
+                + st.session_state.last_question
+            )
+
+            answer = st.session_state.copilot_answer
+
+            if isinstance(answer, dict):
+
+                what = answer.get(
+                    "what_is_happening"
+                )
+
+                factors = answer.get(
+                    "contributing_factors",
+                    [],
+                )
+
+                rec_actions = answer.get(
+                    "recommended_actions",
+                    [],
+                )
+
+                priority = answer.get(
+                    "priority",
+                    "",
+                )
+
+                owner = answer.get(
+                    "owner",
+                    "",
+                )
+
+                timeline = answer.get(
+                    "timeline",
+                    "",
+                )
+
+                sufficiency = answer.get(
+                    "data_sufficiency"
+                )
+
+                if what:
+
+                    st.markdown(
+                        "#### 🔎 What is happening"
+                    )
+
+                    st.info(what)
+
+                if factors:
+
+                    st.markdown(
+                        "#### 🔍 Contributing Factors"
+                    )
+
+                    for factor in factors:
+                        st.write(
+                            f"• {factor}"
+                        )
+
+                if rec_actions:
+
+                    st.markdown(
+                        "#### ✅ Recommended Actions"
+                    )
+
+                    for i, action in enumerate(
+                        rec_actions,
+                        1,
+                    ):
+
+                        st.markdown(
+                            f"**{i}.** {action}"
+                        )
+
+                st.markdown(
+                    "#### 📌 Management Decision"
+                )
+
+                d1, d2, d3 = st.columns(3)
+
+                with d1:
+                    st.metric(
+                        "Priority",
+                        priority or "N/A",
+                    )
+
+                with d2:
+                    st.metric(
+                        "Owner",
+                        owner or "N/A",
+                    )
+
+                with d3:
+                    st.metric(
+                        "Timeline",
+                        timeline or "N/A",
+                    )
+
+                if sufficiency:
+
+                    st.markdown(
+                        "#### 📊 Data Sufficiency"
+                    )
+
+                    st.warning(
+                        sufficiency
+                    )
+
+            elif isinstance(answer, str):
+
+                st.markdown(answer)
+
+            else:
+
+                st.code(
+                    str(answer),
+                    language="text",
                 )
 
 
-# ============================================================
-# TAB 7 — BILLING
-# ============================================================
+    # ============================================================
+    # TAB 6 — REPORTS
+    # ============================================================
 
-with tabs[6]:
+    with tabs[5]:
 
-    st.subheader(
-        "💳 Subscription & Billing"
-    )
+        st.subheader(
+            "📄 Management Reports"
+        )
 
-    st.info(
-        f"You are currently using the "
-        f"**{st.session_state.user_plan}** plan."
-    )
+        if not plan_config["pdf"]:
 
-    show_pricing("billing")
+            st.warning(
+                "PDF reporting is not available on your current plan."
+            )
 
-    st.caption("Professional subscriptions are processed through Razorpay. Complete checkout and verify payment to activate access.")
+        else:
+
+            report_result = dict(result)
+
+            report_result["_targets"] = {
+                "productivity": productivity_target,
+                "quality": quality_target,
+                "sla": sla_target,
+                "aht": aht_target,
+            }
+
+            if st.button(
+                "📄 Generate Executive PDF",
+                type="primary",
+                use_container_width=True,
+                key="generate_executive_pdf",
+            ):
+
+                try:
+
+                    with st.spinner(
+                        "Generating management report..."
+                    ):
+
+                        pdf = create_pdf_report(
+                            company_name
+                            or "Organization",
+                            report_name
+                            or "Operations Report",
+                            report_result,
+                            risk_level,
+                            summary_points,
+                            recommendation,
+                        )
+
+                    st.session_state.report_pdf = pdf
+
+                    st.session_state.report_generated_at = (
+                        datetime.now()
+                    )
+
+                except Exception as e:
+
+                    st.error(
+                        f"❌ Could not generate PDF: {e}"
+                    )
+
+            if st.session_state.report_pdf:
+
+                filename = (
+                    f"{company_name or 'operations'}_report_"
+                    f"{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+                )
+
+                st.download_button(
+                    "⬇️ Download Executive PDF",
+                    data=st.session_state.report_pdf,
+                    file_name=filename,
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="download_executive_pdf",
+                )
+
+                if st.session_state.report_generated_at:
+
+                    st.caption(
+                        "Generated "
+                        + st.session_state.report_generated_at.strftime(
+                            "%d %b %Y, %H:%M"
+                        )
+                    )
+
+            st.divider()
+
+            st.subheader(
+                "📧 Email Report"
+            )
+
+            if not plan_config["email"]:
+
+                st.info(
+                    "Email delivery is available on "
+                    "Professional and Business plans."
+                )
+
+            else:
+
+                recipient = st.text_input(
+                    "Recipient email",
+                    value=manager_email,
+                    key="report_recipient",
+                )
+
+                if st.button(
+                    "📨 Email PDF Report",
+                    use_container_width=True,
+                    key="email_pdf_report",
+                ):
+
+                    if not recipient.strip():
+
+                        st.warning(
+                            "Enter a recipient email address."
+                        )
+
+                    elif not st.session_state.report_pdf:
+
+                        st.warning(
+                            "Generate the PDF first."
+                        )
+
+                    else:
+
+                        try:
+
+                            send_email_report(
+                                recipient.strip(),
+                                f"{company_name} - {report_name}",
+                                (
+                                    "Please find attached the management "
+                                    f"report for {company_name or 'your organization'}.\n\n"
+                                    "Generated by Generative Insight AI "
+                                    "Operations Copilot."
+                                ),
+                                st.session_state.report_pdf,
+                                "operations_report.pdf",
+                            )
+
+                            st.success(
+                                "✅ Report emailed successfully."
+                            )
+
+                        except Exception as e:
+
+                            st.error(
+                                f"❌ Email failed: {e}"
+                            )
+
+            st.divider()
+
+            st.subheader(
+                "📥 Data Exports"
+            )
+
+            e1, e2 = st.columns(2)
+
+            with e1:
+
+                team_df = result.get(
+                    "team",
+                    pd.DataFrame(),
+                )
+
+                if isinstance(
+                    team_df,
+                    pd.DataFrame,
+                ):
+
+                    st.download_button(
+                        "⬇️ Team Analysis CSV",
+                        team_df.to_csv(
+                            index=False
+                        ).encode("utf-8"),
+                        "team_analysis.csv",
+                        "text/csv",
+                        use_container_width=True,
+                        key="download_team_analysis",
+                    )
+
+            with e2:
+
+                if isinstance(
+                    actions_df,
+                    pd.DataFrame,
+                ):
+
+                    st.download_button(
+                        "⬇️ Action Plan CSV",
+                        actions_df.to_csv(
+                            index=False
+                        ).encode("utf-8"),
+                        "action_plan.csv",
+                        "text/csv",
+                        use_container_width=True,
+                        key="download_action_plan",
+                    )
 
 
-# ============================================================
-# AI PROMPT / DEBUG AREA
-# ============================================================
+    # ============================================================
+    # TAB 7 — BILLING
+    # ============================================================
 
-with st.expander(
-    "🧠 AI Analyst Context / Prompt",
-    expanded=False,
-):
+    with tabs[6]:
 
-    st.code(
-        make_ai_prompt(result),
-        language="text",
-    )
+        st.subheader(
+            "💳 Subscription & Billing"
+        )
+
+        st.info(
+            f"You are currently using the "
+            f"**{st.session_state.user_plan}** plan."
+        )
+
+        show_pricing("billing")
+
+        st.caption("Professional subscriptions are processed through Razorpay. Complete checkout and verify payment to activate access.")
 
 
-# ============================================================
-# FOOTER
-# ============================================================
+    # ============================================================
+    # AI PROMPT / DEBUG AREA
+    # ============================================================
 
-st.divider()
+    with st.expander(
+        "🧠 AI Analyst Context / Prompt",
+        expanded=False,
+    ):
 
-st.markdown(
-    f"""<div class="gi-footer">
-<strong>Generative Insight</strong> · AI Operations Copilot v{APP_VERSION}
-<br>
-Insights today. Intelligence tomorrow.
-<br>
-<a class="website-link" href="{WEBSITE_URL}" target="_blank" rel="noopener noreferrer">generativeinsight.in</a>
-&nbsp;·&nbsp;
-© {datetime.now().year}
-<br>
-🛡️ Enterprise-grade security for your operational data
-</div>""",
-    unsafe_allow_html=True,
-)
+        st.code(
+            make_ai_prompt(result),
+            language="text",
+        )
+
+
+    with tabs[7]:
+        render_bpo_trends(df, {"Productivity": productivity_target,
+            "Quality": quality_target, "SLA": sla_target, "AHT": aht_target})
